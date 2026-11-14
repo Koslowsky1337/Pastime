@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.1
 
 - Route names showed an empty box instead of the arrow between the two places; they now read "Orgrimmar » Sun Rock".
 
