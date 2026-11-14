@@ -302,3 +302,94 @@ function ns.LayoutCheck(roots)
     end
     return found
 end
+
+---------------------------------------------------------------------------
+-- /pastime shots: Vorzeige-Szenen stellen und von jeder einen Screenshot machen
+-- (für die Addon-Seite). Nichts davon wird gewertet oder gespeichert: die Spiele
+-- werden gestellt und am Ende verworfen.
+---------------------------------------------------------------------------
+local function card(rank, suit) return { rank = rank, suit = suit } end
+
+local SCENES = {
+    function()      -- Spielauswahl
+        ns.ShowLauncher()
+        ns.selected = ns.gamesById.rockfall
+        ns.UpdateUI()
+    end,
+    function()      -- Steinschlag mit halb gefülltem Feld
+        ns.StartGame(ns.gamesById.rockfall)
+        local g = ns.run.game
+        local colors = { { 0.10, 0.45, 0.90 }, { 0.85, 0.20, 0.20 }, { 0.12, 0.78, 0.10 }, { 0.64, 0.21, 0.93 },
+            { 0.95, 0.80, 0.25 }, { 1.00, 0.50, 0.00 }, { 0.30, 0.78, 0.88 } }
+        local heights = { 4, 3, 5, 2, 0, 3, 4, 1, 3, 5 }
+        for x = 0, 9 do
+            for h = 1, heights[x + 1] do g.board[20 - h][x] = colors[(x + h * 3) % #colors + 1] end
+        end
+        g.score, g.lines = 1240, 7
+        g:Render()
+    end,
+    function() ns.StartGame(ns.gamesById.murlocs) end,
+    function()      -- Kodo-Sprint: loslaufen
+        ns.StartGame(ns.gamesById.kodo)
+        ns.HandleKey("SPACE", true); ns.HandleKey("SPACE", false)
+    end,
+    function()      -- Hold'em mitten in einer Hand
+        ns.StartGame(ns.gamesById.holdem)
+        local g = ns.run.game
+        g.buyin, g.hands, g.button, g.bet = 400, 3, 2, 400
+        g.stacks = { 380, 290, 520, 310 }
+        g.holes = { { card(1, 1), card(13, 1) }, { card(7, 3), card(7, 4) }, { card(10, 2), card(9, 2) }, { card(4, 3), card(12, 4) } }
+        g.comm = { card(12, 1), card(5, 1), card(13, 3), card(2, 4), card(9, 1) }
+        g.folded, g.allin, g.says, g.reveal = { [4] = true }, {}, { [2] = L["raises"], [3] = L["calls"], [4] = L["folds"] }, false
+        g.c, g.r, g.acted = { 20, 60, 60, 20 }, { 0, 40, 40, 0 }, {}
+        g.street, g.cur, g.raises, g.seat, g.state = 2, 40, 1, 1, "act"
+        g.sub:SetText(L["Your turn."])
+        g:Render()
+    end,
+    function()      -- Goblin-Automat mit Gewinnlinie
+        ns.StartGame(ns.gamesById.slots)
+        local g = ns.run.game
+        g.grid = { { 5, 1, 2 }, { 5, 3, 1 }, { 6, 2, 4 }, { 5, 1, 3 }, { 2, 4, 1 } }
+        local _, cells = g.Evaluate(g.grid)
+        g.won, g.blinkOn = cells, true
+        g.msg:SetText("|cff80ff80+110 Gold|r")
+        g.sub:SetText(L["Winning line!"])
+        g:Render()
+    end,
+    function()      -- Ankunftsdialog (gestellt: nichts wird gewertet)
+        ns.StartGame(ns.gamesById.kobold)
+        local run = ns.run
+        local route
+        for _, r in pairs(ns.DB.routes) do
+            if type(r) == "table" and r.kind == "flug" then route = r; break end
+        end
+        route = route or { kind = "flug", from = "Crossroads", to = "Orgrimmar" }
+        run.game.score = 240
+        run.state = "paused"
+        run.landed = { kind = "flug", dest = ns.ShortName(route.to), bound = true, score = 240, route = route, rank = 1 }
+        ns.ShowLandedOverlay()
+        ns.UpdateSidePanel()
+    end,
+    function() ns.ShowFrame("records") end,
+}
+
+function ns.PhotoTour()
+    if InCombatLockdown() then return ns.Print(L["Not possible in combat."]) end
+    ns.ShowFrame()
+    local i = 0
+    local step
+    step = ns.Wrap("fotos", function()
+        i = i + 1
+        local scene = SCENES[i]
+        if not scene then
+            ns.ShowLauncher()
+            return ns.Print((L["%d screenshots saved in the Screenshots folder of your game."]):format(#SCENES))
+        end
+        scene()
+        C_Timer.After(1.2, ns.Wrap("fotos", function()
+            if Screenshot then Screenshot() end
+            C_Timer.After(0.8, step)
+        end))
+    end)
+    step()
+end

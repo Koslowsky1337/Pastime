@@ -453,6 +453,25 @@ for i = 1, 6 do PLAYER.y = PLAYER.y + 0.01; ttick(1) end
 check(not trip.active and not ns.frame:IsShown(), "weggegangen: verworfen, Fenster zu")
 check(PastimeDB.routes["zeppelin:Orgrimmar > Grom'gol"] == nil, "keine Strecke für verworfene Wartezeit")
 MOVING = false
+-- /pastime fotos: acht Szenen, je ein Screenshot, nichts wird gewertet oder gespeichert
+do
+    local shots, scoresBefore, goldBefore = 0, 0, PastimeDB.blackjack.gold
+    Screenshot = function() shots = shots + 1 end
+    for _, list in pairs(PastimeDB.scores) do scoresBefore = scoresBefore + #list end
+    local purses = 0
+    for _ in pairs(PastimeDB.purses) do purses = purses + 1 end
+    slash("fotos")
+    for _ = 1, 40 do RunTimers() end
+    local scoresAfter, pursesAfter = 0, 0
+    for _, list in pairs(PastimeDB.scores) do scoresAfter = scoresAfter + #list end
+    for id, p in pairs(PastimeDB.purses) do if p.table then pursesAfter = pursesAfter + 100 end; pursesAfter = pursesAfter + 1 end
+    check(shots == 8, "Fototour: acht Screenshots, sind " .. shots)
+    check(scoresAfter == scoresBefore and PastimeDB.blackjack.gold == goldBefore and pursesAfter < 100, "Fototour: nichts gewertet, kein Tisch gespeichert")
+    check(ns.launcher:IsVisible() and not ns.run, "Fototour: endet in der Spielauswahl")
+    local errs = 0
+    for _, e in ipairs(PastimeDB.log) do if e.l == "E" then errs = errs + 1; print("  " .. e.c .. ": " .. e.m) end end
+    check(errs == 0, "Fototour: keine Fehler im Protokoll")
+end
 slash("hafen")
 
 -- Reiserekorde-Ansicht ----------------------------------------------------------

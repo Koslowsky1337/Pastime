@@ -730,6 +730,7 @@ local ALIASES = {
     hafen = "dock", haltestelle = "dock", docks = "dock",
     optionen = "options", einstellungen = "options", config = "options", settings = "options",
     bericht = "diag", hilfe = "help", ["?"] = "help",
+    fotos = "shots", screenshots = "shots",
 }
 
 function ns.ToggleSetting(key)
@@ -814,6 +815,8 @@ function ns.HandleSlash(msg)
     elseif cmd == "layout" then
         if not ns.DebugOn() then return ns.Print("Layout check needs |cffffffff/pastime debug|r.") end
         ns.Print(("Layout check: %d problem(s) – see |cffffffff/pastime log|r"):format(#ns.LayoutCheck()))
+    elseif cmd == "shots" then
+        if ns.PhotoTour then ns.PhotoTour() end
     elseif cmd == "diag" then
         ns.ShowCopy(L["Pastime diagnostics"], ns.DiagReport())
     elseif cmd == "debug" then
