@@ -1,4 +1,4 @@
--- Pastime: Goblin-Minenfeld (Minesweeper)
+-- Pastime: Goblin-Minenfeld
 local ADDON, ns = ...
 local L = ns.L
 
@@ -248,7 +248,7 @@ ns.RegisterGame({
     id = "minen",
     name = L["Goblin Minefield"],
     short = L["Mine finder"],
-    aliases = { "minen", "minesweeper", "minenfeld", "minefield", "mines" },
+    aliases = { "minen", "minenfeld", "minefield", "mines" },
     category = "knobeln",
     length = "kurz",
     icon = ICON_MINE,

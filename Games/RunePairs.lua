@@ -1,4 +1,4 @@
--- Pastime: Memory mit WoW-Symbolen
+-- Pastime: Runenpaare – Kartenpaare mit WoW-Symbolen finden
 local ADDON, ns = ...
 local L = ns.L
 
@@ -52,7 +52,7 @@ function Game:BuildSet(m)
         b:SetHighlightTexture(ns.TEX.cellHi, "ADD")
         b.index = i
         b:SetScript("OnClick", function(btn)
-            if self.host:IsRunning() then ns.Safe("memory", self.Flip, self, btn.index) end
+            if self.host:IsRunning() then ns.Safe("runepairs", self.Flip, self, btn.index) end
         end)
         set.cards[i] = b
     end
@@ -162,10 +162,10 @@ local function Create(host, board)
 end
 
 ns.RegisterGame({
-    id = "memory",
+    id = "runepairs",
     name = L["Rune Pairs"],
     short = L["Matching pairs"],
-    aliases = { "memory", "paare", "karten", "pairs", "runes", "runepairs", "runenpaare" },
+    aliases = { "paare", "karten", "pairs", "runes", "runepairs", "runenpaare" },
     category = "knobeln",
     length = "kurz",
     icon = "Interface\\Icons\\INV_Misc_Rune_01",

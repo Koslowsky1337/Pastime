@@ -1,4 +1,4 @@
--- Pastime: Edelsteine (Match-3) – drei gleiche Juwelen in einer Reihe
+-- Pastime: Edelsteine – drei gleiche Juwelen in einer Reihe
 local ADDON, ns = ...
 local L = ns.L
 
@@ -264,7 +264,7 @@ ns.RegisterGame({
     id = "edelsteine",
     name = L["Gems"],
     short = "Match-3",
-    aliases = { "edelsteine", "match3", "juwelen", "bejeweled", "gems" },
+    aliases = { "edelsteine", "match3", "juwelen", "gems" },
     category = "knobeln",
     length = "lang",
     icon = "Interface\\Icons\\INV_Misc_Gem_Amethyst_01",

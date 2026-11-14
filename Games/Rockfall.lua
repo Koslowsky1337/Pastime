@@ -1,4 +1,4 @@
--- Pastime: Steinschlag (Tetris-Klon)
+-- Pastime: Steinschlag – fallende Steine in den Farben der Gegenstandsqualitäten
 local ADDON, ns = ...
 local L = ns.L
 
@@ -319,10 +319,10 @@ local function Create(host, board)
 end
 
 ns.RegisterGame({
-    id = "tetris",
+    id = "rockfall",
     name = L["Rockfall"],
     short = L["Falling blocks"],
-    aliases = { "tetris", "steine", "stein", "rockfall", "blocks", "steinschlag" },
+    aliases = { "steine", "stein", "rockfall", "blocks", "steinschlag" },
     category = "geschick",
     length = "lang",
     icon = "Interface\\Icons\\INV_Stone_04",

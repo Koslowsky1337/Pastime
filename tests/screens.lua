@@ -67,7 +67,7 @@ for _, def in ipairs(ns.games) do
 end
 
 -- 4. Ankunft mitten im Spiel
-ns.StartGame(ns.gamesById.tetris)
+ns.StartGame(ns.gamesById.rockfall)
 ns.run.game.score = 1054000
 slash("testflug")
 scan("Ankunft")
@@ -76,12 +76,11 @@ scan("Ankunft")
 ns.ShowLauncher()
 local longFrom, longTo = "Brackenwall, Marschen von Dustwallow", "Zoram'gar-Außenposten, Ashenvale"
 ns.BeginTrip({ kind = "flug", from = longFrom, to = longTo })
-ns.StartGame(ns.gamesById.tetris)
+ns.StartGame(ns.gamesById.rockfall)
 ns.run.game.score = 1054000
 ns.EndTrip(true)
 scan("Ankunft mit langem Zielnamen")
-ns.ShowLauncher()
-ns.DB.routes[ns.RouteKey("flug", longFrom, longTo)] = nil      -- in der Liste würde der Name gekürzt (Tooltip zeigt ihn ganz)
+ns.ShowLauncher()      -- die lange Strecke bleibt: Liste und Titel der Reiserekorde kürzen die Namen
 
 -- 5. Reiserekorde
 ns.ShowFrame("records")

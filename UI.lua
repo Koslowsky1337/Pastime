@@ -277,14 +277,15 @@ function ns.ShowOverlay(kind, title, text)
     o.title:SetText(title or "")
     o.text:SetText(text or "")
     o.btn2:SetScript("OnClick", function() ns.ShowLauncher() end)
+    -- Pause und Ankunft verdecken das Feld ganz: niemand plant in der Pause den nächsten Zug
     if kind == "pause" then
-        o.shade:SetColorTexture(0, 0, 0, 0.78)
+        o.shade:SetColorTexture(0.04, 0.04, 0.05, 1)
         o.btn1:SetText(L["Resume"])
         o.btn1:SetScript("OnClick", function() ns.Resume() end)
         o.btn2:SetText(L["Quit"])
     elseif kind == "landed" then
         local LV = ns.run and ns.run.landed
-        o.shade:SetColorTexture(0, 0, 0, 0.78)
+        o.shade:SetColorTexture(0.04, 0.04, 0.05, 1)
         o.btn1:SetText(L["Keep playing"])
         o.btn1:SetScript("OnClick", function() ns.Resume() end)
         if LV and LV.score then
@@ -656,7 +657,7 @@ function ns.UpdateLauncher()
         local gs = ns.DB.stats.games[def.id]
         d.stats:SetText(gs and gs.n > 0 and (L["Played: %d× · %s"]):format(gs.n, ns.FormatTime(gs.t)) or L["Never played"])
         if showRoute then
-            local label = troute and ns.RouteLabel(troute) or ns.RouteLabel(ns.trip)
+            local label = ns.RouteLabel(troute or ns.trip, 16)
             d.route:SetText(tbest and (L["Route %s: %s · %s"]):format(label, ns.FormatScore(def, tbest.s), tbest.p or "?")
                 or (L["Route %s: no entry yet"]):format(label))
             d.route:Show()
@@ -929,7 +930,7 @@ local function BindRouteRow(row, item)
         local tex = ns.TEX.kind[r.kind] or ns.TEX.question
         ns.SetIcon(row.icon, tex, tex:find("Icons") ~= nil)
         local current = ns.trip.active and ns.trip.from == r.from and ns.trip.to == r.to and ns.trip.kind == r.kind
-        row.name:SetText((current and "|cff80ff80" or "") .. ns.RouteLabel(r) .. (current and "|r" or ""))
+        row.name:SetText((current and "|cff80ff80" or "") .. ns.RouteLabel(r, 14) .. (current and "|r" or ""))
         row.info:SetText(r.t and ns.FormatTime(r.t) or "")
         row.selected:SetShown(ns.selectedRoute == item.key)
     end
@@ -1046,7 +1047,7 @@ function ns.UpdateRecords()
         local K = ns.KINDS[r.kind] or ns.KINDS.flug
         local tex = ns.TEX.kind[r.kind] or ns.TEX.question
         ns.SetIcon(d.icon.icon, tex, tex:find("Icons") ~= nil)
-        d.title:SetText(ns.RouteLabel(r))
+        d.title:SetText(ns.RouteLabel(r, 20))
         local sub = (L["%s · duration %s · travelled %d× · last %s"]):format(K.one, r.t and ns.FormatTime(r.t) or L["unknown"],
             r.n or 0, r.last or "–")
         if ns.selectedRoute == curKey then sub = sub .. L["\n|cff1a7a1aYou are travelling this route right now.|r"] end

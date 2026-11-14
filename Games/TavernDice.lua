@@ -1,4 +1,4 @@
--- Pastime: Kniffel – fünf Würfel, drei Würfe, 13 Felder
+-- Pastime: Tavernenwürfel – fünf Würfel, drei Würfe, 13 Felder
 local ADDON, ns = ...
 local L = ns.L
 
@@ -97,7 +97,7 @@ function Game:Choose(idx)
         self:Render()
         local upper, bonus = self:Totals()
         -- Solo-Spiel: „Sieg!“ nur für eine richtig gute Partie
-        return self.host:Over({ score = total, won = total >= 200, text =(L["Upper %d%s · final score %d"]):format(upper,
+        return self.host:Over({ score = total, won = total >= 150, text =(L["Upper %d%s · final score %d"]):format(upper,
             bonus > 0 and L[" + 35 bonus"] or "", total) })
     end
     self.round = self.round + 1
@@ -218,7 +218,7 @@ local function Create(host, board)
         d.label = ns.FontString(board, "GameFontNormalSmall", "CENTER")
         d.label:SetPoint("TOP", d, "BOTTOM", 0, -3)
         d:SetHighlightTexture(ns.TEX.cellHi, "ADD")
-        d:SetScript("OnClick", function() if host:IsRunning() then ns.Safe("kniffel", g.Toggle, g, i) end end)
+        d:SetScript("OnClick", function() if host:IsRunning() then ns.Safe("taverndice", g.Toggle, g, i) end end)
         g.diceFrames[i] = d
     end
     g.rollBtn = ns.CreateButton(board, L["Roll"], 76, function() if host:IsRunning() then g:Roll() end end)
@@ -239,7 +239,7 @@ local function Create(host, board)
         name:SetText(cat.name)
         local value = ns.FontString(b, "GameFontHighlight", "RIGHT")
         value:SetPoint("RIGHT", -10, 0)
-        b:SetScript("OnClick", function() if host:IsRunning() then ns.Safe("kniffel", g.Choose, g, i) end end)
+        b:SetScript("OnClick", function() if host:IsRunning() then ns.Safe("taverndice", g.Choose, g, i) end end)
         y = y + 20
         return { button = b, name = name, value = value }
     end
@@ -262,10 +262,10 @@ local function Create(host, board)
 end
 
 ns.RegisterGame({
-    id = "kniffel",
+    id = "taverndice",
     name = L["Tavern Dice"],
     short = L["Dice game"],
-    aliases = { "kniffel", "yahtzee", "wuerfel", "tavern", "dice", "taverndice", "tavernenwuerfel" },
+    aliases = { "wuerfel", "tavern", "dice", "taverndice", "tavernenwuerfel" },
     category = "karten",
     length = "lang",
     icon = "Interface\\Icons\\INV_Misc_Dice_02",

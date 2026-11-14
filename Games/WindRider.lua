@@ -1,4 +1,4 @@
--- Pastime: Windreiter (Flappy-Bird-Variante durch Tausend Nadeln)
+-- Pastime: Windreiter – mit einem Knopf durch die Felsnadeln von Tausend Nadeln
 local ADDON, ns = ...
 local L = ns.L
 
@@ -252,10 +252,10 @@ local function Create(host, board)
 end
 
 ns.RegisterGame({
-    id = "flappy",
+    id = "windrider",
     name = L["Wind Rider"],
     short = L["One-button flyer"],
-    aliases = { "flappy", "wyvern", "windreiter", "reiter", "windrider", "rider", "gryphon", "greif", "greifenflug", "gryphonflight" },
+    aliases = { "wyvern", "windreiter", "reiter", "windrider", "rider", "gryphon", "greif", "greifenflug", "gryphonflight" },
     category = "geschick",
     length = "kurz",
     icon = ICON,

@@ -32,6 +32,9 @@ Diese Liste muss abgehakt sein, bevor `v1.0.0` getaggt wird.
 - [ ] **Goblin-Blackjack:** über 100 Gold kommen, „Kasse machen (K)“ zwischen zwei Händen – Spielende zeigt „Gewonnen!“ und den höchsten Goldstand 📸. Bei 100 Gold oder weniger ist der Knopf grau.
 - [ ] **Vier in einer Reihe:** je drei Partien auf „Mittel“ und „Schwer“ – der Gegner ist schlagbar und antwortet auf gleiche Züge nicht immer gleich. Fühlt sich „Schwer“ noch schwer genug an?
 - [ ] **Ortsnamen:** Zeppelin- und Schiffsstrecken heißen jetzt „Undercity“, „Ratchet“, „Booty Bay“ wie im Client. Mit einem Allianz-Charakter prüfen: Heißt es dort „Stormwind“, „Southshore“ und „Hafen von Menethil“? Alte Strecken mit „Unterstadt“ oder „Ratschet“ bleiben in der Liste stehen (über „Strecke löschen“ entfernen).
+- [ ] **Nach dem Umbenennen (Spiel neu starten!):** alle 19 Spiele stehen in der Liste; alte Bestenlisten und Reiserekorde von Steinschlag, Windreiter, Mauerbrecher, Totem-Echo, Runenpaare, Tavernenwürfel und Vier in einer Reihe sind noch da 📸.
+- [ ] **Pause:** P in einem laufenden Spiel – das Feld ist ganz verdeckt und erscheint erst mit „Weiter“ (bei Echtzeit-Spielen mit dem Countdown) 📸. Ebenso beim Ankunftsdialog.
+- [ ] **Lange Streckennamen:** in der Streckenzeile der Auswahl und in den Reiserekorden steht z. B. „Zoram'gar-Auße… → Orgrimmar“; der Tooltip zeigt den vollen Namen 📸.
 
 ## 1. Prüfung im Spiel (16 Spiele)
 
@@ -81,9 +84,13 @@ Zum Schluss: `/pastime debug` aus, `/reload`, dann Screenshots und Protokoll aus
 
 ## 3. Offene Entscheidungen
 - [x] Blackjack: Knopf „Kasse machen“ (Lauf freiwillig beenden und Höchststand werten) – am 14.11. eingebaut, weil sonst jeder Lauf mit „Pleite“ endete. Gefällt es dir nicht: den Commit „Goblin Blackjack: cash out“ zurücknehmen.
-- [ ] Layout-Prüfer im Release lassen (nur im Debug-Modus) oder entfernen? (Evaluation: drin lassen – er läuft nur im Debug-Modus und ist begrenzt.)
-- [ ] Markennamen in Dateinamen und Befehls-Aliasen (`Games\Tetris.lua`, `/pastime tetris`, `kniffel`, `bejeweled` …): lassen oder umbenennen? Angezeigt wird keiner davon.
-- [ ] Logo: `media/logo.png` und `logo.svg` enthalten C2PA-Herkunftsdaten („erstellt mit Claude“). Drin lassen oder entfernen?
+- [x] Layout-Prüfer bleibt im Release (nur im Debug-Modus; hilft bei Fehlermeldungen).
+- [x] Markennamen sind raus: Dateinamen, interne Spiel-IDs, Befehls-Kürzel und Kommentare (14.11.). Gespeicherte Bestenlisten, Streckenrekorde und Statistik ziehen beim ersten Start auf die neuen IDs um.
+- [x] Logo: die Herkunftsdaten („erstellt mit Claude“) bleiben drin.
+- [x] Changelog enthält nur Änderungen; die Funktionsübersicht steht in der CurseForge-Beschreibung (README).
+- [x] Haltestellen-Koordinaten bleiben wie sie sind (fest im Addon, keine Abhängigkeit von anderen Addons; Quellen stehen im README).
+- [x] Zeitvertreib statt Herausforderung: Tavernenwürfel zeigt „Gewonnen!“ ab 150 statt 200 Punkten.
+- [ ] Goblin-Minenfeld: Was heißt „ggf. immer Mittel“ – nur noch das 16×16-Feld anbieten, oder das Spiel als „lang“ markieren?
 - [x] Fraktions-Thema für Horde und Allianz (Stufe 3 umgesetzt, Prüfung im Spiel steht unter 1.)
 
 ## 4. CurseForge
@@ -91,11 +98,10 @@ Zum Schluss: `/pastime debug` aus, `/reload`, dann Screenshots und Protokoll aus
 - [ ] GitHub-Repo: Beschreibung und Topics setzen (beides ist leer)
 - [ ] Logo als PNG hochgeladen (nicht webp)
 - [ ] Screenshots für die Galerie
-- [ ] Haltestellen-Koordinaten selbst nachmessen oder die Autoren fragen: 21 von 24 Einträgen stammen aus ForeverDungeonJournal (Exehn), 3 aus Leatrix Maps (im README jetzt so genannt)
 
 ## 5. Release
 - [x] README (= CurseForge-Beschreibung) an die Änderungen anpassen (auch: Horde/Allianz-Varianten), Link zu den GitHub-Issues ergänzen – danach den Text auf der CurseForge-Seite ersetzen
-- [ ] CHANGELOG: zum Release oben den Abschnitt `1.0.0` anlegen (jetzt steht dort `1.0.0-beta2`, ganz unten die Funktionsübersicht)
+- [ ] CHANGELOG: zum Release oben den Abschnitt `1.0.0` anlegen (jetzt steht dort `Unreleased`, darunter `1.0.0-beta2`; vor dem nächsten Tag `Unreleased` umbenennen)
 - [x] Version in `Pastime.toc` und `Core.lua` prüfen (kommt jetzt aus dem Tag; im Beta-Zip nachsehen, ob in der TOC die Tag-Version steht)
 - [x] Dateiliste der `.toc` prüfen (29 Einträge, alle vorhanden, keine doppelt)
 - [x] Secret-Scan über die ganze Historie (14.11.: keine Treffer; jeder neue Commit wird einzeln geprüft)

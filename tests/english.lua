@@ -34,8 +34,8 @@ for _, g in ipairs(ns.games) do
     names[g.id] = g.name
     check(not hasGerman(g.name .. (g.short or "") .. (g.desc or "") .. (g.controls or "")), "English texts for " .. g.id)
 end
-check(names.kniffel == "Tavern Dice" and names.memory == "Rune Pairs" and names.simon == "Totem Echo"
-    and names.viergewinnt == "Four in a Row", "renamed games")
+check(names.taverndice == "Tavern Dice" and names.runepairs == "Rune Pairs" and names.totemecho == "Totem Echo"
+    and names.fourinarow == "Four in a Row", "renamed games")
 for _, g in ipairs(ns.games) do
     for _, bad in ipairs({ "Tetris", "Yahtzee", "Kniffel", "Wordle", "Memory", "Simon", "Space Invaders", "Flappy Bird",
             "Breakout", "Minesweeper", "Mastermind", "Vier gewinnt" }) do

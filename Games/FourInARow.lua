@@ -1,4 +1,4 @@
--- Pastime: Vier gewinnt – Horde gegen die Allianz (Computer)
+-- Pastime: Vier in einer Reihe – deine Fraktion gegen die andere (Computer)
 local ADDON, ns = ...
 local L = ns.L
 
@@ -281,7 +281,7 @@ local function Create(host, board)
         col:RegisterForClicks("LeftButtonDown")
         col:SetScript("OnEnter", function() g.sel = c; if g.state == "player" then g:Render() end end)
         col:SetScript("OnClick", function()
-            if host:IsRunning() then ns.Safe("viergewinnt", g.Play, g, c) end
+            if host:IsRunning() then ns.Safe("fourinarow", g.Play, g, c) end
         end)
     end
     g.indicator = board:CreateTexture(nil, "OVERLAY")
@@ -294,10 +294,10 @@ local function Create(host, board)
 end
 
 ns.RegisterGame({
-    id = "viergewinnt",
+    id = "fourinarow",
     name = L["Four in a Row"],
     short = L["Horde vs. Alliance"],
-    aliases = { "vier", "viergewinnt", "connect4", "fourinarow", "four" },
+    aliases = { "vier", "fourinarow", "four" },
     category = "knobeln",
     length = "kurz",
     icon = ICON_HORDE,

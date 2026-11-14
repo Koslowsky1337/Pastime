@@ -1,4 +1,4 @@
--- Pastime: Edelstein-Code (Mastermind) – knack den Code des Juweliers
+-- Pastime: Edelstein-Code – knack den Code des Juweliers
 local ADDON, ns = ...
 local L = ns.L
 
@@ -198,7 +198,7 @@ ns.RegisterGame({
     id = "code",
     name = L["Gem Code"],
     short = L["Code breaker"],
-    aliases = { "code", "mastermind", "edelsteincode", "gemcode" },
+    aliases = { "code", "edelsteincode", "gemcode" },
     category = "knobeln",
     length = "kurz",
     icon = "Interface\\Icons\\INV_Misc_Gem_Sapphire_01",

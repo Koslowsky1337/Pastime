@@ -1,4 +1,4 @@
--- Pastime: Totem-Simon – merk dir die Folge der Elementartotems
+-- Pastime: Totem-Echo – merk dir die Folge der Elementartotems
 local ADDON, ns = ...
 local L = ns.L
 
@@ -159,7 +159,7 @@ local function Create(host, board)
         label:SetText(t.name)
         b.label = label
         b:SetScript("OnClick", function()
-            if host:IsRunning() then ns.Safe("simon", g.Press, g, i) end
+            if host:IsRunning() then ns.Safe("totemecho", g.Press, g, i) end
         end)
         g.buttons[i] = b
     end
@@ -172,10 +172,10 @@ local function Create(host, board)
 end
 
 ns.RegisterGame({
-    id = "simon",
+    id = "totemecho",
     name = L["Totem Echo"],
-    short = L["Sequence memory"],
-    aliases = { "simon", "totem", "totems", "echo", "totemecho", "glocken", "bells", "glockenecho", "bellecho" },
+    short = L["Sequence recall"],
+    aliases = { "totem", "totems", "echo", "totemecho", "glocken", "bells", "glockenecho", "bellecho" },
     category = "knobeln",
     length = "kurz",
     icon = "Interface\\Icons\\Spell_Nature_StoneSkinTotem",

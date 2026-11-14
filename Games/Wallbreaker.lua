@@ -1,4 +1,4 @@
--- Pastime: Mauerbrecher (Breakout) – Steine in den Farben der Gegenstandsqualitäten
+-- Pastime: Mauerbrecher – Steine in den Farben der Gegenstandsqualitäten
 local ADDON, ns = ...
 local L = ns.L
 
@@ -207,10 +207,10 @@ local function Create(host, board)
 end
 
 ns.RegisterGame({
-    id = "breakout",
+    id = "wallbreaker",
     name = L["Wallbreaker"],
     short = L["Paddle and ball"],
-    aliases = { "breakout", "mauer", "arkanoid", "wallbreaker", "bricks" },
+    aliases = { "mauer", "wallbreaker", "bricks" },
     category = "geschick",
     length = "lang",
     icon = "Interface\\Icons\\INV_Crate_01",

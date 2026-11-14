@@ -57,12 +57,12 @@ ns.launcher.list.rows[1]:Click()
 local function rowOf(id)
     for _, r in ipairs(ns.launcher.list.rows) do if r.shown and r.item and r.item.def and r.item.def.id == id then return r end end
 end
-rowOf("tetris"):Click()
-check(rowOf("snake").best.text:find("kurz") and rowOf("tetris").best.text:find("lang"), "Markierung kurz/lang")
+rowOf("rockfall"):Click()
+check(rowOf("snake").best.text:find("kurz") and rowOf("rockfall").best.text:find("lang"), "Markierung kurz/lang")
 local order = {}
 for _, r in ipairs(ns.launcher.list.rows) do if r.shown then order[#order + 1] = r.item.header and ("[" .. r.item.cat.name .. "]") or r.item.def.name end end
 print("Liste: " .. table.concat(order, ", "))
-check(ns.selected and ns.selected.id == "tetris", "Steinschlag ausgewählt")
+check(ns.selected and ns.selected.id == "rockfall", "Steinschlag ausgewählt")
 check(ns.launcher.detail.title.text == "Steinschlag", "Detailtitel " .. ns.launcher.detail.title.text)
 check(ns.launcher.detail.scoreLines[1].left.text:find("Noch keine"), "leere Bestenliste")
 check(not ns.launcher.detail.modeHead.shown, "Steinschlag ohne Schwierigkeit")
@@ -148,10 +148,10 @@ check(g.eaten == 5 and g.pearl ~= nil, "Perle nach 5 Eiern")
 tick(PEARL_WAIT or 7.5, 0.05)
 check(g.pearl == nil or g.dead, "Perle verschwindet")
 
--- Tetris -----------------------------------------------------------------------
-ns.StartGame(ns.gamesById.tetris)
+-- Steinschlag -----------------------------------------------------------------------
+ns.StartGame(ns.gamesById.rockfall)
 g = ns.run.game
-check(g.cur ~= nil and g.next ~= nil, "Tetris: Stein + Vorschau")
+check(g.cur ~= nil and g.next ~= nil, "Steinschlag: Stein + Vorschau")
 check(ns.host.preview.shown, "Vorschaufläche sichtbar")
 -- Reihe vorbereiten: unterste Reihe bis auf Spalte 0..3 voll, dann I waagrecht reinwerfen
 for x = 4, 9 do g.board[19][x] = { 1, 0, 0 } end
@@ -176,10 +176,10 @@ for i = 1, 200 do
     if ns.run.state ~= "running" then break end
     key("SPACE"); tick(0.3)
 end
-check(ns.run.state == "over" and g.dead, "Tetris endet, wenn der Turm oben ist")
+check(ns.run.state == "over" and g.dead, "Steinschlag endet, wenn der Turm oben ist")
 
--- Flappy ----------------------------------------------------------------------
-ns.StartGame(ns.gamesById.flappy)
+-- Windreiter ----------------------------------------------------------------------
+ns.StartGame(ns.gamesById.windrider)
 g = ns.run.game
 check(g.waiting, "Windreiter wartet")
 check(not ns.host.preview.shown, "keine Vorschau bei Windreiter")
@@ -338,20 +338,20 @@ check(found50, "Endergebnis 50 in der allgemeinen Bestenliste")
 ns.frame:Hide()
 TakeTaxiNode(3); ONTAXI = true; fire("PLAYER_CONTROL_LOST"); RunTimers()
 check(trip.active and trip.to == "Ratchet, Brachland", "zweiter Flug nach Ratchet")
-ns.StartGame(ns.gamesById.tetris)
+ns.StartGame(ns.gamesById.rockfall)
 g = ns.run.game
 key("SPACE")
 local tscore = g.score
-check(tscore > 0, "Tetris hat Punkte: " .. tscore)
+check(tscore > 0, "Steinschlag hat Punkte: " .. tscore)
 NOW = NOW + 90; ONTAXI = false; RunTickers()
-check(ns.overlay.kind == "landed", "Landedialog Tetris")
+check(ns.overlay.kind == "landed", "Landedialog Steinschlag")
 ns.overlay.btn2:Click()
 check(ns.run.state == "over" and ns.overlay.title.text == "Gewertet", "Beenden & werten")
 local nT = 0
-for _, e in ipairs(PastimeDB.scores.tetris or {}) do if e.s == tscore then nT = nT + 1 end end
-check(nT == 1, "Tetris allgemein genau einmal gewertet (" .. nT .. ")")
+for _, e in ipairs(PastimeDB.scores.rockfall or {}) do if e.s == tscore then nT = nT + 1 end end
+check(nT == 1, "Steinschlag allgemein genau einmal gewertet (" .. nT .. ")")
 local rr = PastimeDB.routes["flug:Crossroads, Brachland > Ratchet, Brachland"]
-check(rr and rr.scores.tetris and rr.scores.tetris[1].s == tscore, "Tetris auf Strecke Ratchet")
+check(rr and rr.scores.rockfall and rr.scores.rockfall[1].s == tscore, "Steinschlag auf Strecke Ratchet")
 
 -- Wiederholter Flug: Restzeit bekannt; ungenutzt -> Fenster schließt sich
 ns.ShowLauncher()
@@ -426,7 +426,7 @@ ttick(12)
 check(trip.active and trip.phase == "wait" and trip.from == "Undercity" and trip.to == "Orgrimmar", "wartet in Undercity auf Orgrimmar: " .. tostring(trip.to))
 for i = 1, 4 do PLAYER.x = PLAYER.x - 0.002; ttick(1) end
 check(trip.phase == "ride", "Abfahrt Undercity")
-ns.StartGame(ns.gamesById.flappy)
+ns.StartGame(ns.gamesById.windrider)
 g = ns.run.game
 key("SPACE")
 g.score = 3
@@ -436,7 +436,7 @@ check(PastimeDB.routes["zeppelin:Undercity > Orgrimmar"] == nil, "Strecke noch n
 PLAYER.map, PLAYER.x, PLAYER.y = 1411, 0.5082, 0.1354
 ttick(1); ttick(8)
 local back = PastimeDB.routes["zeppelin:Undercity > Orgrimmar"]
-check(back and back.scores.flappy and back.scores.flappy[1].s == 3, "vorgemerktes Ergebnis bei Ankunft eingetragen")
+check(back and back.scores.windrider and back.scores.windrider[1].s == 3, "vorgemerktes Ergebnis bei Ankunft eingetragen")
 -- Warten und wieder gehen: verworfen, Fenster schließt sich
 MOVING = true
 for i = 1, 6 do PLAYER.y = PLAYER.y + 0.01; ttick(1) end

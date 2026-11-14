@@ -91,7 +91,7 @@ key("RIGHT"); tick(3)
 check(over() and #PastimeDB.scores.snake == 1, "Windnatter: 0 Punkte kommen nicht in die Bestenliste")
 
 -- Windreiter -------------------------------------------------------------------
-g = start("flappy")
+g = start("windrider")
 check(g.waiting and g.hint:IsShown(), "Windreiter wartet mit Hinweis")
 check(key("UP") and not g.waiting and g.vy < 0, "Windreiter startet mit Hoch/Leertaste/W")
 local sp
@@ -123,7 +123,7 @@ check(g.y ~= y0 or g.dead, "Windreiter fliegt nach dem Countdown weiter")
 for _, s in ipairs(g.pool) do g:HideSpire(s) end
 g.vy = 0
 tick(3)
-check(over() and best("flappy") == 1, "Windreiter: Absturz beendet die Partie, 1 Punkt gewertet")
+check(over() and best("windrider") == 1, "Windreiter: Absturz beendet die Partie, 1 Punkt gewertet")
 check(#g:Info() == 2, "Windreiter: Seitenleiste ohne Lückenhöhe")
 -- Leertaste direkt nach dem Absturz startet nicht neu
 ns.run.overAt = NOW
@@ -243,7 +243,7 @@ repeat g:Update(0.01); air = air + 0.01; peak = math.max(peak, g.h) until g.h <=
 check(peak > 120 and peak < 160 and air > 0.55 and air < 0.75, ("Kodo: Sprung %.0f px hoch, %.2f s in der Luft"):format(peak, air))
 
 -- Mauerbrecher -----------------------------------------------------------------
-g = start("breakout")
+g = start("wallbreaker")
 check(g.stuck and g.left == 60, "Ball liegt auf dem Schläger, 60 Steine")
 key("SPACE")
 check(not g.stuck, "Ball abgeschossen")
@@ -254,7 +254,7 @@ g.lives = 1
 g.bx, g.by, g.vx, g.vy, g.px = 10, 420, 0, 300, 300
 tick(0.2)
 check(over(), "letzter Ball verloren -> Ende")
-g = start("breakout")
+g = start("wallbreaker")
 for _, b in ipairs(g.bricks) do b.hp = 0; b.tex:Hide() end
 g.left = 1
 g.bricks[1].hp = 1
@@ -281,8 +281,8 @@ g.gy = 380
 tick(0.1)
 check(over(), "Murlocs am Ufer -> Ende")
 
--- Totem-Simon ---------------------------------------------------------------------
-g = start("simon")
+-- Totem-Echo ---------------------------------------------------------------------
+g = start("totemecho")
 local SK = { "UP", "RIGHT", "DOWN", "LEFT" }
 for round = 1, 4 do
     for _ = 1, 100 do tick(0.1); if g.state == "input" then break end end
@@ -293,10 +293,10 @@ check(g.score == 4 and #g.seq == 5, "4 Runden geschafft")
 for _ = 1, 100 do tick(0.1); if g.state == "input" then break end end
 local wrong = (g.seq[1] % 4) + 1
 key(SK[wrong])
-check(over() and best("simon") == 4, "falsches Totem -> Ende mit 4 Runden")
+check(over() and best("totemecho") == 4, "falsches Totem -> Ende mit 4 Runden")
 
--- Memory --------------------------------------------------------------------------
-g = start("memory", "leicht")
+-- Runenpaare --------------------------------------------------------------------------
+g = start("runepairs", "leicht")
 check(#g.cards == 16, "16 Karten")
 local byIcon = {}
 for i, c in ipairs(g.cards) do byIcon[c.icon] = byIcon[c.icon] or {}; table.insert(byIcon[c.icon], i) end
@@ -313,13 +313,13 @@ for _, list in ipairs(ids) do
     g.set.cards[list[1]].scripts.OnClick(g.set.cards[list[1]])
     g.set.cards[list[2]].scripts.OnClick(g.set.cards[list[2]])
 end
-check(over() and g.moves == 9 and best("memory:leicht") == 9, "Memory gelöst in 9 Zügen")
-g = start("memory", "mittel")
-check(#g.cards == 30, "Memory mittel: 30 Karten")
+check(over() and g.moves == 9 and best("runepairs:leicht") == 9, "Runenpaare gelöst in 9 Zügen")
+g = start("runepairs", "mittel")
+check(#g.cards == 30, "Runenpaare mittel: 30 Karten")
 
--- Vier gewinnt --------------------------------------------------------------------
-local AI = ns.gamesById.viergewinnt._game and ns.gamesById.viergewinnt._game.AI
-g = start("viergewinnt", "mittel")
+-- Vier in einer Reihe --------------------------------------------------------------------
+local AI = ns.gamesById.fourinarow._game and ns.gamesById.fourinarow._game.AI
+g = start("fourinarow", "mittel")
 AI = g.AI
 local b = g.b
 for c = 1, 7 do for r = 1, 6 do b[c][r] = 0 end end
@@ -334,10 +334,10 @@ local t0 = os.clock()
 AI.Best(b, { depth = 5, rnd = 0 })
 local ms = (os.clock() - t0) * 1000
 check(ms < 400, ("KI schwer rechnet %.0f ms"):format(ms))
-print(("  (Vier gewinnt, Stärke schwer, leeres Brett: %.0f ms)"):format(ms))
+print(("  (Vier in einer Reihe, Stärke schwer, leeres Brett: %.0f ms)"):format(ms))
 -- Der Gegner macht Fehler: je leichter, desto öfter (Patzer = nur einen Zug weit schauen)
 local slips = {}
-for _, id in ipairs({ "leicht", "mittel", "schwer" }) do slips[id] = start("viergewinnt", id).mode end
+for _, id in ipairs({ "leicht", "mittel", "schwer" }) do slips[id] = start("fourinarow", id).mode end
 check(slips.leicht.rnd > 0 and slips.mittel.slip > slips.schwer.slip and slips.schwer.slip > 0,
     "Vier in einer Reihe: jede Stufe macht Fehler, die leichteren öfter")
 local deepest
@@ -356,7 +356,7 @@ for _ = 1, 60 do picked[AI.Best(b, { depth = 2, rnd = 0, slip = 0 })] = true end
 local kinds = 0
 for _ in pairs(picked) do kinds = kinds + 1 end
 check(kinds >= 2, "Vier in einer Reihe: nicht jede Partie läuft gleich (" .. kinds .. " verschiedene Antworten)")
-g = start("viergewinnt", "leicht")
+g = start("fourinarow", "leicht")
 key("4")
 check(g.state == "ai" and g.b[4][1] == 1, "Spieler wirft in Spalte 4")
 tick(0.5)
@@ -437,19 +437,19 @@ check(over() and g.score == 500, "erraten im 2. Versuch: " .. g.score)
 check(g.cells[2][1].border:IsShown() and g.cells[2][5].border:IsShown() and not g.cells[1][2].border:IsShown(),
     "Wortraten: richtige Felder tragen einen Rahmen (nicht nur die Farbe)")
 
--- Kniffel ---------------------------------------------------------------------------
-local Y = start("kniffel")
+-- Tavernenwürfel ---------------------------------------------------------------------------
+local Y = start("taverndice")
 local function cat(id) for _, c in ipairs(Y.CATS) do if c.id == id then return c end end end
 check(Y.ScoreFor(cat("fh"), { 2, 2, 3, 3, 3 }) == 25, "Full House")
-check(Y.ScoreFor(cat("fh"), { 3, 3, 3, 3, 3 }) == 0, "Kniffel ist kein Full House")
+check(Y.ScoreFor(cat("fh"), { 3, 3, 3, 3, 3 }) == 0, "Tavernenwürfel ist kein Full House")
 check(Y.ScoreFor(cat("ks"), { 1, 2, 3, 4, 6 }) == 30, "Kleine Straße")
 check(Y.ScoreFor(cat("ks"), { 1, 2, 4, 5, 6 }) == 0, "keine Kleine Straße")
 check(Y.ScoreFor(cat("gs"), { 2, 3, 4, 5, 6 }) == 40, "Große Straße")
-check(Y.ScoreFor(cat("kn"), { 5, 5, 5, 5, 5 }) == 50, "Kniffel")
+check(Y.ScoreFor(cat("kn"), { 5, 5, 5, 5, 5 }) == 50, "Tavernenwürfel")
 check(Y.ScoreFor(cat("dp"), { 4, 4, 4, 1, 2 }) == 15, "Dreierpasch")
 check(Y.ScoreFor(cat("vp"), { 4, 4, 4, 1, 2 }) == 0, "kein Viererpasch")
 check(Y.ScoreFor(cat("6"), { 6, 6, 1, 6, 2 }) == 18, "Sechser")
-g = start("kniffel")
+g = start("taverndice")
 g:Choose(1)
 check(g.round == 1, "Eintragen erst nach dem Würfeln")
 key("SPACE"); tick(0.5)
@@ -464,11 +464,11 @@ for round = 1, 13 do
     if g.rolls == 3 then key("SPACE"); tick(0.5) end
     for i = 1, 13 do if not g.card[Y.CATS[i].id] then g.rows[i].button.scripts.OnClick(g.rows[i].button); break end end
 end
-check(over() and g.round == 13, "Kniffel nach 13 Runden fertig: " .. g.score)
+check(over() and g.round == 13, "Tavernenwürfel nach 13 Runden fertig: " .. g.score)
 local u, bo, lo2, tot = g:Totals()
-check(tot == g.score and best("kniffel") == tot, "Summe stimmt und ist gewertet")
-check((ns.overlay.title.text == ns.L["Victory!"]) == (tot >= 200), "Tavernenwürfel: „Sieg!“ nur ab 200 (" .. tot .. ")")
-g = start("kniffel"); key("SPACE"); tick(0.5)
+check(tot == g.score and best("taverndice") == tot, "Summe stimmt und ist gewertet")
+check((ns.overlay.title.text == ns.L["Victory!"]) == (tot >= 150), "Tavernenwürfel: „Sieg!“ nur ab 150 (" .. tot .. ")")
+g = start("taverndice"); key("SPACE"); tick(0.5)
 check(g.rollBtn.text == ns.L["Reroll (%d)"]:format(2), "Tavernenwürfel: Knopf „" .. g.rollBtn.text .. "“")
 -- Karten: Farbzeichen rechts neben dem Wert (auch bei überdeckten Karten sichtbar)
 local card = ns.Cards.Create(UIParent, 54, 76)
@@ -656,18 +656,18 @@ local dup = 0
 for _, d in ipairs(ns.games) do for _, a in ipairs(d.aliases or {}) do if a == "goblin" then dup = dup + 1 end end end
 check(dup == 0, "Befehl „goblin“ nicht mehr doppelt")
 -- G2: Countdown bei allen Echtzeitspielen
-for _, id in ipairs({ "kobold", "tetris", "breakout", "murlocs" }) do
+for _, id in ipairs({ "kobold", "rockfall", "wallbreaker", "murlocs" }) do
     check(ns.gamesById[id].resumeDelay == 3, id .. ": Countdown nach Pause")
 end
 -- G4: Fraktion – Allianz spielt Allianz
 UnitFactionGroup = function() return "Alliance", "Alliance" end
-g = start("viergewinnt")
+g = start("fourinarow")
 check(g.ally and g.myIcon:find("PVP_02") and g.status.text == ns.L["You play the Alliance – drop your piece!"], "Vier in einer Reihe: Allianz spielt Allianz")
 UnitFactionGroup = nil
-g = start("viergewinnt")
+g = start("fourinarow")
 check(not g.ally and g.myIcon:find("PVP_01"), "Vier in einer Reihe: sonst Horde")
 -- Steinschlag: Haltezeit, Schieben setzt sie zurück
-g = start("tetris")
+g = start("rockfall")
 while g:Move(0, 1) do end
 g:Update(0.25)
 check(g.cur and g.pieces == 0 and g.lockT and g.lockT < 0.2, "Steinschlag: aufliegender Stein rastet nicht sofort ein")
@@ -682,10 +682,10 @@ g.casts, g.state, g.t, g.score = 10, "result", 0, 120
 tick(0.1)
 check(over() and ns.overlay.title.text ~= ns.L["Victory!"], "Angeln: 120 Punkte sind kein Sieg")
 -- Mauerbrecher: Stufe übersetzt
-g = start("breakout")
+g = start("wallbreaker")
 check(g:Info()[2][1] == ns.L["Level"], "Mauerbrecher: Seitenleiste „" .. g:Info()[2][1] .. "“")
 -- Totem-Echo: Rahmen (22 px um jedes Totem) bleiben im Feld
-g = start("simon")
+g = start("totemecho")
 local inside = true
 for _, b in ipairs(g.buttons) do
     local p = b.points.TOPLEFT
@@ -694,7 +694,7 @@ for _, b in ipairs(g.buttons) do
 end
 check(inside, "Totem-Echo: Totems samt Rahmen im Feld")
 -- Runenpaare: dritter Klick deckt das falsche Paar sofort zu
-g = start("memory")
+g = start("runepairs")
 local a1, b1, c1
 for i, c in ipairs(g.cards) do
     if not a1 then a1 = i elseif not b1 and c.icon ~= g.cards[a1].icon then b1 = i
@@ -727,7 +727,7 @@ do
     PastimeDB.routes = {}
 end
 -- Steinschlag: zwei Reihen auf einmal geben 300 Punkte mal Stufe
-g = start("tetris")
+g = start("rockfall")
 for y = 18, 19 do for x = 2, 9 do g.board[y][x] = { 1, 0, 0 } end end
 g.cur = { kind = "O", n = 2, cells = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } }, x = 0, y = 18 }
 g.score = 0
@@ -764,7 +764,7 @@ check(g.lives == 3, "Murloc-Invasion: drei Leben")
 g = start("kobold")
 tick(31)
 check(not over() and g.time > 28 and g.time < 30, "Kobold-Hauen: nach 31 s läuft die Runde noch (" .. g.time .. ")")
-g = start("flappy")
+g = start("windrider")
 check(g:GapSize() == 145 and g:Speed() == 150, "Windreiter: Lücke 145 und Tempo 150 am Anfang")
 g.score = 30
 check(g:GapSize() == 108 and g:Speed() == 235, "Windreiter: engste Lücke 108, Höchsttempo 235")

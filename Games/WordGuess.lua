@@ -1,4 +1,4 @@
--- Pastime: Wortraten (Wordle mit WoW-Begriffen auf Deutsch)
+-- Pastime: Wortraten (Begriffe aus Azeroth, deutsch und englisch)
 local ADDON, ns = ...
 local L = ns.L
 
@@ -243,7 +243,7 @@ ns.RegisterGame({
     id = "wortraten",
     name = L["Word Guess"],
     short = L["Five letters"],
-    aliases = { "wort", "wortraten", "wordle", "word", "wordguess" },
+    aliases = { "wort", "wortraten", "word", "wordguess" },
     category = "knobeln",
     length = "kurz",
     icon = "Interface\\Icons\\INV_Misc_Note_02",

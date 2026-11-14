@@ -188,6 +188,9 @@ local function fill(t, defaults)
     return t
 end
 
+local RENAMED = { tetris = "rockfall", flappy = "windrider", breakout = "wallbreaker", simon = "totemecho",
+    memory = "runepairs", kniffel = "taverndice", viergewinnt = "fourinarow" }
+
 local function InitDB()
     PastimeDB = fill(type(PastimeDB) == "table" and PastimeDB or {}, DEFAULTS)
     ns.DB = PastimeDB
@@ -204,6 +207,22 @@ local function InitDB()
         end
         ns.DB.flights = nil
     end
+    -- bis beta2 hießen einige Spiele intern anders: Bestenlisten, Statistik und Auswahl ziehen mit um
+    local function rekey(t)
+        if type(t) ~= "table" then return end
+        local moves = {}
+        for k in pairs(t) do
+            local id, rest = tostring(k):match("^([^:]+)(.*)$")
+            if RENAMED[id] then moves[k] = RENAMED[id] .. rest end
+        end
+        for k, nk in pairs(moves) do
+            if t[nk] == nil then t[nk] = t[k] end
+            t[k] = nil
+        end
+    end
+    rekey(ns.DB.scores); rekey(st.games); rekey(ns.DB.modes)
+    for _, r in pairs(ns.DB.routes) do if type(r) == "table" then rekey(r.scores) end end
+    ns.DB.lastGame = RENAMED[ns.DB.lastGame] or ns.DB.lastGame
     ns.DB.logSession = (tonumber(ns.DB.logSession) or 0) + 1
     ns.session = ns.DB.logSession
     for _, e in ipairs(pending) do e.s = ns.session; table.insert(ns.DB.log, e) end
@@ -371,8 +390,20 @@ function ns.CountRoutes()
     return n
 end
 
-function ns.RouteLabel(r)
-    return ("%s → %s"):format(ns.ShortName(r.from) or "?", ns.ShortName(r.to) or "?")
+-- max: Ortsnamen auf so viele Zeichen kürzen (ganze UTF-8-Zeichen), damit das Ziel in schmalen Zeilen sichtbar bleibt
+local function clip(s, max)
+    if not max then return s end
+    local n, out = 0, {}
+    for ch in s:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        n = n + 1
+        if n <= max then out[n] = ch end
+    end
+    if n <= max + 1 then return s end
+    return (table.concat(out):gsub("[%s%-']+$", "")) .. "…"
+end
+
+function ns.RouteLabel(r, max)
+    return ("%s → %s"):format(clip(ns.ShortName(r.from) or "?", max), clip(ns.ShortName(r.to) or "?", max))
 end
 
 function ns.RouteScores(r, def, mode)

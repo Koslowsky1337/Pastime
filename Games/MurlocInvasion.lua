@@ -1,4 +1,4 @@
--- Pastime: Murloc-Invasion (Space Invaders) – „Mrgllglll!“
+-- Pastime: Murloc-Invasion – „Mrgllglll!“
 local ADDON, ns = ...
 local L = ns.L
 
@@ -279,7 +279,7 @@ ns.RegisterGame({
     id = "murlocs",
     name = L["Murloc Invasion"],
     short = L["Retro shooter"],
-    aliases = { "murloc", "murlocs", "invaders", "invasion" },
+    aliases = { "murloc", "murlocs", "invasion" },
     category = "geschick",
     length = "lang",
     icon = ICON_MURLOC,

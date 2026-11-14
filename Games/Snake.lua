@@ -1,4 +1,4 @@
--- Pastime: Windnatter (Snake)
+-- Pastime: Windnatter
 local ADDON, ns = ...
 local L = ns.L
 
