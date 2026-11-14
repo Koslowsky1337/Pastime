@@ -380,21 +380,59 @@ local SCENES = {
     function() ns.ShowFrame("records") end,
 }
 
+-- Beispiel-Rekorde und -Strecken nur für die Bilder: erfundene Namen statt der eigenen Charaktere,
+-- gut gefüllte Listen. Die echten Tabellen werden währenddessen nur beiseitegelegt.
+local function demoData()
+    local today = date(ns.DATE_FORMAT)
+    local names = { "Thokk", "Zugra", "Morga" }
+    local function list(...)
+        local t = {}
+        for i, s in ipairs({ ... }) do t[i] = { s = s, p = names[(i - 1) % #names + 1], d = today } end
+        return t
+    end
+    local scores = {
+        rockfall = list(4820, 3150, 2760, 1980, 1240), murlocs = list(2140, 1620, 980), kodo = list(812, 640, 455),
+        kobold = list(1130, 920, 760), holdem = list(1600, 850, 400), slots = list(940, 515, 260), blackjack = list(720, 340),
+    }
+    local routes, first = {}, nil
+    local function route(kind, from, to, t, n, sc)
+        local key = ns.RouteKey(kind, from, to)
+        routes[key] = { kind = kind, from = from, to = to, t = t, n = n, last = today, lastT = t, scores = sc or {} }
+        first = first or key
+    end
+    route("flug", "Orgrimmar", "Crossroads", 112, 14, { rockfall = list(2760, 1980, 1240), kodo = list(455, 312), kobold = list(920),
+        murlocs = list(980) })
+    route("flug", "Crossroads", "Ratchet", 52, 9, { kodo = list(640), kobold = list(1130, 760) })
+    route("flug", "Crossroads", "Thunder Bluff", 190, 6, { rockfall = list(4820), murlocs = list(2140, 1620) })
+    route("flug", "Ratchet", "Orgrimmar", 160, 5, { rockfall = list(3150) })
+    route("flug", "Camp Taurajo", "Crossroads", 79, 7, { kodo = list(812) })
+    route("flug", "Orgrimmar", "Thunder Bluff", 285, 3, { holdem = list(850), rockfall = list(1980) })
+    route("zeppelin", "Orgrimmar", "Undercity", 119, 4, { holdem = list(1600, 400), slots = list(940) })
+    route("zeppelin", "Orgrimmar", "Grom'gol", 95, 2, { slots = list(515, 260) })
+    return scores, routes, first
+end
+
 function ns.PhotoTour()
     if InCombatLockdown() then return ns.Print(L["Not possible in combat."]) end
     ns.ShowFrame()
     -- solange die Tour läuft, wertet GameOver nichts (ein Kodo ohne Reiter läuft sonst in den Kaktus).
     -- Der Zeitgeber hebt die Sperre auch dann auf, wenn eine Szene mit einem Fehler abbricht.
+    local realScores, realRoutes, realSelected = ns.DB.scores, ns.DB.routes, ns.selectedRoute
+    local function restore()
+        if ns.staging then ns.DB.scores, ns.DB.routes, ns.selectedRoute = realScores, realRoutes, realSelected end
+        ns.staging = nil
+    end
     ns.staging = true
-    C_Timer.After(#SCENES * 2 + 5, function() ns.staging = nil end)
+    ns.DB.scores, ns.DB.routes, ns.selectedRoute = demoData()
+    C_Timer.After(#SCENES * 2 + 5, restore)
     local i = 0
     local step
     step = ns.Wrap("fotos", function()
         i = i + 1
         local scene = SCENES[i]
         if not scene then
+            restore()
             ns.ShowLauncher()
-            ns.staging = nil
             return ns.Print((L["%d screenshots saved in the Screenshots folder of your game."]):format(#SCENES))
         end
         scene()

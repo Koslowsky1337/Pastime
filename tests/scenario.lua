@@ -460,7 +460,9 @@ do
     for _, list in pairs(PastimeDB.scores) do scoresBefore = scoresBefore + #list end
     local purses = 0
     for _ in pairs(PastimeDB.purses) do purses = purses + 1 end
+    local realScores, realRoutes = PastimeDB.scores, PastimeDB.routes
     slash("fotos")
+    check(PastimeDB.scores ~= realScores and PastimeDB.scores.rockfall[1].p == "Thokk" and ns.staging, "Fototour: zeigt Beispiel-Rekorde")
     for _ = 1, 40 do RunTimers() end
     local scoresAfter, pursesAfter = 0, 0
     for _, list in pairs(PastimeDB.scores) do scoresAfter = scoresAfter + #list end
@@ -469,6 +471,7 @@ do
     check(scoresAfter == scoresBefore and PastimeDB.blackjack.gold == goldBefore and pursesAfter < 100, "Fototour: nichts gewertet, kein Tisch gespeichert")
     check(ns.launcher:IsVisible() and not ns.run, "Fototour: endet in der Spielauswahl")
     check(ns.staging == nil, "Fototour: die Wertungssperre ist wieder aufgehoben")
+    check(PastimeDB.scores == realScores and PastimeDB.routes == realRoutes, "Fototour: die echten Rekorde und Strecken sind zurück")
     ns.StartGame(ns.gamesById.kodo)
     ns.staging = true
     ns.GameOver({ score = 99999 })
