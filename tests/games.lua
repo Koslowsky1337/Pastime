@@ -835,11 +835,12 @@ check(val("AH AD KS 3C 2H") > val("AH AD QS JC 10H") and val("2H 3D 4S 5C 6H") >
     and val("KH KD 2S 2C 3H") > val("QH QD JS JC AH") and val("AH KD 9S 3C 2H") == val("AS KC 9H 3D 2C"),
     "Pokerblatt: Vergleich nach Beikarten, kleine Straße unter der Sechser-Straße, gleiche Blätter gleich")
 
-for _, id in ipairs({ "slots", "drawpoker", "higherlower", "baccarat", "holdem" }) do
+for _, id in ipairs({ "slots", "drawpoker", "higherlower", "roulette", "holdem" }) do
     PastimeDB.purses[id] = { gold = 400, peak = 700 }
     g = start(id)
     check(g.gold == 400 and g.score == 700 and g.state == "bet", id .. ": Gold und Höchststand geladen")
     key("3")
+    if id == "roulette" then g.cells.red.scripts.OnClick(g.cells.red, "LeftButton") end
     check(PastimeDB.purses[id].gold < 400, id .. ": Einsatz sofort abgebucht und gespeichert")
     check(ns.CurrentScore(ns.run) == nil, id .. ": keine Wertung bei Ankunft mitten im Lauf")
     -- Kasse machen: nur mit Gewinn, wertet den Höchststand, neuer Lauf mit 100 Gold
@@ -861,39 +862,65 @@ for _, id in ipairs({ "slots", "drawpoker", "higherlower", "baccarat", "holdem" 
     check(PastimeDB.blackjack.gold ~= nil and PastimeDB.purses[id].peak == 100, id .. ": eigener Topf, Blackjack bleibt unberührt")
 end
 
--- Goblin-Automat: Auszahlungsquote über alle 21³ Walzenstellungen
-local SL = ns.gamesById.slots
+-- Goblin-Automat: Auszahlungsquote einer Linie über alle Stellungen (jede der fünf Linien ist gleich verteilt)
 g = start("slots")
-local strip, total, hits = {}, 0, 0
-for i, s in ipairs(g.SYMBOLS) do for _ = 1, s.w do strip[#strip + 1] = i end end
-for _, a in ipairs(strip) do for _, b in ipairs(strip) do for _, c in ipairs(strip) do
-    local p = g.Payout(a, b, c)
-    total = total + p
-    if p > 0 then hits = hits + 1 end
-end end end
-local rtp, hitRate = total / (#strip) ^ 3, hits / (#strip) ^ 3
+local nSym = #g.SYMBOLS
+local wsum = 0
+for _, s in ipairs(g.SYMBOLS) do wsum = wsum + s.w end
+local rtp, lineHit, minPay = 0, 0, 999
+local idx = { 1, 1, 1, 1, 1 }
+while true do
+    local p = 1
+    for i = 1, 5 do p = p * g.SYMBOLS[idx[i]].w / wsum end
+    local pay = g.LinePay(idx)
+    rtp = rtp + p * pay
+    if pay > 0 then lineHit = lineHit + p; if pay < minPay then minPay = pay end end
+    local i = 5
+    while i >= 1 and idx[i] == nSym do idx[i] = 1; i = i - 1 end
+    if i == 0 then break end
+    idx[i] = idx[i] + 1
+end
 check(rtp > 0.94 and rtp < 0.99, ("Automat: Auszahlungsquote %.1f %%"):format(rtp * 100))
-check(hitRate > 0.45, ("Automat: %.0f %% der Drehungen zahlen etwas"):format(hitRate * 100))
+check(minPay > #g.LINES, "Automat: schon der kleinste Treffer zahlt mehr als den Einsatz (" .. minPay .. " > " .. #g.LINES .. ")")
+check(1 - (1 - lineHit) ^ 5 > 0.3, ("Automat: rund %.0f %% der Drehungen gewinnen"):format((1 - (1 - lineHit) ^ 5) * 100))
+check(g.LinePay({ 1, 1, 1, 2, 3 }) == 6 and g.LinePay({ 1, 6, 1, 1, 3 }) == 10 and g.LinePay({ 6, 6, 2, 2, 2 }) == 30
+    and g.LinePay({ 2, 1, 1, 1, 1 }) == 0 and g.LinePay({ 6, 6, 6, 6, 6 }) == 500, "Automat: Linien zählen von links, die Münze ist Joker")
+local sum, cells = g.Evaluate({ { 1, 2, 3 }, { 1, 2, 4 }, { 1, 3, 5 }, { 2, 2, 2 }, { 3, 3, 3 } })
+check(sum == 6 and cells[11] and cells[21] and cells[31] and not cells[41], "Automat: obere Reihe mit drei Fischen gewinnt, die Felder leuchten")
 key("1")
 check(g.state == "spin" and g.bet == 10, "Automat: Einsatz startet die Walzen")
-g.final = { 6, 6, 6 }
-tick(1.5)
-check(g.state == "result" and g.gold == 100 - 10 + 2500, "Automat: drei Münzen zahlen das 250-Fache, Gold " .. g.gold)
-tick(1.5)
+g.final = { { 6, 1, 2 }, { 6, 3, 3 }, { 6, 3, 4 }, { 6, 4, 5 }, { 6, 5, 1 } }
+tick(2)
+check(g.state == "result" and g.gold == 100 - 10 + 10 * 500 / 5, "Automat: fünf Münzen in der oberen Reihe zahlen 500-fach auf die Linie, Gold " .. g.gold)
+tick(2.5)
 check(g.state == "bet", "Automat: danach wieder setzen")
 
--- Tauschpoker: Halten, Tauschen, Gewinnplan
+-- Goblin-Poker: halten, tauschen, erhöhen oder passen, Vergleich mit dem Goblin
 g = start("drawpoker")
-check(g.Row(C("AH KH QH JH 10H")) == 1 and g.Row(C("JH JD 3S 2C 9H")) == 9 and g.Row(C("10H 10D 3S 2C 9H")) == nil
-    and g.Row(C("7H 7D 2S 2C 9H")) == 8 and g.Row(C("9C 9D 9H 2S 2C")) == 4, "Tauschpoker: Zeilen im Gewinnplan")
+local kp = g.Keep(C("JH JD 3S 2C 9H"))
+check(kp[1] and kp[2] and not kp[3] and not kp[5], "Goblin-Poker: der Goblin behält sein Paar")
+kp = g.Keep(C("2H 7H 9H JH KD"))
+check(kp[1] and kp[4] and not kp[5], "Goblin-Poker: der Goblin behält vier Karten einer Farbe")
 key("1")
-check(g.state == "hold" and #g.hand == 5, "Tauschpoker: fünf Karten nach dem Einsatz")
+check(g.state == "hold" and #g.hand == 5 and #g.goblin == 5, "Goblin-Poker: je fünf Karten nach dem Grundeinsatz")
+check(not g.goblinCards[1].face:IsShown(), "Goblin-Poker: die Karten des Goblins liegen verdeckt")
 g.hand = C("JH JD 3S 2C 9H")
 key("1"); key("2")
-check(g.hold[1] and g.hold[2] and not g.hold[3], "Tauschpoker: 1 und 2 halten")
+check(g.hold[1] and g.hold[2] and not g.hold[3], "Goblin-Poker: 1 und 2 halten")
 local keep1, keep2 = g.hand[1], g.hand[2]
 key("SPACE")
-check(g.state == "result" and g.hand[1] == keep1 and g.hand[2] == keep2 and g.gold >= 100, "Tauschpoker: gehaltene Karten bleiben, Paar Buben zahlt mindestens den Einsatz")
+check(g.state == "decide" and g.hand[1] == keep1 and g.hand[2] == keep2, "Goblin-Poker: gehaltene Karten bleiben, dann die Entscheidung")
+key("2")
+check(g.state == "result" and g.gold == 90, "Goblin-Poker: Passen kostet nur den Grundeinsatz")
+tick(2)
+key("1"); key("SPACE")
+g.hand, g.goblin = C("AH AD AS AC KH"), C("2H 3D 5S 7C 9H")
+g.deck = C("2D 3S 4C 6D 8S 10C 4D 6S 8C 10D")
+key("1")
+check(g.state == "goblin" and g.bet == 20, "Goblin-Poker: Erhöhen verdoppelt den Einsatz")
+tick(1)
+check(g.state == "result" and g.reveal and g.gold == 70 + 38 and g.goblinCards[1].face:IsShown(),
+    "Goblin-Poker: Vierling gewinnt (20 Einsatz, 18 Gewinn), die Karten des Goblins liegen offen, Gold " .. g.gold)
 
 -- Höher oder tiefer: Faktoren, Treffer, Topf nehmen
 g = start("higherlower")
@@ -921,80 +948,111 @@ g.deck = C("2H 3H 4H 5H 6H 7H 9H 10H JH QH 2D 3D")
 key("1")
 check(g.state == "result" and g.gold == 90, "Höher oder tiefer: daneben – Topf weg")
 
--- Baccarat: Werte, dritte Karten, Auszahlung
-g = start("baccarat")
-check(g.Total(C("KH 9D")) == 9 and g.Total(C("7H 8D")) == 5 and g.Total(C("AH 10D QS")) == 1, "Baccarat: nur die letzte Ziffer zählt")
-local function complete(p, b, nextCards)
-    local pl, ba, rest = C(p), C(b), C(nextCards)
-    g.Complete(pl, ba, function() return table.remove(rest, 1) end)
-    return #pl, #ba
-end
-local np, nb = complete("KH 9D", "2H 3D", "5S 5C")
-check(np == 2 and nb == 2, "Baccarat: bei 8 oder 9 zieht niemand")
-np, nb = complete("KH 5D", "KD 3D", "8S 5C")
-check(np == 3 and nb == 2, "Baccarat: Bank mit 3 bleibt stehen, wenn der Spieler eine 8 zieht")
-np, nb = complete("KH 5D", "KD 6D", "6S 5C")
-check(np == 3 and nb == 3, "Baccarat: Bank mit 6 zieht auf eine 6 des Spielers")
-np, nb = complete("KH 7D", "KD 5D", "6S 5C")
-check(np == 2 and nb == 3, "Baccarat: Spieler steht mit 7, Bank zieht bis 5")
-check(g.Payout(1, 7, 5, 100) == 200 and g.Payout(2, 5, 7, 100) == 195 and g.Payout(3, 6, 6, 100) == 900
-    and g.Payout(1, 6, 6, 100) == 100 and g.Payout(1, 5, 7, 100) == 0 and g.Payout(3, 5, 7, 100) == 0, "Baccarat: Auszahlungen")
-key("1")
-check(g.state == "side", "Baccarat: nach dem Einsatz die Seite wählen")
-key("2")
-check(g.state == "deal" and g.side == 2, "Baccarat: Seite gewählt, es wird ausgeteilt")
-tick(4)
-check(g.state == "result" or g.state == "bet", "Baccarat: Hand wird abgerechnet")
+-- Goblin-Roulette: Chips legen, zurücknehmen, drehen, Auszahlung, Einsätze wiederholen
+g = start("roulette")
+check(g.Payout(17, 17, 10) == 360 and g.Payout(17, 18, 10) == 0 and g.Payout("red", 18, 10) == 20 and g.Payout("black", 18, 10) == 0
+    and g.Payout("d2", 13, 10) == 30 and g.Payout("even", 0, 10) == 0 and g.Payout("low", 0, 10) == 0 and g.Payout("odd", 35, 10) == 20,
+    "Roulette: Auszahlungen (Zahl 35:1, Dutzend 2:1, einfache Chancen 1:1, Null verliert außen)")
+local back = 0
+for n = 0, 36 do back = back + g.Payout("red", n, 1) + g.Payout(7, n, 1) + g.Payout("d1", n, 1) end
+check(math.abs(back / (3 * 37) - 36 / 37) < 0.0001, "Roulette: Auszahlungsquote 97,3 % auf jeder Wette")
+local function click(spot, button) g.cells[spot].scripts.OnClick(g.cells[spot], button or "LeftButton") end
+key("SPACE")
+check(g.state == "bet", "Roulette: ohne Chips dreht sich nichts")
+click("red"); click(17); click(17)
+check(g.bets.red == 10 and g.bets[17] == 20 and g.gold == 70 and g.bet == 30, "Roulette: Chips liegen, Gold abgebucht")
+check(g.cells[17].chip.text == "20" and g.cells[17].mark:IsShown(), "Roulette: der Chip zeigt den Betrag")
+key(ns.KEYS.cash)
+check(g.state == "bet", "Roulette: keine Kasse, solange Chips auf dem Tisch liegen")
+click(17, "RightButton")
+check(g.bets[17] == nil and g.gold == 90 and g.bet == 10, "Roulette: Rechtsklick nimmt die Chips zurück")
+key("3")
+check(g.chip == 3 and g.gold == 90, "Roulette: 1–3 wählen die Chipgröße und setzen nichts")
+key("1"); click(17)
+key("SPACE")
+check(g.state == "spin", "Roulette: Leertaste dreht")
+g.final = 17
+tick(2)
+check(g.state == "result" and g.gold == 80 + 360 and g.numText.text:find("17", 1, true) and g.cells[17].hit:IsShown(),
+    "Roulette: 17 fällt – Zahl zahlt 35:1, Rot verliert, Gold " .. g.gold)
+tick(3)
+check(g.state == "bet" and g.bet == 0 and next(g.bets) == nil, "Roulette: neue Runde, Tisch leer")
+key("SPACE")
+check(g.state == "spin" and g.bets.red == 10 and g.bets[17] == 10, "Roulette: Leertaste wiederholt die letzten Einsätze")
+g.final = 0
+tick(2)
 
--- Tavernen-Hold'em: Setzrunden, Passen, Topf, „all in“
+-- Tavernen-Hold'em: Turnier am Tisch
 g = start("holdem")
 local hb = g.Bets(1000)
-check(hb[1] == 10 and hb[2] == 50 and hb[3] == 100, "Hold'em: Grundeinsatz 10 / 5 % / 10 %")
-key("1")
-check(g:Pot() == 40 and g.gold == 90, "Hold'em: alle vier zahlen den Grundeinsatz")
-for _ = 1, 100 do if g.state == "act" then break end; tick(0.2) end
-check(g.state == "act", "Hold'em: du kommst an die Reihe")
-key("1")
-check(g.state == "result" and g.gold <= 90, "Hold'em: Passen beendet die Hand")
--- eine Hand bis zum Ende mitgehen
-tick(2)
-key("1")
+check(hb[1] == 250 and hb[2] == 500 and hb[3] == 1000, "Hold'em: Einkauf ¼ / ½ / alles")
+key("2")
+local function chips() local n = 0; for s = 1, 4 do n = n + g.stacks[s] + g.c[s] end; return n end
+check(g.buyin == 50 and g.gold == 50 and chips() == 200, "Hold'em: Einkauf 50 – vier Stapel zu je 50 Chips")
+check(g:Pot() == 3, "Hold'em: kleiner und großer Blind liegen im Topf (1 + 2)")
+check(PastimeDB.purses.holdem.table ~= nil, "Hold'em: der Tisch ist gespeichert")
 local guard = 0
-while g.state ~= "result" and guard < 400 do
-    guard = guard + 1
-    if g.state == "act" then key("2") else tick(0.2) end
+local function play(choice)
+    guard = 0
+    while g.state ~= "between" and g.state ~= "result" and guard < 600 do
+        guard = guard + 1
+        if g.state == "act" then key(choice) else tick(0.2) end
+    end
 end
-check(g.state == "result" and g.reveal or g:Active() == 1, "Hold'em: Mitgehen führt zum Aufdecken")
-check(g.nextBtn:IsShown(), "Hold'em: nach dem Aufdecken wartet das Spiel auf „Weiter“")
--- Gewinn: von jedem höchstens der eigene Einsatz
-g = start("holdem")
-key("1")
-g.c, g.folded = { 30, 80, 30, 10 }, { [4] = true }
-check(g:Share(1) == 100 and g:Share(2) == 50, "Hold'em: Anteil am Topf ist auf den eigenen Einsatz je Gegner begrenzt")
--- sicheres Blatt gewinnt beim Aufdecken
-g.holes = { C("AH AD"), C("2C 7D"), C("3C 8D"), C("4C 9D") }
-g.comm = C("AS AC KH QD 5S")
-g.folded, g.c, g.bet = {}, { 10, 10, 10, 10 }, 10
-local before = g.gold
-g:Showdown()
-check(g.state == "result" and g.gold == before + 40 and g.sub.text:find(ns.Cards.HANDS[8], 1, true), "Hold'em: Vierling gewinnt den Topf: " .. tostring(g.sub.text))
--- zu wenig Gold: mit dem Rest mitgehen, danach wird nur noch aufgedeckt
-PastimeDB.purses.holdem = { gold = 15, peak = 100 }
-g = start("holdem")
-key("1")
-guard = 0
-while g.state ~= "result" and guard < 400 do
-    guard = guard + 1
-    if g.state == "act" then key("3"); if g.state == "act" then key("2") end else tick(0.2) end
+play("2")
+check(g.state == "between" or g.state == "result", "Hold'em: Mitgehen führt bis zum Ende der Hand")
+check(g.state == "result" or chips() == 200, "Hold'em: nach der Hand sind noch alle 200 Chips am Tisch")
+-- viele Hände: Chips bleiben erhalten, niemand hat weniger als null
+local ok, hands = true, 0
+while g.state == "between" and hands < 60 do
+    hands = hands + 1
+    key("SPACE")
+    play(hands % 3 == 0 and "4" or "2")
+    for s = 1, 4 do if g.stacks and g.stacks[s] < 0 then ok = false end end
+    if g.state == "between" and chips() ~= 200 then ok = false end
 end
-check(g.state == "result" and g.gold >= 0, "Hold'em: „all in“ läuft ohne weitere Einsätze bis zum Ende")
+check(ok, "Hold'em: über viele Hände bleiben es 200 Chips, kein Stapel wird negativ")
+check(g.state == "result", "Hold'em: der Tisch endet (gewonnen oder ohne Chips) nach " .. hands .. " Händen")
+check(PastimeDB.purses.holdem.table == nil, "Hold'em: nach dem Tisch ist nichts mehr gespeichert")
+-- Nebentöpfe: wer „all in“ weniger gesetzt hat, gewinnt von jedem nur diesen Betrag
+local wins, main = g.Split({ 20, 50, 50, 10 }, { [4] = true }, { 900, 500, 700 })
+check(wins[1] == 70 and wins[3] == 60 and wins[2] == 0 and main[1] == 1, "Hold'em: Haupttopf 70 an dich, Nebentopf 60 an den Zweitbesten")
+wins = g.Split({ 30, 30, 30, 0 }, { [4] = true }, { 800, 800, 100 })
+check(wins[1] == 45 and wins[2] == 45, "Hold'em: gleiche Blätter teilen den Topf")
+wins = g.Split({ 50, 20, 0, 0 }, { [3] = true, [4] = true }, { 100, 900 })
+check(wins[2] == 40 and wins[1] == 30, "Hold'em: was niemand mitgehen konnte, geht zurück")
+-- Aufstehen zwischen zwei Händen: Chips werden zu Gold
+PastimeDB.purses.holdem = { gold = 100, peak = 100 }
+g = start("holdem")
+key("2")
+play("1")
+if g.state == "between" then
+    local mine = g.stacks[1]
+    key("2")
+    check(g.state == "result" and g.gold == 50 + mine, "Hold'em: Aufstehen tauscht die Chips zurück in Gold")
+end
+-- der Tisch übersteht einen Neustart; All-in und Rauswurf
+PastimeDB.purses.holdem = { gold = 0, peak = 100, table = { stacks = { 40, 0, 160, 0 }, button = 1, hands = 7, buyin = 50 } }
+g = start("holdem")
+check(g.state == "between" and g.stacks[1] == 40 and g.gold == 0, "Hold'em: gespeicherter Tisch wird fortgesetzt, ohne Gold nachzufüllen")
+key("SPACE")
+check(g.holes[2] == nil and g.holes[3] ~= nil and g.folded[2] and g.folded[4], "Hold'em: wer keine Chips hat, bekommt keine Karten")
+local _, bb = g:Blinds()
+check(bb == 4, "Hold'em: Blinds verdoppeln sich alle fünf Hände (jetzt 2/4)")
+play("4")
+check(g.state == "between" or g.state == "result", "Hold'em: All-in wird ausgespielt")
+if g.state == "result" then
+    check(g.gold == 0 or g.gold == 200, "Hold'em: ohne Chips raus oder den Tisch mit allen 200 Chips gewonnen, Gold " .. g.gold)
+end
 -- die Gegner sehen deine Karten nicht: gleiche Lage, andere Hand des Spielers, gleiche Einschätzung
+PastimeDB.purses.holdem = { gold = 100, peak = 100 }
 g = start("holdem")
-key("1")
+key("2")
 math.randomseed(7); local e1 = g:Equity(2)
 g.holes[1] = C("AH AD")
 math.randomseed(7); local e2x = g:Equity(2)
 check(e1 == e2x, "Hold'em: die Einschätzung eines Gegners hängt nicht von deinen Karten ab")
+PastimeDB.purses.holdem = nil
 ns.ShowLauncher()
 
 local errs = {}

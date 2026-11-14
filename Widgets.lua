@@ -155,6 +155,11 @@ function ns.CreateScrollList(parent, rowHeight, createRow)
     child:SetSize(1, 1)
     sf:SetScrollChild(child)
     sf:SetScript("OnSizeChanged", function(_, w) child:SetWidth(w) end)
+    -- Mausrad: zwei Zeilen je Raste (die Vorlage springt sonst eine halbe Seite)
+    sf:SetScript("OnMouseWheel", function(self, delta)
+        local pos = self:GetVerticalScroll() - delta * rowHeight * 2
+        self:SetVerticalScroll(math.max(0, math.min(pos, self:GetVerticalScrollRange())))
+    end)
     local obj = { scroll = sf, child = child, rows = {}, rowHeight = rowHeight }
     function obj:SetData(items, bind)
         child:SetWidth(sf:GetWidth())

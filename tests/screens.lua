@@ -71,6 +71,50 @@ for _, def in ipairs(ns.games) do
     end
 end
 
+-- 3b. Glücksspiele mitten in der Hand, mit großen Zahlen
+do
+    local function open(id)
+        PastimeDB.purses[id] = { gold = 1054000, peak = 1054000 }
+        ns.StartGame(ns.gamesById[id])
+        return ns.run.game
+    end
+    local g = open("holdem")
+    g:PlaceBet(3)
+    for _ = 1, 400 do if g.state == "act" or g.state == "between" then break end; g:Update(1) end
+    ns.UpdateSidePanel()
+    scan("Hold'em in der Hand (" .. g.state .. ")")
+    for _ = 1, 400 do
+        if g.state == "between" or g.state == "result" then break end
+        if g.state == "act" then g:Player("call") else g:Update(1) end
+    end
+    scan("Hold'em nach der Hand")
+    g = open("roulette")
+    for _, spot in ipairs({ 0, 17, 36, "d1", "d3", "low", "even", "red", "black", "odd", "high" }) do g:Click(spot, "LeftButton") end
+    scan("Roulette mit Chips")
+    g:Spin(); g:Update(2)
+    scan("Roulette nach dem Wurf")
+    g = open("drawpoker")
+    g:PlaceBet(3); g:Toggle(1); g:Toggle(5)
+    scan("Goblin-Poker halten")
+    g:Swap()
+    scan("Goblin-Poker entscheiden")
+    g:Raise(); g:Update(1)
+    scan("Goblin-Poker aufgedeckt")
+    g = open("slots")
+    g:PlaceBet(3); g:Update(2)
+    scan("Automat nach der Drehung")
+    g = open("higherlower")
+    g:PlaceBet(3)
+    scan("Höher oder tiefer")
+    for id in pairs(PastimeDB.purses) do PastimeDB.purses[id] = nil end
+    for _, def in ipairs(ns.games) do      -- die Bestenlisten für die folgenden Schritte wieder füllen
+        if def.noLandingScore then
+            local list = ns.GetScores(def)
+            while #list > 5 do table.remove(list) end
+        end
+    end
+end
+
 -- 4. Ankunft mitten im Spiel
 ns.StartGame(ns.gamesById.rockfall)
 ns.run.game.score = 1054000

@@ -41,11 +41,11 @@ Pastime is a collection of 24 small games in a classic-style window. It notices 
 
 **Dice & Cards**
 - **Goblin Blackjack** (short): get close to 21 against a goblin dealer. Your goblin gold carries over between games; when you cash out or go broke, your highest gold is scored.
-- **Goblin Slots** (short): three reels; three of a kind pay up to 250 times your bet.
-- **Draw Poker** (short): five cards, hold what you like, swap the rest once.
+- **Goblin Slots** (short): five reels, three rows, five lines; the coin is wild and every win pays more than you bet.
+- **Goblin Poker** (short): five cards against the goblin – swap once, then raise or fold.
 - **Higher or Lower** (short): guess the next card; every hit multiplies the pot until you take it.
-- **Goblin Baccarat** (short): bet on player, banker or tie.
-- **Tavern Hold'em** (long): Texas Hold'em with fixed bets against a gnome, a troll and a dwarf who misjudge their hands and bluff.
+- **Goblin Roulette** (short): place your own chips on numbers, dozens, red or black, then the ball rolls.
+- **Tavern Hold'em** (long): a Texas Hold'em table against a gnome, a troll and a dwarf. Everyone starts with the same chips, you can go all in, and whoever runs out is gone.
 - Each of these five has its own goblin gold and is scored like Goblin Blackjack: your highest gold counts when you cash out or go broke.
 - **Tavern Dice** (long): roll five dice up to three times and fill all 13 boxes.
 - **Solitaire** (long): classic Klondike patience against the clock.
@@ -109,7 +109,7 @@ Pastime bündelt 24 kleine Spiele in einem Fenster im klassischen Stil. Es merkt
 **Die Spiele**
 - *Geschicklichkeit:* Windnatter, Windreiter (Allianz: Greifenflug), Kodo-Sprint (Allianz: Widder-Sprint), Kobold-Hauen, Angeln, Steinschlag, Mauerbrecher, Murloc-Invasion
 - *Knobeln:* Goblin-Minenfeld, Totem-Echo (Allianz: Glocken-Echo), Runenpaare, Edelstein-Code, Wortraten (deutsche Wortliste), Vier in einer Reihe, 2048, Edelsteine
-- *Würfel & Karten:* Goblin-Blackjack, Goblin-Automat, Draw Poker, Höher oder tiefer, Goblin Baccarat, Tavernen-Hold'em, Tavernenwürfel, Solitär. Die sechs Glücksspiele haben je einen eigenen Goldtopf; gewertet wird der höchste Goldstand, wenn du Kasse machst oder pleite bist.
+- *Würfel & Karten:* Goblin-Blackjack, Goblin-Automat, Goblin-Poker, Höher oder tiefer, Goblin-Roulette, Tavernen-Hold'em, Tavernenwürfel, Solitär. Die sechs Glücksspiele haben je einen eigenen Goldtopf; gewertet wird der höchste Goldstand, wenn du Kasse machst oder pleite bist.
 
 **Befehle:** `/pastime` öffnet das Fenster, `/pastime hilfe` zeigt alle Befehle. Die deutschen Befehle (`rekorde`, `strecken`, `testflug`, `hafen` …) funktionieren ebenfalls. Einstellungen findest du unter *Optionen → AddOns → Pastime*.
 

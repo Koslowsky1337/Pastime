@@ -1,13 +1,14 @@
--- Pastime: Tavernen-Hold'em – Texas Hold'em mit festen Einsätzen gegen drei Computergegner.
--- Nur dein Gold wird geführt: die Gegner haben immer genug. Gewinnst du, bekommst du von
--- jedem höchstens so viel, wie du selbst gesetzt hast (so braucht es keine Nebentöpfe).
+-- Pastime: Tavernen-Hold'em – Turnier am Tisch gegen drei Computergegner.
+-- Du kaufst dich mit Gold ein, alle vier starten mit gleich vielen Chips. Niemand setzt mehr,
+-- als er hat; wer keine Chips mehr hat, fliegt raus. Gewinnst du den Tisch, gehören dir alle Chips.
 local ADDON, ns = ...
 local L = ns.L
 local Cards = ns.Cards
 
 local W, H = 420, 440
-local SEATS, MAX_RAISES, SAMPLES = 4, 3, 40
+local SEATS, MAX_RAISES, SAMPLES = 4, 4, 40
 local NOISE = 0.4       -- so weit verschätzen sich die Gegner (±20 Punkte Gewinnchance)
+local BLIND_HANDS = 5   -- nach so vielen Händen verdoppeln sich die Blinds
 
 local Game = setmetatable({}, { __index = ns.Gamble })
 Game.__index = Game
@@ -20,10 +21,15 @@ Game.BOTS = {
 }
 local BOARD_N = { 0, 3, 4, 5 }      -- offene Gemeinschaftskarten je Setzrunde
 
--- Grundeinsatz (Ante und kleiner Einsatz): 10 Gold, 5 % oder 10 % des Golds
+-- Einkauf am Tisch: ¼, ½ oder dein ganzes Gold
 function Game.Bets(gold)
     local function part(f) return math.max(10, math.floor(gold * f / 5) * 5) end
-    return { 10, part(0.05), part(0.1) }
+    return { part(0.25), part(0.5), math.max(10, gold) }
+end
+
+function Game:Blinds()
+    local sb = math.max(1, math.floor(self.buyin / 50)) * 2 ^ math.max(0, math.floor((self.hands - 1) / BLIND_HANDS))
+    return sb, sb * 2
 end
 
 function Game:Active()
@@ -36,6 +42,15 @@ function Game:Pot()
     local p = 0
     for s = 1, SEATS do p = p + self.c[s] end
     return p
+end
+
+function Game:CanAct(s) return not self.folded[s] and not self.allin[s] end
+
+local function nextSeat(self, s, ok)
+    for _ = 1, SEATS do
+        s = s % SEATS + 1
+        if ok(s) then return s end
+    end
 end
 
 -- Gewinnchance eines Sitzes gegen zufällige Hände der übrigen Spieler. Der Gegner kennt
@@ -51,7 +66,7 @@ function Game:Equity(seat)
             if not known[r * 10 + s] then rest[#rest + 1] = { rank = r, suit = s } end
         end
     end
-    local opp = self:Active() - 1
+    local opp = math.max(1, self:Active() - 1)
     local need = (5 - nBoard) + 2 * opp
     local score = 0
     for _ = 1, SAMPLES do
@@ -75,54 +90,108 @@ function Game:Equity(seat)
     return score / SAMPLES
 end
 
--- Entscheidung eines Computergegners: "fold", "call" oder "raise". Ungenaues Einschätzen
--- (NOISE) und gelegentliche Bluffs sorgen dafür, dass er Fehler macht.
+-- Erhöhung: der halbe Topf, mindestens der große Blind
+function Game:RaiseSize()
+    local _, bb = self:Blinds()
+    return math.max(bb, math.floor(self:Pot() / 2))
+end
+
+-- Entscheidung eines Computergegners: "fold", "call", "raise" oder "allin". Ungenaues
+-- Einschätzen (NOISE) und gelegentliche Bluffs sorgen dafür, dass er Fehler macht.
 function Game:BotChoice(seat)
     local bot = Game.BOTS[seat - 1]
     local e = self:Equity(seat) + (math.random() - 0.5) * NOISE
     local fair = 1 / self:Active()
-    local toCall = self.cur - self.r[seat]
-    local canRaise = self.raises < MAX_RAISES
+    local stack = self.stacks[seat]
+    local toCall = math.min(self.cur - self.r[seat], stack)
+    local _, bb = self:Blinds()
+    local canRaise = self.raises < MAX_RAISES and stack > toCall
     local bluff = math.random() < bot.bluff
+    local push = stack <= 6 * bb or stack - toCall <= self:RaiseSize() * 1.5
     if toCall == 0 then
-        return canRaise and (bluff or e > fair * 2.3 / bot.aggr) and "raise" or "call"
+        if canRaise and (bluff or e > fair * 2.3 / bot.aggr) then return push and "allin" or "raise" end
+        return "call"
     end
-    if canRaise and (bluff or e > fair * 3.0 / bot.aggr) then return "raise" end
+    if canRaise and ((bluff and toCall <= 2 * bb) or e > fair * 3.0 / bot.aggr) then
+        return (push or (e > 0.8 and math.random() < 0.3)) and "allin" or "raise"
+    end
     local odds = toCall / (self:Pot() + toCall)
     return e > odds * bot.tight and "call" or "fold"
 end
 
 function Game:Clear()
-    self.holes, self.comm, self.folded, self.says, self.reveal = {}, {}, {}, {}, false
+    self.holes, self.comm, self.folded, self.allin, self.says, self.reveal = {}, {}, {}, {}, {}, false
     self.c, self.r, self.street, self.cur = { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, 1, 0
+    self.stacks = nil
+end
+
+-- Der Tisch bleibt über einen Neustart erhalten (Stand nach der letzten Hand).
+-- shortcut: wer mitten in einer Hand geht, bekommt den Stand vor dieser Hand zurück; bei Bedarf den Einsatz der Hand abziehen
+function Game:SaveTable()
+    local t = nil
+    if self.stacks then
+        t = { stacks = { unpack(self.stacks) }, button = self.button, hands = self.hands, buyin = self.buyin }
+    end
+    self:Purse().table = t
 end
 
 function Game:Start()
-    self.first = math.random(SEATS)
+    local p = self:Purse()
+    local t = p.table
+    if type(t) == "table" and type(t.stacks) == "table" and (t.stacks[1] or 0) > 0 then
+        self.gold = tonumber(p.gold) or 0
+        self.peak = math.max(tonumber(p.peak) or 0, self.gold)
+        self.score = self.peak
+        self:Clear()
+        self.stacks, self.button, self.hands, self.buyin, self.bet = { unpack(t.stacks) }, t.button, t.hands, t.buyin, t.buyin
+        self.state = "between"
+        self.msg:SetText(L["Back at the table."])
+        self.sub:SetText("")
+        return self:Render()
+    end
+    p.table = nil
     self:OpenRun()
 end
 
-function Game:Deal(u)
-    local deck = Cards.Shuffle(Cards.NewDeck())
-    self.u, self.holes, self.comm, self.folded, self.says, self.reveal = u, {}, {}, {}, {}, false
-    for s = 1, SEATS do self.holes[s] = { table.remove(deck), table.remove(deck) } end
-    for i = 1, 5 do self.comm[i] = table.remove(deck) end
-    self.c = { u, u, u, u }
-    self.allin = self.gold == 0
-    self.first = self.first % SEATS + 1
-    self.street = 1
-    self.sub:SetText("")
-    self:BeginRound()
+function Game:Deal(buyin)
+    self.buyin, self.hands = buyin, 0
+    self.stacks = { buyin, buyin, buyin, buyin }
+    self.button = math.random(SEATS)
+    self:SaveTable()
+    self:NewHand()
 end
 
-function Game:BeginRound()
-    self.size = self.street <= 2 and self.u or self.u * 2
-    self.cur, self.r, self.raises, self.acted = 0, { 0, 0, 0, 0 }, 0, {}
-    self.seat = self.first
-    if self.allin then
-        self.state, self.wait = "runout", 0.9
-        return self:Render()
+-- Chips eines Sitzes in den Topf; wer nichts mehr hat, ist „all in“
+function Game:Put(seat, amount)
+    amount = math.min(amount, self.stacks[seat])
+    self.stacks[seat] = self.stacks[seat] - amount
+    self.c[seat] = self.c[seat] + amount
+    self.r[seat] = self.r[seat] + amount
+    if self.stacks[seat] == 0 then self.allin[seat] = true end
+end
+
+function Game:NewHand()
+    if self.state ~= "between" and self.state ~= "bet" then return end
+    local deck = Cards.Shuffle(Cards.NewDeck())
+    self.holes, self.comm, self.folded, self.allin, self.says, self.reveal = {}, {}, {}, {}, {}, false
+    self.c, self.r, self.acted, self.raises, self.street = { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, {}, 0, 1
+    for s = 1, SEATS do
+        if self.stacks[s] == 0 then self.folded[s] = true else self.holes[s] = { table.remove(deck), table.remove(deck) } end
     end
+    for i = 1, 5 do self.comm[i] = table.remove(deck) end
+    self.hands = self.hands + 1
+    local alive = function(s) return not self.folded[s] end
+    self.button = nextSeat(self, self.button, alive)
+    local sbSeat = nextSeat(self, self.button, alive)
+    local bbSeat = nextSeat(self, sbSeat, alive)
+    local sb, bb = self:Blinds()
+    self:Put(sbSeat, sb)
+    self:Put(bbSeat, bb)
+    self.says[sbSeat], self.says[bbSeat] = L["small blind"], L["big blind"]
+    self.cur = bb
+    self.seat = nextSeat(self, bbSeat, alive)
+    self.sub:SetText("")
+    self.host:Sound("click")
     self:Advance()
 end
 
@@ -130,7 +199,7 @@ end
 function Game:Advance()
     for _ = 1, SEATS do
         local s = self.seat
-        if not self.folded[s] and (not self.acted[s] or self.r[s] < self.cur) then
+        if self:CanAct(s) and (not self.acted[s] or self.r[s] < self.cur) then
             if s == 1 then
                 self.state = "act"
                 self.sub:SetText(L["Your turn."])
@@ -146,57 +215,84 @@ end
 
 function Game:EndRound()
     if self.street == 4 then return self:Showdown() end
+    local can = 0
+    for s = 1, SEATS do if self:CanAct(s) then can = can + 1 end end
+    if can <= 1 then
+        -- höchstens einer kann noch setzen: die restlichen Karten werden einfach aufgedeckt
+        self.state, self.wait, self.reveal = "runout", 0.9, true
+        return self:Render()
+    end
     self.street = self.street + 1
-    for s = 2, SEATS do if not self.folded[s] then self.says[s] = nil end end
+    self.cur, self.r, self.acted, self.raises = 0, { 0, 0, 0, 0 }, {}, 0
+    for s = 2, SEATS do if self:CanAct(s) then self.says[s] = nil end end
+    self.seat = nextSeat(self, self.button, function(s) return not self.folded[s] end)
     self.host:Sound("click")
-    self:BeginRound()
+    self:Advance()
 end
 
 function Game:Act(seat, what)
     local toCall = self.cur - self.r[seat]
-    local pay = 0
     if what == "fold" then
         self.folded[seat] = true
         self.says[seat] = L["folds"]
-    elseif what == "raise" then
-        self.says[seat] = self.cur == 0 and L["bets"] or L["raises"]
-        self.cur = self.cur + self.size
-        self.raises = self.raises + 1
-        pay = self.cur - self.r[seat]
-    else
+    elseif what == "call" then
         self.says[seat] = toCall == 0 and L["checks"] or L["calls"]
-        pay = toCall
+        self:Put(seat, toCall)
+    else
+        local opened = self.cur == 0
+        self:Put(seat, what == "allin" and self.stacks[seat] or (self.cur + self:RaiseSize() - self.r[seat]))
+        if self.r[seat] > self.cur then
+            self.cur, self.raises = self.r[seat], self.raises + 1
+            self.says[seat] = opened and L["bets"] or L["raises"]
+        else
+            self.says[seat] = L["calls"]
+        end
     end
-    if seat == 1 then
-        pay = math.min(pay, self.gold)      -- zu wenig Gold: mit dem Rest mitgehen („all in“)
-        self:Spend(pay)
-        if self.gold == 0 then self.allin = true end
-    end
-    self.c[seat] = self.c[seat] + pay
-    self.r[seat] = self.cur
+    if self.allin[seat] then self.says[seat] = L["all in"] end
     self.acted[seat] = true
     self.host:Sound("click")
-    if self.folded[1] then return self:Finish(0, L["You folded."], 1.6) end
-    if self:Active() == 1 then return self:Finish(self:Share(1), L["Everyone else folded – the pot is yours."], 2) end
-    if self.allin then
-        self.state, self.wait = "runout", 0.9
-        return self:Render()
+    if self:Active() == 1 then
+        local winner = nextSeat(self, seat, function(s) return not self.folded[s] end)
+        self.stacks[winner] = self.stacks[winner] + self:Pot()
+        return self:EndHand(winner == 1 and L["Everyone else folded – the pot is yours."]
+            or (L["%s wins."]):format(Game.BOTS[winner - 1].name), winner == 1 and self:Pot() or 0)
     end
     self.seat = seat % SEATS + 1
     self:Advance()
 end
 
--- Dein Anteil am Topf: von jedem Sitz höchstens so viel, wie du selbst gesetzt hast
-function Game:Share(winners)
-    local sum = 0
-    for s = 1, SEATS do sum = sum + math.min(self.c[s], self.c[1]) end
-    return math.floor(sum / winners)
+-- Töpfe verteilen. Wer „all in“ weniger gesetzt hat, gewinnt von jedem höchstens diesen Betrag;
+-- der Rest bildet Nebentöpfe für die anderen. Liefert den Gewinn je Sitz und die Sieger des Haupttopfs.
+function Game.Split(c, folded, score)
+    local rem, wins, main = { unpack(c) }, { 0, 0, 0, 0 }, nil
+    while true do
+        local m
+        for s = 1, SEATS do
+            if not folded[s] and rem[s] > 0 and (not m or rem[s] < m) then m = rem[s] end
+        end
+        if not m then break end
+        local pot, best, winners = 0, 0, {}
+        for s = 1, SEATS do
+            local part = math.min(rem[s], m)
+            pot = pot + part
+            if not folded[s] and rem[s] > 0 and score[s] > best then best = score[s] end
+        end
+        for s = 1, SEATS do
+            if not folded[s] and rem[s] > 0 and score[s] == best then winners[#winners + 1] = s end
+            rem[s] = rem[s] - math.min(rem[s], m)
+        end
+        local share = math.floor(pot / #winners)
+        for _, s in ipairs(winners) do wins[s] = wins[s] + share end
+        wins[winners[1]] = wins[winners[1]] + pot - share * #winners
+        main = main or winners
+    end
+    for s = 1, SEATS do wins[main[1]] = wins[main[1]] + rem[s] end      -- Reste von Sitzen, die gepasst haben
+    return wins, main
 end
 
 function Game:Showdown()
     self.street, self.reveal = 4, true
-    local best, winners, names, cat1 = 0, 0, {}, nil
-    local score = {}
+    local score, cat1 = {}, nil
     for s = 1, SEATS do
         if not self.folded[s] then
             local hand = { self.holes[s][1], self.holes[s][2] }
@@ -204,24 +300,44 @@ function Game:Showdown()
             local cat, v = Cards.Eval(hand)
             score[s] = v
             if s == 1 then cat1 = cat else self.says[s] = Cards.HANDS[cat] end
-            if v > best then best = v end
         end
     end
-    for s = 1, SEATS do
-        if score[s] == best then
-            winners = winners + 1
-            if s > 1 then names[#names + 1] = Game.BOTS[s - 1].name end
-        end
+    local wins, main = Game.Split(self.c, self.folded, score)
+    for s = 1, SEATS do self.stacks[s] = self.stacks[s] + wins[s] end
+    local text
+    if wins[1] > 0 and main[1] == 1 then
+        text = (#main > 1 and L["Split pot: %s."] or L["You win: %s."]):format(Cards.HANDS[cat1])
+    else
+        local names = {}
+        for _, s in ipairs(main) do if s > 1 then names[#names + 1] = Game.BOTS[s - 1].name end end
+        text = (L["%s wins."]):format(table.concat(names, ", "))
     end
-    if score[1] == best then
-        return self:Finish(self:Share(winners), winners > 1 and (L["Split pot: %s."]):format(Cards.HANDS[cat1])
-            or (L["You win: %s."]):format(Cards.HANDS[cat1]), false)
-    end
-    self:Finish(0, (L["%s wins."]):format(table.concat(names, ", ")), false)
+    self:EndHand(text, wins[1])
 end
 
-function Game:Finish(win, text, wait)
-    self:Pay(win, text, wait)
+-- Hand vorbei: Stand merken; ohne Chips bist du raus, ohne Gegner gehört dir der Tisch
+function Game:EndHand(text, won)
+    local diff = won - self.c[1]
+    self.c = { 0, 0, 0, 0 }
+    self.state = "between"
+    self.msg:SetText(diff > 0 and ("|cff80ff80+%d|r"):format(diff) or (diff < 0 and ("|cffff6060%d|r"):format(diff) or "±0"))
+    self.sub:SetText(text)
+    self.host:Sound(diff > 0 and "big" or (diff < 0 and "bad" or "click"))
+    self:SaveTable()
+    local bots = 0
+    for s = 2, SEATS do if self.stacks[s] > 0 then bots = bots + 1 end end
+    if self.stacks[1] == 0 then return self:LeaveTable(L["You are out of chips."]) end
+    if bots == 0 then return self:LeaveTable(L["You won the table!"]) end
+    self:Render()
+end
+
+-- Aufstehen: deine Chips werden wieder zu Gold
+function Game:LeaveTable(text)
+    if self.state ~= "between" then return end
+    local chips = self.stacks[1]
+    self.stacks[1] = 0
+    self:Purse().table = nil
+    self:Pay(chips, text or (L["You leave the table with %d chips."]):format(chips), false)
 end
 
 function Game:Update(dt)
@@ -229,7 +345,6 @@ function Game:Update(dt)
         self.wait = self.wait - dt
         if self.wait <= 0 then self:Act(self.seat, self:BotChoice(self.seat)) end
     elseif self.state == "runout" then
-        -- du bist „all in“: die restlichen Karten werden ohne weitere Einsätze aufgedeckt
         self.wait = self.wait - dt
         if self.wait <= 0 then
             if self.street == 4 then return self:Showdown() end
@@ -243,7 +358,7 @@ function Game:Update(dt)
 end
 
 function Game:CanRaise()
-    return self.state == "act" and self.raises < MAX_RAISES and self.gold >= self.cur - self.r[1] + self.size
+    return self.state == "act" and self.raises < MAX_RAISES and self.stacks[1] > self.cur - self.r[1] + self:RaiseSize()
 end
 
 function Game:Player(what)
@@ -251,27 +366,37 @@ function Game:Player(what)
     self:Act(1, what)
 end
 
+local ACTIONS = { ["1"] = "fold", ["2"] = "call", ["3"] = "raise", ["4"] = "allin" }
 function Game:Key(k, down)
-    if self.state == "act" and (k == "1" or k == "2" or k == "3") then
-        if down then self:Player(k == "1" and "fold" or (k == "2" and "call" or "raise")) end
+    local act
+    if self.state == "act" and ACTIONS[k] then act = function() self:Player(ACTIONS[k]) end
+    elseif self.state == "between" and (k == "1" or k == "SPACE" or k == "ENTER") then act = function() self:NewHand() end
+    elseif self.state == "between" and k == "2" then act = function() self:LeaveTable() end
+    end
+    if act then
+        if down then act() end
         return true
     end
     return self:BaseKey(k, down)
 end
 
 function Game:Render()
+    local seated = self.stacks ~= nil
     local dealt = self.holes[1] ~= nil
     local nBoard = dealt and BOARD_N[self.street] or 0
     for i = 1, 5 do self.commCards[i]:SetCard(i <= nBoard and self.comm[i] or nil, true) end
     for s = 2, SEATS do
         local seat = self.seats[s]
-        local show = dealt and not self.folded[s]
+        local show = self.holes[s] ~= nil and not self.folded[s]
         for i = 1, 2 do seat.cards[i]:SetCard(show and self.holes[s][i] or nil, self.reveal) end
         seat.says:SetText(self.says[s] or "")
+        local stack = seated and self.stacks[s] or nil
+        seat.name:SetText(Game.BOTS[s - 1].name .. (stack and (stack > 0 or show) and (" · " .. stack) or (stack and (" · " .. L["out"]) or "")))
         local turn = self.state == "bots" and self.seat == s
         seat.name:SetTextColor(turn and 1 or 0.8, turn and 0.82 or 0.8, turn and 0 or 0.8)
     end
     for i = 1, 2 do self.myCards[i]:SetCard(dealt and self.holes[1][i] or nil, true) end
+    self.you:SetText(L["You"] .. (seated and (" · " .. self.stacks[1]) or ""))
     local hand = ""
     if dealt and nBoard >= 3 then
         local cards = { self.holes[1][1], self.holes[1][2] }
@@ -279,32 +404,41 @@ function Game:Render()
         hand = Cards.HANDS[(Cards.Eval(cards))]
     end
     self.handText:SetText(hand)
-    if dealt and self.state ~= "result" and self.state ~= "over" then
+    local playing = self.state == "act" or self.state == "bots" or self.state == "runout"
+    if playing then
         self.msg:SetText((L["Pot: %d"]):format(self:Pot()))
         if self.state ~= "act" then self.sub:SetText("") end
     end
     local act = self.state == "act"
-    local toCall = act and math.min(self.cur - self.r[1], self.gold) or 0
+    local toCall = act and math.min(self.cur - self.r[1], self.stacks[1]) or 0
     self.foldBtn:SetShown(act)
     self.callBtn:SetShown(act)
     self.callBtn:SetText(toCall == 0 and L["Check (2)"] or (L["Call %d (2)"]):format(toCall))
     self.raiseBtn:SetShown(act)
     self.raiseBtn:SetEnabled(self:CanRaise())
-    self.raiseBtn:SetText(((self.cur or 0) == 0 and L["Bet %d (3)"] or L["Raise %d (3)"]):format(self.size or 0))
+    self.raiseBtn:SetText(((self.cur or 0) == 0 and L["Bet %d (3)"] or L["Raise %d (3)"]):format(act and self:RaiseSize() or 0))
+    self.allinBtn:SetShown(act)
+    self.allinBtn:SetText((L["All in %d (4)"]):format(act and self.stacks[1] or 0))
+    self.handBtn:SetShown(self.state == "between")
+    self.leaveBtn:SetShown(self.state == "between")
     self:BaseRender()
+    local amounts = self.Bets(self.gold or 0)
+    for i, b in ipairs(self.betButtons) do b:SetText((L["Buy in %d (%d)"]):format(amounts[i], i)) end
 end
 
 function Game:Info()
+    local sb, bb = 0, 0
+    if self.stacks then sb, bb = self:Blinds() end
     return {
         { L["Gold"], tostring(self.gold or 0) },
-        { L["Bet"], tostring(self.bet or 0) },
-        { L["Pot"], tostring(self.c and self:Pot() or 0) },
+        { L["Chips"], tostring(self.stacks and self.stacks[1] or 0) },
+        { L["Blinds"], ("%d/%d"):format(sb, bb) },
     }
 end
 
 local function Create(host, board)
     local g = ns.Gamble.New(Game, host, board, "holdem", 228)
-    g.seats, g.commCards, g.myCards = {}, {}, {}
+    g.seats, g.commCards, g.myCards, g.hands, g.buyin = {}, {}, {}, 0, 0
     g:Clear()
     for s = 2, SEATS do
         local cx = 70 + (s - 2) * 140
@@ -331,31 +465,41 @@ local function Create(host, board)
         g.myCards[i]:SetPoint("TOPLEFT", board, "TOPLEFT", 130 + (i - 1) * 66, -276)
         g.myCards[i]:Hide()
     end
-    local you = ns.FontString(board, "GameFontNormal", "RIGHT")
-    you:SetPoint("TOPRIGHT", board, "TOPLEFT", 120, -310)
-    you:SetText(L["You"])
+    g.you = ns.FontString(board, "GameFontNormal", "RIGHT")
+    g.you:SetPoint("TOPRIGHT", board, "TOPLEFT", 122, -310)
     g.handText = ns.FontString(board, "GameFontHighlight", "LEFT")
     g.handText:SetPoint("TOPLEFT", board, "TOPLEFT", 266, -310)
     g.handText:SetWidth(146)
-    g.foldBtn = g:Button(L["Fold (1)"], 126, 8, function() g:Player("fold") end)
-    g.callBtn = g:Button("", 126, 144, function() g:Player("call") end)
-    g.raiseBtn = g:Button("", 126, 280, function() g:Player("raise") end)
+    -- zwei Reihen Knöpfe: unten Passen und Mitgehen, darüber Erhöhen und All-in
+    local function btn(text, x, y, fn)
+        local b = g:Button(text, 200, x, fn)
+        b:ClearAllPoints()
+        b:SetPoint("BOTTOMLEFT", board, "BOTTOMLEFT", x, y)
+        return b
+    end
+    g.foldBtn = btn(L["Fold (1)"], 8, 10, function() g:Player("fold") end)
+    g.callBtn = btn("", 212, 10, function() g:Player("call") end)
+    g.raiseBtn = btn("", 8, 40, function() g:Player("raise") end)
+    g.allinBtn = btn("", 212, 40, function() g:Player("allin") end)
+    g.handBtn = btn(L["Next hand (Space)"], 8, 10, function() g:NewHand() end)
+    g.leaveBtn = btn(L["Leave table (2)"], 212, 10, function() g:LeaveTable() end)
+    ns.SetTooltip(g.leaveBtn, L["Leave table (2)"], L["Your chips turn back into gold. The table is over."])
     return g
 end
 
 ns.RegisterGame({
     id = "holdem",
     name = L["Tavern Hold'em"],
-    short = L["Poker against three"],
-    aliases = { "holdem", "texas", "tavernholdem", "pokerrunde" },
+    short = L["Poker tournament for four"],
+    aliases = { "holdem", "texas", "tavernholdem", "pokerrunde", "turnier" },
     category = "karten",
     length = "lang",
     icon = "Interface\\Icons\\INV_Misc_Dice_01",
     noLandingScore = true,
     scoreLabel = L["Highest gold"],
     width = W, height = H,
-    desc = L["Texas Hold'em against a gnome, a troll and a dwarf: two cards each, five on the table, the best hand of five wins. After the ante come four betting rounds with fixed bets. The others misjudge their hands and bluff now and then. When you go broke or cash out, your highest gold counts."],
-    controls = L["1/2/3: ante of 10, 1/20 or 1/10 of your gold · in the hand 1: fold · 2: check or call · 3: bet or raise · %s: cash out"]:format(ns.KEYS.cash),
-    controlsShort = L["1–3: ante, then\n1: fold · 2: call\n3: raise · %s: cash out"]:format(ns.KEYS.cash),
+    desc = L["A Texas Hold'em table against a gnome, a troll and a dwarf. You buy in with gold and all four start with the same chips. Nobody can bet more than they have, and whoever runs out is gone. Win the table and all chips are yours – or get up between hands and take what you have. The blinds double every five hands."],
+    controls = L["1/2/3: buy in with ¼, ½ or all of your gold · in the hand 1: fold · 2: check or call · 3: raise · 4: all in · between hands Space: next hand · 2: leave the table · %s: cash out"]:format(ns.KEYS.cash),
+    controlsShort = L["1: fold · 2: call\n3: raise · 4: all in\n%s: cash out"]:format(ns.KEYS.cash),
     Create = Create,
 })

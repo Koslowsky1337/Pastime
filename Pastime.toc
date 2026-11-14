@@ -41,7 +41,7 @@ Games\Blackjack.lua
 Games\Slots.lua
 Games\DrawPoker.lua
 Games\HigherLower.lua
-Games\Baccarat.lua
+Games\Roulette.lua
 Games\Holdem.lua
 Games\TavernDice.lua
 Games\Solitaire.lua
