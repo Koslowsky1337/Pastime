@@ -250,7 +250,7 @@ ns.RegisterGame({
     short = L["Mine finder"],
     aliases = { "minen", "minenfeld", "minefield", "mines" },
     category = "knobeln",
-    length = "kurz",
+    length = "lang",
     icon = ICON_MINE,
     width = 416, height = 416,
     modes = { { id = "leicht", name = L["Easy (9×9)"] }, { id = "mittel", name = L["Medium (16×16)"] } },

@@ -90,7 +90,7 @@ Zum Schluss: `/pastime debug` aus, `/reload`, dann Screenshots und Protokoll aus
 - [x] Changelog enthält nur Änderungen; die Funktionsübersicht steht in der CurseForge-Beschreibung (README).
 - [x] Haltestellen-Koordinaten bleiben wie sie sind (fest im Addon, keine Abhängigkeit von anderen Addons; Quellen stehen im README).
 - [x] Zeitvertreib statt Herausforderung: Tavernenwürfel zeigt „Gewonnen!“ ab 150 statt 200 Punkten.
-- [ ] Goblin-Minenfeld: Was heißt „ggf. immer Mittel“ – nur noch das 16×16-Feld anbieten, oder das Spiel als „lang“ markieren?
+- [x] Goblin-Minenfeld ist als „lang“ markiert (das 16×16-Feld dauert mehrere Minuten).
 - [x] Fraktions-Thema für Horde und Allianz (Stufe 3 umgesetzt, Prüfung im Spiel steht unter 1.)
 
 ## 4. CurseForge

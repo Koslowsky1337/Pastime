@@ -5,6 +5,7 @@
 - Pause and the arrival dialog now cover the board completely; you see it again when you resume (real-time games: when the 3-2-1 countdown starts).
 - Long place names are shortened in the route line and the route records, so the destination stays visible; the tooltip shows the full name.
 - Tavern Dice: "Victory!" from 150 points instead of 200.
+- Goblin Minefield is now marked as a long game.
 - The `/pastime` shortcuts that used other games' names are gone; use the game's own name (for example `/pastime rockfall`, `/pastime dice`). Your leaderboards, route records and statistics are kept.
 
 ## 1.0.0-beta2
