@@ -580,7 +580,7 @@ local function CreateLauncher(parent)
     v.status:SetPoint("RIGHT", -22, 0)
     v.checks = {}
     local SETTINGS = {
-        { "autoOpen", L["Open when travelling"], L["Opens the game collection when you take off from a flight master and while you wait at a zeppelin tower or boat dock. If you didn't play, it closes again when you arrive."] },
+        { "autoOpen", L["Open when travelling"], L["Opens the game collection when you take off from a flight master and when your zeppelin or boat departs. If you didn't play, it closes again when you arrive."] },
         { "landAlarm", L["Landing alarm"], L["On landing or arrival: pause the game, play a sound and show a large notice – then keep playing or finish and score."] },
         { "hideInCombat", L["Hide in combat"], L["The window hides as soon as you enter combat (the game always pauses)."] },
         { "sound", L["Game sounds"], L["Sounds for points, lines and game over."] },

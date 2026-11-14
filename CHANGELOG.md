@@ -6,6 +6,7 @@
 - Goblin Poker replaces Draw Poker: you play five cards against the goblin, swap once, then raise or fold.
 - Goblin Roulette replaces Goblin Baccarat: you place your own chips on numbers, dozens and the even chances.
 - Tavern Hold'em is now a table tournament: you buy in, all four start with the same chips, nobody can bet more than they have, there is an all-in button, and players who run out of chips are gone. Win the table or get up between hands with your chips.
+- Zeppelins and boats: the window now opens when the ship departs, no longer while you wait at the tower or dock.
 - The game list scrolls two rows per mouse-wheel step instead of half a page.
 
 ## 1.0.0-beta3

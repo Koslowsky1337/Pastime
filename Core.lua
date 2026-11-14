@@ -475,7 +475,6 @@ function ns.BeginTrip(info)
     ns.Log("I", "reise", "%s: %s -> %s (%s)%s", t.kind, tostring(t.from), tostring(t.to), t.phase,
         t.simulated and " [Test]" or "")
     snapshot("start", t)
-    if ns.DB.settings.autoOpen and not InCombatLockdown() and ns.OpenForTrip then ns.OpenForTrip() end
     if ns.UpdateUI then ns.UpdateUI() end
 end
 
@@ -487,6 +486,8 @@ function ns.DepartTrip(silent)
     t.start = GetTime()
     local r = (t.from and t.to) and ns.Route(t.kind, t.from, t.to, true)
     t.expected = t.simEnd and (t.simEnd - t.start) or (r and r.t) or nil
+    -- Das Fenster öffnet sich erst jetzt: am Turm oder Anleger wird nur gewartet (und die Zeit gemessen)
+    if ns.DB.settings.autoOpen and not InCombatLockdown() and ns.OpenForTrip then ns.OpenForTrip() end
     if not silent then
         ns.Log("I", "reise", "Departure %s -> %s (expected: %s s)", tostring(t.from), tostring(t.to), tostring(t.expected))
         snapshot("abfahrt", t)

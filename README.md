@@ -2,7 +2,7 @@
 
 **Long flight path? Waiting for the zeppelin? Pastime gives you something to do.**
 
-Pastime is a collection of 24 small games in a classic-style window. It notices when you start a journey and opens by itself: at the flight master, at a zeppelin tower or on a boat dock. When you arrive, it pauses your game and asks whether you want to keep playing or finish and score the round. Every route has its own leaderboard, so *Orgrimmar → Undercity* gets a podium of its own.
+Pastime is a collection of 24 small games in a classic-style window. It notices when you start a journey and opens by itself: when you take off from a flight master and when your zeppelin or boat departs. When you arrive, it pauses your game and asks whether you want to keep playing or finish and score the round. Every route has its own leaderboard, so *Orgrimmar → Undercity* gets a podium of its own.
 
 ## Features
 
@@ -57,7 +57,7 @@ Pastime is a collection of 24 small games in a classic-style window. It notices 
 - **Boats (everyone):** Booty Bay ↔ Ratchet, Tanaris ↔ Riverglades, Rut'theran ↔ Auberdine.
 - **Boats and zeppelins (Alliance):** Stormwind ↔ Auberdine, the round trip Auberdine → Menethil Harbor → Southshore → Auberdine, Menethil Harbor ↔ Theramore, Zephras Isle ↔ Dalaran.
 
-Zeppelin and boat trips are detected from your position: stand on the tower or dock for a few seconds and Pastime knows you are waiting. Once the ship carries you away, the trip has started.
+Zeppelin and boat trips are detected from your position: stand on the tower or dock for a few seconds and Pastime knows you are waiting. Once the ship carries you away, the trip has started and the window opens.
 
 ## Commands
 
@@ -94,7 +94,7 @@ Pastime is free software under the MIT license.
 
 **Langer Flug? Warten auf den Zeppelin? Pastime vertreibt dir die Zeit.**
 
-Pastime bündelt 24 kleine Spiele in einem Fenster im klassischen Stil. Es merkt, wenn du eine Reise antrittst, und öffnet sich von selbst: beim Flugmeister, am Zeppelinturm oder am Schiffsanleger. Bei der Ankunft pausiert dein Spiel, und du entscheidest: weiterspielen oder beenden und werten. Jede Strecke hat ihre eigene Bestenliste.
+Pastime bündelt 24 kleine Spiele in einem Fenster im klassischen Stil. Es merkt, wenn du eine Reise antrittst, und öffnet sich von selbst: beim Abflug am Flugmeister und sobald dein Zeppelin oder Schiff ablegt. Bei der Ankunft pausiert dein Spiel, und du entscheidest: weiterspielen oder beenden und werten. Jede Strecke hat ihre eigene Bestenliste.
 
 **Funktionen**
 - Öffnet sich auf Flügen, Zeppelin- und Schiffsreisen (abschaltbar) – oder per `/pastime`, Minimap-Knopf und Tastenbelegung.

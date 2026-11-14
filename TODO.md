@@ -18,6 +18,7 @@ Diese Liste muss abgehakt sein, bevor `v1.0.0` getaggt wird.
 
 ### Dazu im Spiel prüfen
 - [ ] **Kampf auf dem Endbildschirm:** „Im Kampf ausblenden“ aus, eine Partie verlieren, angreifen lassen – Bewegen und Zaubern gehen sofort.
+- [ ] **Zeppelin, Fenster erst bei Abfahrt (15.11.):** am Turm bleibt das Fenster zu; es öffnet sich, sobald der Zeppelin ablegt.
 - [ ] **Zeppelin, ganz normal:** warten, abfahren, ankommen – Strecke und Dauer stimmen (die Erkennung wurde umgebaut). Danach `/pastime diag` 📸.
 - [ ] **Zeppelin ohne Warten:** erst im letzten Moment aufspringen – die Reise wird trotzdem erkannt.
 - [ ] **`/reload` auf dem Zeppelin:** bei der Ankunft geht kein Fenster auf und es steht keine Reise im Status.

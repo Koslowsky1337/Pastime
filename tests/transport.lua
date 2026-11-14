@@ -50,18 +50,19 @@ local function routeTo(name)
     for key in pairs(PastimeDB.routes) do if key:find("> " .. name, 1, true) then return key end end
 end
 
--- A: 25 Minuten am Turm stehen – das Fenster öffnet sich einmal, nicht alle zehn Minuten
+-- A: 25 Minuten am Turm stehen – das Fenster bleibt zu; es öffnet sich erst bei der Abfahrt
 reset(); atOrgrimmar()
 ttick(12)
-check(trip.active and trip.phase == "wait" and opens == 1, "A: Warten am Turm öffnet das Fenster")
-ns.frame:Hide()
+check(trip.active and trip.phase == "wait" and opens == 0, "A: Warten am Turm öffnet das Fenster nicht")
 ttick(1210)
 check(not trip.active, "A: nach zehn Minuten endet das Warten")
 ttick(1800)
-check(not trip.active and opens == 1, "A: wer am Turm bleibt, bekommt das Fenster nicht erneut (" .. opens .. "×)")
+check(not trip.active and opens == 0, "A: wer am Turm bleibt, bekommt kein Fenster (" .. opens .. "×)")
 walk(10, 10); walk(-10, 10)
 ttick(12)
-check(trip.active and trip.phase == "wait" and opens == 2, "A: weggehen und wiederkommen wartet wieder")
+check(trip.active and trip.phase == "wait" and opens == 0, "A: weggehen und wiederkommen wartet wieder")
+carry(8, 8)
+check(trip.phase == "ride" and opens == 1 and ns.frame:IsShown(), "A: bei der Abfahrt öffnet sich das Fenster (" .. opens .. "×)")
 
 -- B: /reload mitten in der Fahrt – beim Anlegen am Ziel startet keine Reise
 reset()
@@ -74,7 +75,7 @@ check(not trip.active and opens == 0, "B: auch nach dem Aussteigen keine Reise")
 -- ... aber wer ohne Warten einsteigt und abfährt, wird erkannt
 reset(); atOrgrimmar()
 carry(8, 6)
-check(trip.active and trip.phase == "ride" and trip.from == ORG, "B: direkt eingestiegen und abgefahren")
+check(trip.active and trip.phase == "ride" and trip.from == ORG and opens == 1, "B: direkt eingestiegen und abgefahren, Fenster offen")
 
 -- C: nach der Abfahrt heruntergefallen, zurück zum Turm, nächster Zeppelin
 reset(); atOrgrimmar()

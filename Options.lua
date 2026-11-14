@@ -8,7 +8,7 @@ local category
 local settings = {}
 
 local OPTIONS = {
-    { key = "autoOpen", tip = L["Opens the game collection when you take off from a flight master and while you wait at a zeppelin tower or boat dock. If you didn't play, it closes again when you arrive."] },
+    { key = "autoOpen", tip = L["Opens the game collection when you take off from a flight master and when your zeppelin or boat departs. If you didn't play, it closes again when you arrive."] },
     { key = "landAlarm", tip = L["On landing or arrival: pause the game, play a sound and show a large notice – then keep playing or finish and score."] },
     { key = "hideInCombat", tip = L["The window hides as soon as you enter combat (the game always pauses)."] },
     { key = "sound", tip = L["Sounds for points, lines and game over."] },

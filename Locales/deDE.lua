@@ -288,7 +288,7 @@ L["On landing or arrival: pause the game, play a sound and show a large notice �
 L["One-button flyer"] = "Ein-Knopf-Flieger"
 L["Ones"] = "Einser"
 L["Open when travelling"] = "Auf Reisen öffnen"
-L["Opens the game collection when you take off from a flight master and while you wait at a zeppelin tower or boat dock. If you didn't play, it closes again when you arrive."] = "Öffnet die Spielesammlung beim Abflug am Flugmeister und wenn du an einem Zeppelinturm oder Schiffsanleger wartest. Hast du nicht gespielt, schließt sie sich bei der Ankunft wieder."
+L["Opens the game collection when you take off from a flight master and when your zeppelin or boat departs. If you didn't play, it closes again when you arrive."] = "Öffnet die Spielesammlung beim Abflug am Flugmeister und sobald dein Zeppelin oder Schiff ablegt. Hast du nicht gespielt, schließt sie sich bei der Ankunft wieder."
 L["Opponent"] = "Gegner"
 L["Out of balls. Reached level %d"] = "Kein Ball mehr. Erreicht: Stufe %d"
 L["Out of moves. Longest chain: %d"] = "Alle Züge verbraucht. Längste Kette: %d"

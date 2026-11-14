@@ -386,7 +386,8 @@ ttick(4)
 check(not trip.active, "nach 2 s noch kein Warten")
 ttick(8)
 check(trip.active and trip.kind == "zeppelin" and trip.phase == "wait" and trip.from == "Orgrimmar" and trip.to == "Undercity", "wartet auf Zeppelin nach Undercity: " .. tostring(trip.to))
-check(ns.frame:IsShown() and ns.launcher:IsVisible(), "Fenster öffnet sich am Zeppelinturm")
+check(not ns.frame:IsShown(), "am Zeppelinturm bleibt das Fenster zu: es öffnet sich erst bei der Abfahrt")
+ns.ShowFrame()
 check(ns.launcher.status.text:find("Du wartest auf den Zeppelin nach Undercity"), "Status: " .. ns.launcher.status.text)
 ns.StartGame(ns.gamesById["2048"])
 g = ns.run.game
@@ -424,8 +425,10 @@ PLAYER.x, PLAYER.y = 0.6074, 0.5887
 ns.frame:Hide()
 ttick(12)
 check(trip.active and trip.phase == "wait" and trip.from == "Undercity" and trip.to == "Orgrimmar", "wartet in Undercity auf Orgrimmar: " .. tostring(trip.to))
+check(not ns.frame:IsShown(), "Warten in Undercity: Fenster bleibt zu")
 for i = 1, 4 do PLAYER.x = PLAYER.x - 0.002; ttick(1) end
 check(trip.phase == "ride", "Abfahrt Undercity")
+check(ns.frame:IsShown() and ns.launcher:IsVisible(), "Fenster öffnet sich bei der Abfahrt")
 ns.StartGame(ns.gamesById.windrider)
 g = ns.run.game
 key("SPACE")
@@ -444,7 +447,7 @@ MOVING = false
 PLAYER.x, PLAYER.y = 0.5069, 0.1289
 ns.ShowLauncher(); ns.frame:Hide()
 ttick(12)
-check(trip.active and trip.phase == "wait" and trip.to == "Grom'gol" and ns.frame:IsShown(), "Grom'gol-Seite erkannt")
+check(trip.active and trip.phase == "wait" and trip.to == "Grom'gol" and not ns.frame:IsShown(), "Grom'gol-Seite erkannt, Fenster bleibt zu")
 MOVING = true
 for i = 1, 6 do PLAYER.y = PLAYER.y + 0.01; ttick(1) end
 check(not trip.active and not ns.frame:IsShown(), "weggegangen: verworfen, Fenster zu")
