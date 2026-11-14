@@ -57,6 +57,11 @@ for _, def in ipairs(ns.games) do
         scan("Spiel " .. def.id)
         ns.Pause()
         scan("Pause " .. def.id)
+        ns.gameView.side.rules.scripts.OnClick(ns.gameView.side.rules)
+        if ns.overlay.title.text ~= L["Rules"] or not ns.overlay.text.text:find(def.controls, 1, true) then
+            found[#found + 1] = "Spielregeln " .. def.id .. ": Dialog zeigt Ziel und Steuerung nicht"
+        end
+        scan("Spielregeln " .. def.id)
         ns.Resume()
         ns.SetCountdown(nil)
         ns.GameOver({ score = def.lowerIsBetter and 754 or 1054000, won = true,

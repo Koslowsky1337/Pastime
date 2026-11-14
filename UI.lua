@@ -181,6 +181,15 @@ function ns.Pause(reason)
     ns.UpdateSidePanel()
 end
 
+-- Spielregeln: pausiert die Partie und zeigt Ziel und Steuerung (dieselben Texte wie in der Auswahl)
+function ns.ShowRules()
+    local run = ns.run
+    if not run then return end
+    ns.Pause()
+    if run.state ~= "paused" or ns.overlay.kind ~= "pause" then return end      -- Spielende und Ankunft behalten ihren Dialog
+    ns.ShowOverlay("pause", L["Rules"], run.def.desc .. "\n\n|cffffd100" .. run.def.controls .. "|r")
+end
+
 function ns.Resume()
     local run = ns.run
     if not run or run.state ~= "paused" then return end
@@ -734,13 +743,16 @@ local function CreateGameView(parent)
     host.preview = pv
 
     side.flight = ns.FontString(side, "GameFontNormalSmall", "CENTER")
-    side.flight:SetPoint("BOTTOMLEFT", 10, 72)
-    side.flight:SetPoint("BOTTOMRIGHT", -10, 72)
+    side.flight:SetPoint("BOTTOMLEFT", 10, 100)
+    side.flight:SetPoint("BOTTOMRIGHT", -10, 100)
     side.flight:SetTextColor(0.5, 1, 0.5)
     side.controls = ns.FontString(side, "GameFontDisableSmall", "CENTER")
     side.controls:SetPoint("BOTTOMLEFT", side.flight, "TOPLEFT", 0, 8)
     side.controls:SetPoint("BOTTOMRIGHT", side.flight, "TOPRIGHT", 0, 8)
 
+    side.rules = ns.CreateButton(side, L["Rules"], 206, function() ns.ShowRules() end)
+    side.rules:SetPoint("BOTTOM", 0, 70)
+    ns.SetTooltip(side.rules, L["Rules"], L["Pauses the game and explains the goal and the controls."])
     side.pause = ns.CreateButton(side, L["Pause"], 100, function()
         if not ns.run then return end
         if ns.run.state == "running" then ns.Pause() elseif ns.run.state == "paused" then ns.Resume() end
@@ -838,6 +850,7 @@ function ns.UpdateSidePanel()
     side.flight:SetText(ns.TripStatus() or "")
     side.pause:SetText(run.state == "paused" and L["Resume"] or L["Pause"])
     side.pause:SetEnabled(run.state ~= "over")
+    side.rules:SetEnabled(run.state == "running" or (run.state == "paused" and ns.overlay.kind == "pause"))
 end
 
 ---------------------------------------------------------------------------

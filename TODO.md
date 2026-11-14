@@ -35,6 +35,7 @@ Diese Liste muss abgehakt sein, bevor `v1.0.0` getaggt wird.
 - [ ] **Nach dem Umbenennen (Spiel neu starten!):** alle 19 Spiele stehen in der Liste; alte Bestenlisten und Reiserekorde von Steinschlag, Windreiter, Mauerbrecher, Totem-Echo, Runenpaare, Tavernenwürfel und Vier in einer Reihe sind noch da 📸.
 - [ ] **Pause:** P in einem laufenden Spiel – das Feld ist ganz verdeckt und erscheint erst mit „Weiter“ (bei Echtzeit-Spielen mit dem Countdown) 📸. Ebenso beim Ankunftsdialog.
 - [ ] **Lange Streckennamen:** in der Streckenzeile der Auswahl und in den Reiserekorden steht z. B. „Zoram'gar-Auße… → Orgrimmar“; der Tooltip zeigt den vollen Namen 📸.
+- [ ] **Knopf „Spielregeln“** in der Seitenleiste: pausiert und zeigt Ziel und Steuerung; „Weiter“ setzt fort. Passt die Seitenleiste noch (Vorschau bei Steinschlag, Steuerungs-Hinweis, Reisezeile) 📸?
 
 ## 1. Prüfung im Spiel (16 Spiele)
 
