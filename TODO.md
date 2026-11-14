@@ -13,7 +13,8 @@ Diese Liste muss abgehakt sein, bevor `v1.0.0` getaggt wird.
 - [x] Paket 6: Spiel-Kleinigkeiten (Anzeige Runenpaare/Solitär, Blackjack-Ankunftstext, Enter beim Angeln, Top 10 im Tooltip, Strg-Tasten, toter Knopf „Fortsetzen“ entfernt)
 - [x] Paket 7: Lesbarkeit und Farbschwäche (2048, Wortraten, Kristall statt Amethyst, Kartenrücken, langer Zielname)
 - [x] Paket 8: Tests härten (Wertungsregeln, Übersetzungen, Allianz-Anleger, Migration; `tests/all.py` meldet jetzt auch abgebrochene Suites)
-- [ ] Bot- und Glücksspiele: Gegner macht Fehler, man kann gewinnen
+- [x] Vier in einer Reihe: der Gegner macht Fehler (Mittel bei 35 %, Schwer bei 8 % der Züge) und spielt nicht mehr jede Partie gleich
+- [ ] Goblin-Blackjack: ein Lauf soll auch als Gewinn enden können („Kasse machen“)
 
 ### Dazu im Spiel prüfen
 - [ ] **Kampf auf dem Endbildschirm:** „Im Kampf ausblenden“ aus, eine Partie verlieren, angreifen lassen – Bewegen und Zaubern gehen sofort.
@@ -28,6 +29,7 @@ Diese Liste muss abgehakt sein, bevor `v1.0.0` getaggt wird.
 - [ ] **Wortraten:** richtige Buchstaben sind dunkelgrün mit goldenem Rahmen, vorhandene golden 📸.
 - [ ] **Edelstein-Code und Edelsteine:** der türkise Kristall (statt Amethyst) wird angezeigt, kein grünes Kästchen 📸.
 - [ ] **Ankunft mit langem Zielnamen** (z. B. Zoram'gar-Außenposten): der Titel bricht um und bleibt im Rahmen 📸.
+- [ ] **Vier in einer Reihe:** je drei Partien auf „Mittel“ und „Schwer“ – der Gegner ist schlagbar und antwortet auf gleiche Züge nicht immer gleich. Fühlt sich „Schwer“ noch schwer genug an?
 - [ ] **Ortsnamen:** Zeppelin- und Schiffsstrecken heißen jetzt „Undercity“, „Ratchet“, „Booty Bay“ wie im Client. Mit einem Allianz-Charakter prüfen: Heißt es dort „Stormwind“, „Southshore“ und „Hafen von Menethil“? Alte Strecken mit „Unterstadt“ oder „Ratschet“ bleiben in der Liste stehen (über „Strecke löschen“ entfernen).
 
 ## 1. Prüfung im Spiel (16 Spiele)

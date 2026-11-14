@@ -335,6 +335,27 @@ AI.Best(b, { depth = 5, rnd = 0 })
 local ms = (os.clock() - t0) * 1000
 check(ms < 400, ("KI schwer rechnet %.0f ms"):format(ms))
 print(("  (Vier gewinnt, Stärke schwer, leeres Brett: %.0f ms)"):format(ms))
+-- Der Gegner macht Fehler: je leichter, desto öfter (Patzer = nur einen Zug weit schauen)
+local slips = {}
+for _, id in ipairs({ "leicht", "mittel", "schwer" }) do slips[id] = start("viergewinnt", id).mode end
+check(slips.leicht.rnd > 0 and slips.mittel.slip > slips.schwer.slip and slips.schwer.slip > 0,
+    "Vier in einer Reihe: jede Stufe macht Fehler, die leichteren öfter")
+local deepest
+local origSearch = AI.Search
+AI.Search = function(bb, depth, ...) deepest = math.max(deepest or 0, depth); return origSearch(bb, depth, ...) end
+for c = 1, 7 do for r = 1, 6 do b[c][r] = 0 end end
+deepest = nil; AI.Best(b, { depth = 4, rnd = 0, slip = 1 })
+check(deepest == 0, "Patzer: der Gegner schaut nur einen Zug weit")
+deepest = nil; AI.Best(b, { depth = 4, rnd = 0, slip = 0 })
+check(deepest == 3, "ohne Patzer: volle Suchtiefe")
+AI.Search = origSearch
+-- gleich gute Züge werden zufällig gewählt: Spalte 4 voll, Spalte 3 und 5 sind spiegelgleich
+for r = 1, 6 do b[4][r] = (r % 2) + 1 end
+local picked = {}
+for _ = 1, 60 do picked[AI.Best(b, { depth = 2, rnd = 0, slip = 0 })] = true end
+local kinds = 0
+for _ in pairs(picked) do kinds = kinds + 1 end
+check(kinds >= 2, "Vier in einer Reihe: nicht jede Partie läuft gleich (" .. kinds .. " verschiedene Antworten)")
 g = start("viergewinnt", "leicht")
 key("4")
 check(g.state == "ai" and g.b[4][1] == 1, "Spieler wirft in Spalte 4")

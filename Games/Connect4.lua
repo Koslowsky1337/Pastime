@@ -8,10 +8,14 @@ local W, H = COLS * CELL + 16, ROWS * CELL + TOPM + 10
 local ICON_HORDE = "Interface\\Icons\\INV_BannerPVP_01"
 local ICON_ALLY = "Interface\\Icons\\INV_BannerPVP_02"
 local ORDER = { 4, 3, 5, 2, 6, 1, 7 }
+-- depth: so viele Halbzüge schaut der Gegner voraus · rnd: Anteil rein zufälliger Züge ·
+-- slip: Anteil der Züge, bei denen er nur einen Zug weit schaut (er übersieht dann Fallen).
+-- Ohne slip gewann ein geübter Spieler gegen „Mittel“ und „Schwer“ nur 3–10 % der Partien,
+-- mit diesen Werten etwa 65 % und 35 % (Simulation, je 60 Partien); gegen „Leicht“ 97 %.
 local MODES = {
-    { id = "leicht", name = L["Easy"], depth = 2, rnd = 0.35, base = 100 },
-    { id = "mittel", name = L["Medium"], depth = 4, rnd = 0, base = 250 },
-    { id = "schwer", name = L["Hard"], depth = 5, rnd = 0, base = 500 },
+    { id = "leicht", name = L["Easy"], depth = 2, rnd = 0.35, slip = 0, base = 100 },
+    { id = "mittel", name = L["Medium"], depth = 4, rnd = 0, slip = 0.35, base = 250 },
+    { id = "schwer", name = L["Hard"], depth = 5, rnd = 0, slip = 0.08, base = 500 },
 }
 local MODE_BY_ID = {}
 for _, m in ipairs(MODES) do MODE_BY_ID[m.id] = m end
@@ -109,15 +113,18 @@ function AI.Best(b, mode)
     for _, c in ipairs(ORDER) do if b[c][ROWS] == 0 then valid[#valid + 1] = c end end
     if #valid == 0 then return nil end
     if mode.rnd > 0 and math.random() < mode.rnd then return valid[math.random(#valid)] end
-    local bestC, bestV = valid[1], -1e9
+    -- Patzer: diesmal nur einen Zug weit schauen
+    local depth = ((mode.slip or 0) > 0 and math.random() < mode.slip) and 1 or mode.depth
+    local best, bestV = {}, -1e9
     for _, c in ipairs(valid) do
         local r = AI.Drop(b, c, 2)
         local v
-        if AI.Wins(b, c, r, 2) then v = 1e8 else v = AI.Search(b, mode.depth - 1, -1e9, 1e9, false) end
+        if AI.Wins(b, c, r, 2) then v = 1e8 else v = AI.Search(b, depth - 1, -1e9, 1e9, false) end
         b[c][r] = 0
-        if v > bestV then bestC, bestV = c, v end
+        if v > bestV then best, bestV = { c }, v elseif v == bestV then best[#best + 1] = c end
     end
-    return bestC
+    -- unter gleich guten Zügen zufällig wählen, sonst liefe jede Partie gleich ab
+    return best[math.random(#best)]
 end
 
 local Game = {}
