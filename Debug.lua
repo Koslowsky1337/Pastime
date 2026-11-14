@@ -329,9 +329,16 @@ local SCENES = {
         g:Render()
     end,
     function() ns.StartGame(ns.gamesById.murlocs) end,
-    function()      -- Kodo-Sprint: loslaufen
-        ns.StartGame(ns.gamesById.kodo)
-        ns.HandleKey("SPACE", true); ns.HandleKey("SPACE", false)
+    function()      -- Kodo-Sprint: mitten im Sprung über ein Hindernis. Das Spiel bleibt im Wartezustand,
+        ns.StartGame(ns.gamesById.kodo)      -- dort gibt es keine Zusammenstöße
+        local g = ns.run.game
+        g.hint:Hide()
+        g:NewObstacle()
+        for _, o in ipairs(g.pool) do
+            if o.active then o.x = 150; g:PlaceObstacle(o) end
+        end
+        g.h, g.score = 46, 312
+        g:PlaceKodo()
     end,
     function()      -- Hold'em mitten in einer Hand
         ns.StartGame(ns.gamesById.holdem)
