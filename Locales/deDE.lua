@@ -5,7 +5,7 @@ local L = ns.L
 
 ns.THOUSANDS = "."
 ns.DATE_FORMAT = "%d.%m.%y"
-ns.KEYS = { hit = "Z", stand = "H", double = "V" }
+ns.KEYS = { hit = "Z", stand = "H", double = "V", cash = "K" }
 ns.KEYBOARD_ROWS = { "QWERTZUIOP", "ASDFGHJKL", "YXCVBNM" }
 
 -- Befehle und Einstellungen
@@ -47,7 +47,11 @@ L["Q"] = "D"
 L["Hit (%s)"] = "Ziehen (%s)"
 L["Stand (%s)"] = "Halten (%s)"
 L["Double (%s)"] = "Verdoppeln (%s)"
-L["1–3: bet · %s: hit\n%s: stand · %s: double"] = "1–3: setzen · %s: ziehen\n%s: halten · %s: verdoppeln"
+L["1–3: bet · %s: hit\n%s: stand · %s: double\n%s: cash out"] = "1–3: setzen · %s: ziehen\n%s: halten · %s: verdoppeln\n%s: Kasse machen"
+L["Cash out (%s)"] = "Kasse machen (%s)"
+L["Cash out"] = "Kasse machen"
+L["Ends the run and scores your highest gold. Possible between hands once you have more than 100 gold."] = "Beendet den Lauf und wertet deinen höchsten Goldstand. Möglich zwischen zwei Händen, sobald du mehr als 100 Gold hast."
+L["You leave the table with %d gold."] = "Du gehst mit %d Gold vom Tisch."
 
 -- Oberfläche, Reisen und Spiele
 L["  ·  Bet: %d"] = "  ·  Einsatz: %d"
@@ -193,8 +197,8 @@ L["Goblin Blackjack"] = "Goblin-Blackjack"
 L["Best this run: %d gold"] = "Bester Stand dieses Laufs: %d Gold"
 L["You start again with %d gold."] = "Du fängst wieder mit %d Gold an."
 L["Highest gold"] = "Höchster Goldstand"
-L["Get close to 21 without going bust – the goblin draws to 17. Your goblin gold carries over between games, so you can work your way up. When you go broke, your highest gold counts. Blackjack pays 3 to 2."] = "Komm nah an 21, ohne dich zu überkaufen – der Goblin zieht bis 17. Dein Goblin-Gold bleibt zwischen den Partien erhalten, so kannst du dich hocharbeiten. Bist du pleite, zählt dein höchster Goldstand. Blackjack zahlt 3 zu 2."
-L["1/2/3: bet 10, ¼ or ½ of your gold · %s or Space: hit · %s or Enter: stand · %s: double"] = "1/2/3: 10, ¼ oder ½ deines Golds setzen · %s oder Leertaste: ziehen · %s oder Enter: halten · %s: verdoppeln"
+L["Get close to 21 without going bust – the goblin draws to 17. Your goblin gold carries over between games, so you can work your way up. When you go broke or cash out, your highest gold counts. Blackjack pays 3 to 2."] = "Komm nah an 21, ohne dich zu überkaufen – der Goblin zieht bis 17. Dein Goblin-Gold bleibt zwischen den Partien erhalten, so kannst du dich hocharbeiten. Gehst du pleite oder machst du Kasse, zählt dein höchster Goldstand. Blackjack zahlt 3 zu 2."
+L["1/2/3: bet 10, ¼ or ½ of your gold · %s or Space: hit · %s or Enter: stand · %s: double · %s: cash out"] = "1/2/3: 10, ¼ oder ½ deines Golds setzen · %s oder Leertaste: ziehen · %s oder Enter: halten · %s: verdoppeln · %s: Kasse machen"
 L["Goblin gold: |cffffffff%d|r%s"] = "Goblin-Gold: |cffffffff%d|r%s"
 L["Goblin Minefield"] = "Goblin-Minenfeld"
 L["Guess the hidden five-letter word – all of them come from Azeroth. Green: right letter in the right place, gold: in the word, but somewhere else. You have six tries."] = "Errate das gesuchte Wort mit fünf Buchstaben – alles Begriffe aus Azeroth. Grün: richtiger Buchstabe am richtigen Platz, Gold: kommt vor, aber woanders. Du hast sechs Versuche."

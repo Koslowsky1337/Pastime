@@ -178,9 +178,23 @@ function Game:NextHand()
     self:Render()
 end
 
+-- Kasse machen: den Lauf freiwillig beenden – zwischen zwei Händen und nur mit Gewinn.
+-- Gewertet wird wie bei der Pleite der höchste Goldstand; so kann ein Lauf auch als Sieg enden.
+function Game:CashOut()
+    if self.state ~= "bet" or self.gold <= START_GOLD then return end
+    self.state = "over"
+    self:Render()
+    local peak, gold = self.peak, self.gold
+    local b = ns.DB.blackjack
+    b.gold, b.peak = START_GOLD, START_GOLD
+    return self.host:Over({ score = peak, won = true,
+        text = (L["You leave the table with %d gold."]):format(gold) .. "\n" .. (L["You start again with %d gold."]):format(START_GOLD) })
+end
+
 function Game:Key(k, down)
     local act
     if k == "1" or k == "2" or k == "3" then act = function() self:PlaceBet(tonumber(k)) end
+    elseif k == KEYS.cash then act = function() self:CashOut() end
     elseif k == KEYS.hit or k == "SPACE" then act = function() if self.state == "result" then self:NextHand() else self:Hit() end end
     elseif k == KEYS.stand or k == "ENTER" then act = function() self:Stand() end
     elseif k == KEYS.double then act = function() self:Double() end
@@ -222,6 +236,8 @@ function Game:Render()
     self.doubleBtn:SetShown(playing)
     self.doubleBtn:SetEnabled(playing and #self.player == 2 and (self.gold or 0) >= (self.bet or 0))
     self.nextBtn:SetShown(self.state == "result")
+    self.cashBtn:SetShown(betting)
+    self.cashBtn:SetEnabled(betting and (self.gold or 0) > START_GOLD)
 end
 
 function Game:Info()
@@ -277,6 +293,13 @@ local function Create(host, board)
     g.standBtn = btn(L["Stand (%s)"]:format(KEYS.stand), 126, 144, function() g:Stand() end)
     g.doubleBtn = btn(L["Double (%s)"]:format(KEYS.double), 126, 280, function() g:Double() end)
     g.nextBtn = btn(L["Next (Space)"], 180, 120, function() g:NextHand() end)
+    -- Kasse machen: mittig zwischen den beiden Kartenreihen, nur während des Setzens zu sehen
+    g.cashBtn = ns.CreateButton(board, L["Cash out (%s)"]:format(KEYS.cash), 170,
+        function() if host:IsRunning() then ns.Safe("blackjack", g.CashOut, g) end end)
+    g.cashBtn:SetHeight(24)
+    g.cashBtn:SetPoint("TOP", board, "TOP", 0, -204)
+    if g.cashBtn.SetMotionScriptsWhileDisabled then g.cashBtn:SetMotionScriptsWhileDisabled(true) end
+    ns.SetTooltip(g.cashBtn, L["Cash out"], L["Ends the run and scores your highest gold. Possible between hands once you have more than 100 gold."])
     return g
 end
 
@@ -288,11 +311,11 @@ ns.RegisterGame({
     category = "karten",
     length = "kurz",
     icon = "Interface\\Icons\\INV_Misc_Coin_01",
-    noLandingScore = true,     -- gewertet wird erst, wenn ein Lauf pleite endet
+    noLandingScore = true,     -- gewertet wird erst, wenn ein Lauf endet (Pleite oder Kasse machen)
     scoreLabel = L["Highest gold"],
     width = W, height = H,
-    desc = L["Get close to 21 without going bust – the goblin draws to 17. Your goblin gold carries over between games, so you can work your way up. When you go broke, your highest gold counts. Blackjack pays 3 to 2."],
-    controls = L["1/2/3: bet 10, ¼ or ½ of your gold · %s or Space: hit · %s or Enter: stand · %s: double"]:format(KEYS.hit, KEYS.stand, KEYS.double),
-    controlsShort = L["1–3: bet · %s: hit\n%s: stand · %s: double"]:format(KEYS.hit, KEYS.stand, KEYS.double),
+    desc = L["Get close to 21 without going bust – the goblin draws to 17. Your goblin gold carries over between games, so you can work your way up. When you go broke or cash out, your highest gold counts. Blackjack pays 3 to 2."],
+    controls = L["1/2/3: bet 10, ¼ or ½ of your gold · %s or Space: hit · %s or Enter: stand · %s: double · %s: cash out"]:format(KEYS.hit, KEYS.stand, KEYS.double, KEYS.cash),
+    controlsShort = L["1–3: bet · %s: hit\n%s: stand · %s: double\n%s: cash out"]:format(KEYS.hit, KEYS.stand, KEYS.double, KEYS.cash),
     Create = Create,
 })

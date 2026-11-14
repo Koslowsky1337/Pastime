@@ -11,5 +11,5 @@ ns.THOUSANDS = ","
 ns.DATE_FORMAT = "%Y-%m-%d"
 
 -- Tasten, die je nach Sprache anders belegt sind
-ns.KEYS = { hit = "H", stand = "S", double = "D" }          -- Goblin-Blackjack
+ns.KEYS = { hit = "H", stand = "S", double = "D", cash = "C" }   -- Goblin-Blackjack
 ns.KEYBOARD_ROWS = { "QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM" }  -- Wortraten

@@ -102,7 +102,7 @@ check(CHAT[#CHAT]:find("test route"), "clear test routes: " .. CHAT[#CHAT])
 
 -- Spielkarten, Blackjack-Tasten, Wortraten
 check(ns.Cards.RANKS[11] == "J" and ns.Cards.RANKS[12] == "Q" and ns.Cards.RANKS[13] == "K", "card ranks J Q K")
-check(ns.KEYS.hit == "H" and ns.KEYS.stand == "S" and ns.KEYS.double == "D", "blackjack keys H/S/D")
+check(ns.KEYS.hit == "H" and ns.KEYS.stand == "S" and ns.KEYS.double == "D" and ns.KEYS.cash == "C", "blackjack keys H/S/D/C")
 local bj = ns.gamesById.blackjack
 ns.StartGame(bj)
 local g = ns.run.game
@@ -117,7 +117,8 @@ if g.state == "play" then
         check(g.state == "result" or g.state == "over", "S = stand")
     end
 end
-check(g.hitBtn.text == "Hit (H)" and g.standBtn.text == "Stand (S)" and g.doubleBtn.text == "Double (D)", "button labels")
+check(g.hitBtn.text == "Hit (H)" and g.standBtn.text == "Stand (S)" and g.doubleBtn.text == "Double (D)"
+    and g.cashBtn.text == "Cash out (C)", "button labels")
 check(bj.controls:find("H or Space: hit"), "controls text: " .. bj.controls)
 
 local wordle = ns.gamesById.wortraten

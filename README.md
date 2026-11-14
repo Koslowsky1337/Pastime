@@ -40,7 +40,7 @@ Pastime is a collection of 19 small games in a classic-style window. It notices 
 - **Gems** (long): swap gems to make rows of three and set off chain reactions; 30 moves.
 
 **Dice & Cards**
-- **Goblin Blackjack** (short): get close to 21 against a goblin dealer. Your goblin gold carries over between games; when you go broke, your highest gold is scored.
+- **Goblin Blackjack** (short): get close to 21 against a goblin dealer. Your goblin gold carries over between games; when you cash out or go broke, your highest gold is scored.
 - **Tavern Dice** (long): roll five dice up to three times and fill all 13 boxes.
 - **Solitaire** (long): classic Klondike patience against the clock.
 

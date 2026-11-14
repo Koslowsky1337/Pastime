@@ -14,7 +14,7 @@ Diese Liste muss abgehakt sein, bevor `v1.0.0` getaggt wird.
 - [x] Paket 7: Lesbarkeit und Farbschwäche (2048, Wortraten, Kristall statt Amethyst, Kartenrücken, langer Zielname)
 - [x] Paket 8: Tests härten (Wertungsregeln, Übersetzungen, Allianz-Anleger, Migration; `tests/all.py` meldet jetzt auch abgebrochene Suites)
 - [x] Vier in einer Reihe: der Gegner macht Fehler (Mittel bei 35 %, Schwer bei 8 % der Züge) und spielt nicht mehr jede Partie gleich
-- [ ] Goblin-Blackjack: ein Lauf soll auch als Gewinn enden können („Kasse machen“)
+- [x] Goblin-Blackjack: ein Lauf kann als Gewinn enden („Kasse machen“ ab mehr als 100 Gold, eigener Commit – lässt sich einzeln zurücknehmen)
 
 ### Dazu im Spiel prüfen
 - [ ] **Kampf auf dem Endbildschirm:** „Im Kampf ausblenden“ aus, eine Partie verlieren, angreifen lassen – Bewegen und Zaubern gehen sofort.
@@ -29,6 +29,7 @@ Diese Liste muss abgehakt sein, bevor `v1.0.0` getaggt wird.
 - [ ] **Wortraten:** richtige Buchstaben sind dunkelgrün mit goldenem Rahmen, vorhandene golden 📸.
 - [ ] **Edelstein-Code und Edelsteine:** der türkise Kristall (statt Amethyst) wird angezeigt, kein grünes Kästchen 📸.
 - [ ] **Ankunft mit langem Zielnamen** (z. B. Zoram'gar-Außenposten): der Titel bricht um und bleibt im Rahmen 📸.
+- [ ] **Goblin-Blackjack:** über 100 Gold kommen, „Kasse machen (K)“ zwischen zwei Händen – Spielende zeigt „Gewonnen!“ und den höchsten Goldstand 📸. Bei 100 Gold oder weniger ist der Knopf grau.
 - [ ] **Vier in einer Reihe:** je drei Partien auf „Mittel“ und „Schwer“ – der Gegner ist schlagbar und antwortet auf gleiche Züge nicht immer gleich. Fühlt sich „Schwer“ noch schwer genug an?
 - [ ] **Ortsnamen:** Zeppelin- und Schiffsstrecken heißen jetzt „Undercity“, „Ratchet“, „Booty Bay“ wie im Client. Mit einem Allianz-Charakter prüfen: Heißt es dort „Stormwind“, „Southshore“ und „Hafen von Menethil“? Alte Strecken mit „Unterstadt“ oder „Ratschet“ bleiben in der Liste stehen (über „Strecke löschen“ entfernen).
 
@@ -79,7 +80,7 @@ Zum Schluss: `/pastime debug` aus, `/reload`, dann Screenshots und Protokoll aus
 - [ ] `/pastime hilfe` (DE) und `/pastime help` (EN)
 
 ## 3. Offene Entscheidungen
-- [ ] Blackjack: Knopf „Kasse machen“ (Lauf freiwillig beenden und Höchststand werten)?
+- [x] Blackjack: Knopf „Kasse machen“ (Lauf freiwillig beenden und Höchststand werten) – am 14.11. eingebaut, weil sonst jeder Lauf mit „Pleite“ endete. Gefällt es dir nicht: den Commit „Goblin Blackjack: cash out“ zurücknehmen.
 - [ ] Layout-Prüfer im Release lassen (nur im Debug-Modus) oder entfernen? (Evaluation: drin lassen – er läuft nur im Debug-Modus und ist begrenzt.)
 - [ ] Markennamen in Dateinamen und Befehls-Aliasen (`Games\Tetris.lua`, `/pastime tetris`, `kniffel`, `bejeweled` …): lassen oder umbenennen? Angezeigt wird keiner davon.
 - [ ] Logo: `media/logo.png` und `logo.svg` enthalten C2PA-Herkunftsdaten („erstellt mit Claude“). Drin lassen oder entfernen?

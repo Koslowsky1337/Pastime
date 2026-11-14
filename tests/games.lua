@@ -522,6 +522,30 @@ g.state, g.player = "play", { { rank = 5, suit = 1 }, { rank = 6, suit = 2 } }
 g.dealer = { { rank = 10, suit = 3 }, { rank = 7, suit = 4 } }
 key(ns.KEYS.double)
 check(g.bet == 20 and #g.player == 3 and g.state ~= "play", "Blackjack: Verdoppeln zieht genau eine Karte")
+-- Kasse machen: den Lauf mit Gewinn beenden, der Höchststand wird gewertet
+g = start("blackjack")
+g.gold, g.peak, g.state = 100, 100, "bet"
+g:Render()
+key(ns.KEYS.cash)
+check(g.state == "bet" and g.cashBtn:IsShown() and not g.cashBtn:IsEnabled(), "Blackjack: Kasse machen geht nicht ohne Gewinn")
+g.gold, g.peak = 250, 400
+g:Render()
+check(g.cashBtn:IsEnabled(), "Blackjack: mit Gewinn ist „Kasse machen“ freigegeben")
+key("1")
+check(not g.cashBtn:IsShown(), "Blackjack: keine Kasse mitten in der Hand")
+if g.state == "play" then
+    key(ns.KEYS.cash)
+    check(g.state == "play", "Blackjack: Taste für die Kasse wirkt mitten in der Hand nicht")
+end
+g = start("blackjack")
+g.gold, g.peak, g.state = 250, 400, "bet"
+g:Render()
+key(ns.KEYS.cash)
+check(over() and ns.overlay.title.text == ns.L["Victory!"] and ns.overlay.text.text:find("250", 1, true),
+    "Blackjack: Kasse machen beendet den Lauf als Gewinn: " .. ns.overlay.text.text)
+local cashed = false
+for _, e in ipairs(PastimeDB.scores.blackjack) do if e.s == 400 then cashed = true end end
+check(cashed and PastimeDB.blackjack.gold == 100 and PastimeDB.blackjack.peak == 100, "Blackjack: Höchststand 400 gewertet, neuer Lauf mit 100 Gold")
 -- Landung: Blackjack wird nur nach vollen Runden gewertet
 ns.StartGame(ns.gamesById.blackjack)
 check(ns.CurrentScore(ns.run) == nil, "Blackjack ohne Wertung bei Ankunft mitten in der Sitzung")

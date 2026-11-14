@@ -19,6 +19,7 @@ Please report anything odd: https://github.com/Koslowsky1337/Pastime/issues
 - `/pastime` followed by one or two letters no longer starts a random game.
 - Easier to read, also with red-green colour blindness: 2048 uses dark numbers on light tiles; Word Guess has a darker green and frames the correct letters; Gem Code and Gems use a teal crystal instead of the amethyst, which looked like the sapphire.
 - Four in a Row: the opponent now makes mistakes, more often on the easier levels, and no longer answers the same moves the same way every time. Medium and Hard used to be nearly unbeatable.
+- Goblin Blackjack: "Cash out" ends a run as a win once you are above 100 gold. Until now every run could only end broke.
 - Card backs and rune backs are blue for the Alliance.
 - A long destination name no longer sticks out of the arrival dialog; the route list shows the full name in a tooltip.
 
