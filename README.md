@@ -2,7 +2,7 @@
 
 **Long flight path? Waiting for the zeppelin? Pastime gives you something to do.**
 
-Pastime is a collection of 19 small games in a classic-style window. It notices when you start a journey and opens by itself: at the flight master, at a zeppelin tower or on a boat dock. When you arrive, it pauses your game and asks whether you want to keep playing or finish and score the round. Every route has its own leaderboard, so *Orgrimmar → Undercity* gets a podium of its own.
+Pastime is a collection of 24 small games in a classic-style window. It notices when you start a journey and opens by itself: at the flight master, at a zeppelin tower or on a boat dock. When you arrive, it pauses your game and asks whether you want to keep playing or finish and score the round. Every route has its own leaderboard, so *Orgrimmar → Undercity* gets a podium of its own.
 
 ## Features
 
@@ -30,7 +30,7 @@ Pastime is a collection of 19 small games in a classic-style window. It notices 
 - **Murloc Invasion** (long): hold the shore against waves of marching murlocs.
 
 **Puzzles**
-- **Goblin Minefield** (short): uncover the safe squares; easy 9×9 or medium 16×16.
+- **Goblin Minefield** (long): uncover the safe squares; easy 9×9 or medium 16×16.
 - **Totem Echo** (short): repeat the growing sequence of the four elemental totems. Alliance: **Bell Echo**.
 - **Rune Pairs** (short): turn over cards and find matching pairs in as few moves as possible.
 - **Gem Code** (short): crack a jeweller's four-gem code in ten tries.
@@ -41,6 +41,12 @@ Pastime is a collection of 19 small games in a classic-style window. It notices 
 
 **Dice & Cards**
 - **Goblin Blackjack** (short): get close to 21 against a goblin dealer. Your goblin gold carries over between games; when you cash out or go broke, your highest gold is scored.
+- **Goblin Slots** (short): three reels; three of a kind pay up to 250 times your bet.
+- **Draw Poker** (short): five cards, hold what you like, swap the rest once.
+- **Higher or Lower** (short): guess the next card; every hit multiplies the pot until you take it.
+- **Goblin Baccarat** (short): bet on player, banker or tie.
+- **Tavern Hold'em** (long): Texas Hold'em with fixed bets against a gnome, a troll and a dwarf who misjudge their hands and bluff.
+- Each of these five has its own goblin gold and is scored like Goblin Blackjack: your highest gold counts when you cash out or go broke.
 - **Tavern Dice** (long): roll five dice up to three times and fill all 13 boxes.
 - **Solitaire** (long): classic Klondike patience against the clock.
 
@@ -88,7 +94,7 @@ Pastime is free software under the MIT license.
 
 **Langer Flug? Warten auf den Zeppelin? Pastime vertreibt dir die Zeit.**
 
-Pastime bündelt 19 kleine Spiele in einem Fenster im klassischen Stil. Es merkt, wenn du eine Reise antrittst, und öffnet sich von selbst: beim Flugmeister, am Zeppelinturm oder am Schiffsanleger. Bei der Ankunft pausiert dein Spiel, und du entscheidest: weiterspielen oder beenden und werten. Jede Strecke hat ihre eigene Bestenliste.
+Pastime bündelt 24 kleine Spiele in einem Fenster im klassischen Stil. Es merkt, wenn du eine Reise antrittst, und öffnet sich von selbst: beim Flugmeister, am Zeppelinturm oder am Schiffsanleger. Bei der Ankunft pausiert dein Spiel, und du entscheidest: weiterspielen oder beenden und werten. Jede Strecke hat ihre eigene Bestenliste.
 
 **Funktionen**
 - Öffnet sich auf Flügen, Zeppelin- und Schiffsreisen (abschaltbar) – oder per `/pastime`, Minimap-Knopf und Tastenbelegung.
@@ -103,7 +109,7 @@ Pastime bündelt 19 kleine Spiele in einem Fenster im klassischen Stil. Es merkt
 **Die Spiele**
 - *Geschicklichkeit:* Windnatter, Windreiter (Allianz: Greifenflug), Kodo-Sprint (Allianz: Widder-Sprint), Kobold-Hauen, Angeln, Steinschlag, Mauerbrecher, Murloc-Invasion
 - *Knobeln:* Goblin-Minenfeld, Totem-Echo (Allianz: Glocken-Echo), Runenpaare, Edelstein-Code, Wortraten (deutsche Wortliste), Vier in einer Reihe, 2048, Edelsteine
-- *Würfel & Karten:* Goblin-Blackjack, Tavernenwürfel, Solitär
+- *Würfel & Karten:* Goblin-Blackjack, Goblin-Automat, Draw Poker, Höher oder tiefer, Goblin Baccarat, Tavernen-Hold'em, Tavernenwürfel, Solitär. Die sechs Glücksspiele haben je einen eigenen Goldtopf; gewertet wird der höchste Goldstand, wenn du Kasse machst oder pleite bist.
 
 **Befehle:** `/pastime` öffnet das Fenster, `/pastime hilfe` zeigt alle Befehle. Die deutschen Befehle (`rekorde`, `strecken`, `testflug`, `hafen` …) funktionieren ebenfalls. Einstellungen findest du unter *Optionen → AddOns → Pastime*.
 

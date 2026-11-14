@@ -10,6 +10,7 @@ LIT = r'"((?:[^"\\\n]|\\.)*)"'
 SAME_IN_GERMAN = {
     " in ", "%s in %s!", "A", "K", "Chance", "Gold", "Pause", "Orgrimmar",
     "Booty Bay", "Ratchet", "Southshore", "Stormwind", "Thunder Bluff", "Undercity",
+    "Flush", "Troll", "Full House", "Straight Flush", "Royal Flush", "Draw Poker", "Goblin Baccarat",
 }
 
 toc = open(os.path.join(ADDON, "Pastime.toc"), encoding="utf-8").read()

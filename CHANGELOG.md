@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.0.0-beta3
 
+Please report anything odd: https://github.com/Koslowsky1337/Pastime/issues
+
+- Five new games of chance, each with its own goblin gold and scored like Goblin Blackjack (your highest gold counts when you cash out or go broke): Goblin Slots, Draw Poker, Higher or Lower, Goblin Baccarat and Tavern Hold'em against three computer opponents. Pastime now has 24 games.
 - New "Rules" button next to the board: pauses the game and explains the goal and the controls.
 - Pause and the arrival dialog now cover the board completely; you see it again when you resume (real-time games: when the 3-2-1 countdown starts).
 - Long place names are shortened in the route line and the route records, so the destination stays visible; the tooltip shows the full name.

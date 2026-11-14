@@ -37,6 +37,15 @@ Diese Liste muss abgehakt sein, bevor `v1.0.0` getaggt wird.
 - [ ] **Lange Streckennamen:** in der Streckenzeile der Auswahl und in den Reiserekorden steht z. B. „Zoram'gar-Auße… → Orgrimmar“; der Tooltip zeigt den vollen Namen 📸.
 - [ ] **Knopf „Spielregeln“** in der Seitenleiste: pausiert und zeigt Ziel und Steuerung; „Weiter“ setzt fort. Passt die Seitenleiste noch (Vorschau bei Steinschlag, Steuerungs-Hinweis, Reisezeile) 📸?
 
+### Neue Glücksspiele (beta3) – im Spiel prüfen, **Spiel neu starten**
+- [ ] **Goblin-Automat:** Walzen drehen und bleiben nacheinander stehen; die sechs Symbole sind zu sehen (kein grünes Kästchen); Gewinnplan lesbar 📸.
+- [ ] **Draw Poker:** Karten per Klick und mit 1–5 halten („HALTEN“ über der Karte), Leertaste tauscht; die Zeile im Gewinnplan leuchtet 📸.
+- [ ] **Höher oder tiefer:** Faktoren auf den Knöpfen; nach einem Treffer lässt sich der Topf nehmen.
+- [ ] **Goblin Baccarat:** Einsatz, dann Seite wählen; Karten werden nacheinander aufgedeckt 📸.
+- [ ] **Tavernen-Hold'em:** eine Hand bis zum Aufdecken; die Gegner handeln nacheinander, ihre Karten erscheinen am Ende; „Weiter“ startet die nächste Hand 📸. Fühlen sich die Gegner zu stark oder zu schwach an?
+- [ ] In allen fünf: „Kasse machen“ ab mehr als 100 Gold, Gold bleibt nach `/reload`, Knopf „Spielregeln“ erklärt das Spiel.
+- [ ] Spielauswahl: 24 Spiele, die Liste unter „Würfel & Karten“ passt in das Fenster (oder lässt sich scrollen) 📸.
+
 ## 1. Prüfung im Spiel (16 Spiele)
 
 Im Spiel bestätigt sind bisher: Windnatter, Windreiter, Kodo-Sprint.

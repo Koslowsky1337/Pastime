@@ -175,6 +175,7 @@ local DEFAULTS = {
     scores = {}, stats = {}, routes = {}, minimap = {}, collapsed = {}, modes = {},
     frame = false, lastGame = false, debug = false, log = {}, logSession = 0,
     blackjack = { gold = 100, peak = 100 },   -- Goblin-Gold bleibt zwischen Partien erhalten
+    purses = {},                              -- dasselbe für die übrigen Glücksspiele: purses[id] = { gold, peak }
 }
 
 local function fill(t, defaults)

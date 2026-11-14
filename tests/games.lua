@@ -814,6 +814,189 @@ for _, def in ipairs(ns.games) do
         ns.ShowLauncher()
     end
 end
+-- Glücksspiele mit eigenem Goldtopf -----------------------------------------------------
+local function C(s)      -- "AH KD 10S 2C" -> Karten
+    local out = {}
+    for r, su in s:gmatch("(%w+)([HDSC])") do
+        local rank = ({ A = 1, J = 11, Q = 12, K = 13 })[r] or tonumber(r)
+        out[#out + 1] = { rank = rank, suit = ({ H = 1, D = 2, S = 3, C = 4 })[su] }
+    end
+    return out
+end
+local E = ns.Cards.Eval
+local function cat(s) return (E(C(s))) end
+local function val(s) return select(2, E(C(s))) end
+check(cat("AH KH QH JH 10H") == 9 and cat("9C 9D 9H 9S 2C") == 8 and cat("9C 9D 9H 2S 2C") == 7 and cat("2H 7H 9H JH KH") == 6
+    and cat("AH 2D 3S 4C 5H") == 5 and cat("7H 7D 7S 2C 9H") == 4 and cat("7H 7D 2S 2C 9H") == 3 and cat("7H 7D 3S 2C 9H") == 2
+    and cat("AH 7D 3S 2C 9H") == 1, "Pokerblatt: alle neun Kategorien")
+check(cat("AH KH QH JH 10H 2C 2D") == 9 and cat("9C 9D 9H 2S 2C 2D KH") == 7 and cat("4H 5D 6S 7C 8H KD KS") == 5,
+    "Pokerblatt: das beste aus sieben Karten")
+check(val("AH AD KS 3C 2H") > val("AH AD QS JC 10H") and val("2H 3D 4S 5C 6H") > val("AH 2D 3S 4C 5H")
+    and val("KH KD 2S 2C 3H") > val("QH QD JS JC AH") and val("AH KD 9S 3C 2H") == val("AS KC 9H 3D 2C"),
+    "Pokerblatt: Vergleich nach Beikarten, kleine Straße unter der Sechser-Straße, gleiche Blätter gleich")
+
+for _, id in ipairs({ "slots", "drawpoker", "higherlower", "baccarat", "holdem" }) do
+    PastimeDB.purses[id] = { gold = 400, peak = 700 }
+    g = start(id)
+    check(g.gold == 400 and g.score == 700 and g.state == "bet", id .. ": Gold und Höchststand geladen")
+    key("3")
+    check(PastimeDB.purses[id].gold < 400, id .. ": Einsatz sofort abgebucht und gespeichert")
+    check(ns.CurrentScore(ns.run) == nil, id .. ": keine Wertung bei Ankunft mitten im Lauf")
+    -- Kasse machen: nur mit Gewinn, wertet den Höchststand, neuer Lauf mit 100 Gold
+    PastimeDB.purses[id] = { gold = 100, peak = 100 }
+    g = start(id)
+    key(ns.KEYS.cash)
+    check(g.state == "bet" and not g.cashBtn:IsEnabled(), id .. ": Kasse machen geht nicht ohne Gewinn")
+    g.gold, g.peak = 250, 400
+    g:Render()
+    key(ns.KEYS.cash)
+    check(over() and ns.overlay.title.text == ns.L["Victory!"] and best(id) == 400 and PastimeDB.purses[id].gold == 100,
+        id .. ": Kasse machen wertet den Höchststand 400")
+    -- Pleite: der Lauf endet, Höchststand zählt
+    g = start(id)
+    g.gold, g.peak, g.bet, g.state = 0, 900, 10, "bet"
+    g:Pay(0, "", 0.1)
+    tick(0.3)
+    check(over() and ns.overlay.title.text == ns.L["Broke!"] and best(id) == 900, id .. ": pleite – Höchststand 900 gewertet")
+    check(PastimeDB.blackjack.gold ~= nil and PastimeDB.purses[id].peak == 100, id .. ": eigener Topf, Blackjack bleibt unberührt")
+end
+
+-- Goblin-Automat: Auszahlungsquote über alle 21³ Walzenstellungen
+local SL = ns.gamesById.slots
+g = start("slots")
+local strip, total, hits = {}, 0, 0
+for i, s in ipairs(g.SYMBOLS) do for _ = 1, s.w do strip[#strip + 1] = i end end
+for _, a in ipairs(strip) do for _, b in ipairs(strip) do for _, c in ipairs(strip) do
+    local p = g.Payout(a, b, c)
+    total = total + p
+    if p > 0 then hits = hits + 1 end
+end end end
+local rtp, hitRate = total / (#strip) ^ 3, hits / (#strip) ^ 3
+check(rtp > 0.94 and rtp < 0.99, ("Automat: Auszahlungsquote %.1f %%"):format(rtp * 100))
+check(hitRate > 0.45, ("Automat: %.0f %% der Drehungen zahlen etwas"):format(hitRate * 100))
+key("1")
+check(g.state == "spin" and g.bet == 10, "Automat: Einsatz startet die Walzen")
+g.final = { 6, 6, 6 }
+tick(1.5)
+check(g.state == "result" and g.gold == 100 - 10 + 2500, "Automat: drei Münzen zahlen das 250-Fache, Gold " .. g.gold)
+tick(1.5)
+check(g.state == "bet", "Automat: danach wieder setzen")
+
+-- Tauschpoker: Halten, Tauschen, Gewinnplan
+g = start("drawpoker")
+check(g.Row(C("AH KH QH JH 10H")) == 1 and g.Row(C("JH JD 3S 2C 9H")) == 9 and g.Row(C("10H 10D 3S 2C 9H")) == nil
+    and g.Row(C("7H 7D 2S 2C 9H")) == 8 and g.Row(C("9C 9D 9H 2S 2C")) == 4, "Tauschpoker: Zeilen im Gewinnplan")
+key("1")
+check(g.state == "hold" and #g.hand == 5, "Tauschpoker: fünf Karten nach dem Einsatz")
+g.hand = C("JH JD 3S 2C 9H")
+key("1"); key("2")
+check(g.hold[1] and g.hold[2] and not g.hold[3], "Tauschpoker: 1 und 2 halten")
+local keep1, keep2 = g.hand[1], g.hand[2]
+key("SPACE")
+check(g.state == "result" and g.hand[1] == keep1 and g.hand[2] == keep2 and g.gold >= 100, "Tauschpoker: gehaltene Karten bleiben, Paar Buben zahlt mindestens den Einsatz")
+
+-- Höher oder tiefer: Faktoren, Treffer, Topf nehmen
+g = start("higherlower")
+check(g.Factor({ rank = 1 }, true) == nil and g.Factor({ rank = 2 }, false) == nil and g.Factor({ rank = 2 }, true) == 1
+    and math.abs(g.Factor({ rank = 8 }, true) - 1.96) < 0.001, "Höher oder tiefer: Faktoren (Ass oben, 2 unten, 8 in der Mitte)")
+key("1")
+check(g.state == "guess" and g.pot == 10, "Höher oder tiefer: Karte liegt, Topf = Einsatz")
+key("3")
+check(g.state == "guess", "Höher oder tiefer: Topf nehmen geht erst nach einem Treffer")
+g.card = { rank = 2, suit = 1 }
+key("2")
+check(g.state == "guess" and g.streak == 0, "Höher oder tiefer: tiefer als 2 gibt es nicht")
+g.card = { rank = 8, suit = 1 }
+g.pot = 100
+g.deck = C("2H 3H 4H 5H 6H 7H 9H 10H JH QH KH AH")      -- gezogen wird vom Ende: Ass
+key("1")
+check(g.streak == 1 and g.pot == 196, "Höher oder tiefer: Treffer vervielfacht den Topf, Topf " .. g.pot)
+key("3")
+check(g.state == "result" and g.gold == 90 + 196, "Höher oder tiefer: Topf genommen, Gold " .. g.gold)
+PastimeDB.purses.higherlower = { gold = 100, peak = 100 }
+g = start("higherlower")
+key("1")
+g.card = { rank = 13, suit = 1 }
+g.deck = C("2H 3H 4H 5H 6H 7H 9H 10H JH QH 2D 3D")
+key("1")
+check(g.state == "result" and g.gold == 90, "Höher oder tiefer: daneben – Topf weg")
+
+-- Baccarat: Werte, dritte Karten, Auszahlung
+g = start("baccarat")
+check(g.Total(C("KH 9D")) == 9 and g.Total(C("7H 8D")) == 5 and g.Total(C("AH 10D QS")) == 1, "Baccarat: nur die letzte Ziffer zählt")
+local function complete(p, b, nextCards)
+    local pl, ba, rest = C(p), C(b), C(nextCards)
+    g.Complete(pl, ba, function() return table.remove(rest, 1) end)
+    return #pl, #ba
+end
+local np, nb = complete("KH 9D", "2H 3D", "5S 5C")
+check(np == 2 and nb == 2, "Baccarat: bei 8 oder 9 zieht niemand")
+np, nb = complete("KH 5D", "KD 3D", "8S 5C")
+check(np == 3 and nb == 2, "Baccarat: Bank mit 3 bleibt stehen, wenn der Spieler eine 8 zieht")
+np, nb = complete("KH 5D", "KD 6D", "6S 5C")
+check(np == 3 and nb == 3, "Baccarat: Bank mit 6 zieht auf eine 6 des Spielers")
+np, nb = complete("KH 7D", "KD 5D", "6S 5C")
+check(np == 2 and nb == 3, "Baccarat: Spieler steht mit 7, Bank zieht bis 5")
+check(g.Payout(1, 7, 5, 100) == 200 and g.Payout(2, 5, 7, 100) == 195 and g.Payout(3, 6, 6, 100) == 900
+    and g.Payout(1, 6, 6, 100) == 100 and g.Payout(1, 5, 7, 100) == 0 and g.Payout(3, 5, 7, 100) == 0, "Baccarat: Auszahlungen")
+key("1")
+check(g.state == "side", "Baccarat: nach dem Einsatz die Seite wählen")
+key("2")
+check(g.state == "deal" and g.side == 2, "Baccarat: Seite gewählt, es wird ausgeteilt")
+tick(4)
+check(g.state == "result" or g.state == "bet", "Baccarat: Hand wird abgerechnet")
+
+-- Tavernen-Hold'em: Setzrunden, Passen, Topf, „all in“
+g = start("holdem")
+local hb = g.Bets(1000)
+check(hb[1] == 10 and hb[2] == 50 and hb[3] == 100, "Hold'em: Grundeinsatz 10 / 5 % / 10 %")
+key("1")
+check(g:Pot() == 40 and g.gold == 90, "Hold'em: alle vier zahlen den Grundeinsatz")
+for _ = 1, 100 do if g.state == "act" then break end; tick(0.2) end
+check(g.state == "act", "Hold'em: du kommst an die Reihe")
+key("1")
+check(g.state == "result" and g.gold <= 90, "Hold'em: Passen beendet die Hand")
+-- eine Hand bis zum Ende mitgehen
+tick(2)
+key("1")
+local guard = 0
+while g.state ~= "result" and guard < 400 do
+    guard = guard + 1
+    if g.state == "act" then key("2") else tick(0.2) end
+end
+check(g.state == "result" and g.reveal or g:Active() == 1, "Hold'em: Mitgehen führt zum Aufdecken")
+check(g.nextBtn:IsShown(), "Hold'em: nach dem Aufdecken wartet das Spiel auf „Weiter“")
+-- Gewinn: von jedem höchstens der eigene Einsatz
+g = start("holdem")
+key("1")
+g.c, g.folded = { 30, 80, 30, 10 }, { [4] = true }
+check(g:Share(1) == 100 and g:Share(2) == 50, "Hold'em: Anteil am Topf ist auf den eigenen Einsatz je Gegner begrenzt")
+-- sicheres Blatt gewinnt beim Aufdecken
+g.holes = { C("AH AD"), C("2C 7D"), C("3C 8D"), C("4C 9D") }
+g.comm = C("AS AC KH QD 5S")
+g.folded, g.c, g.bet = {}, { 10, 10, 10, 10 }, 10
+local before = g.gold
+g:Showdown()
+check(g.state == "result" and g.gold == before + 40 and g.sub.text:find(ns.Cards.HANDS[8], 1, true), "Hold'em: Vierling gewinnt den Topf: " .. tostring(g.sub.text))
+-- zu wenig Gold: mit dem Rest mitgehen, danach wird nur noch aufgedeckt
+PastimeDB.purses.holdem = { gold = 15, peak = 100 }
+g = start("holdem")
+key("1")
+guard = 0
+while g.state ~= "result" and guard < 400 do
+    guard = guard + 1
+    if g.state == "act" then key("3"); if g.state == "act" then key("2") end else tick(0.2) end
+end
+check(g.state == "result" and g.gold >= 0, "Hold'em: „all in“ läuft ohne weitere Einsätze bis zum Ende")
+-- die Gegner sehen deine Karten nicht: gleiche Lage, andere Hand des Spielers, gleiche Einschätzung
+g = start("holdem")
+key("1")
+math.randomseed(7); local e1 = g:Equity(2)
+g.holes[1] = C("AH AD")
+math.randomseed(7); local e2x = g:Equity(2)
+check(e1 == e2x, "Hold'em: die Einschätzung eines Gegners hängt nicht von deinen Karten ab")
+ns.ShowLauncher()
+
 local errs = {}
 for _, e2 in ipairs(PastimeDB.log) do if e2.l == "E" then table.insert(errs, e2.c .. ": " .. e2.m) end end
 check(#errs == 0, "keine Fehler im Protokoll:\n  " .. table.concat(errs, "\n  "))

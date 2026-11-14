@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: Pastime
-## Notes: 19 mini-games for flight paths, zeppelins and boats. Opens by itself when you travel, pauses on arrival and keeps leaderboards for every route. /pastime
-## Notes-deDE: 19 Minispiele für Flüge, Zeppeline und Schiffe. Öffnet sich auf Reisen von selbst, pausiert bei der Ankunft und führt Bestenlisten für jede Strecke. /pastime
+## Notes: 24 mini-games for flight paths, zeppelins and boats. Opens by itself when you travel, pauses on arrival and keeps leaderboards for every route. /pastime
+## Notes-deDE: 24 Minispiele für Flüge, Zeppeline und Schiffe. Öffnet sich auf Reisen von selbst, pausiert bei der Ankunft und führt Bestenlisten für jede Strecke. /pastime
 ## Category: Minigames
 ## Category-deDE: Minispiele
 ## Author: Koslowsky1337
@@ -38,5 +38,10 @@ Games\2048.lua
 Games\Match3.lua
 Games\Cards.lua
 Games\Blackjack.lua
+Games\Slots.lua
+Games\DrawPoker.lua
+Games\HigherLower.lua
+Games\Baccarat.lua
+Games\Holdem.lua
 Games\TavernDice.lua
 Games\Solitaire.lua

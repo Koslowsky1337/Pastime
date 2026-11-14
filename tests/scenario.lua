@@ -30,7 +30,7 @@ local function errors() return #ERRORS_FORWARDED end
 fire("ADDON_LOADED", "Pastime")
 fire("PLAYER_LOGIN")
 check(PastimeDB and PastimeDB.settings.autoOpen == true, "DB-Standardwerte")
-check(#ns.games == 19, "19 Spiele registriert, sind " .. #ns.games)
+check(#ns.games == 24, "24 Spiele registriert, sind " .. #ns.games)
 check(ns.minimapButton ~= nil, "Minimap-Knopf")
 check(ns.VersionFrom("v1.0.0-beta2") == "v1.0.0-beta2" and ns.VersionFrom("@project-version@") == "dev"
     and ns.VersionFrom(nil) == "dev" and ns.VERSION == "dev", "Version kommt aus der TOC, ungepackt „dev“")
@@ -43,7 +43,7 @@ check(ns.frame and ns.frame:IsShown(), "Fenster offen nach /pastime")
 check(ns.launcher:IsVisible() and not ns.gameView:IsVisible(), "Auswahl sichtbar")
 local visibleRows = 0
 for _, r in ipairs(ns.launcher.list.rows) do if r.shown then visibleRows = visibleRows + 1 end end
-check(visibleRows == 22, "22 Listenzeilen (3 Kategorien + 19 Spiele), sind " .. visibleRows)
+check(visibleRows == 27, "27 Listenzeilen (3 Kategorien + 24 Spiele), sind " .. visibleRows)
 check(ns.launcher.list.rows[1].htext.text == "Geschicklichkeit", "Kategorie 1: " .. ns.launcher.list.rows[1].htext.text)
 check(ns.launcher.list.rows[10].htext.text == "Knobeln", "Kategorie 2 an Pos. 10: " .. tostring(ns.launcher.list.rows[10].htext.text))
 check(ns.launcher.list.rows[19].htext.text == "Würfel & Karten", "Kategorie 3 an Pos. 19")
@@ -51,7 +51,7 @@ check(ns.launcher.list.rows[19].htext.text == "Würfel & Karten", "Kategorie 3 a
 ns.launcher.list.rows[1]:Click()
 visibleRows = 0
 for _, r in ipairs(ns.launcher.list.rows) do if r.shown then visibleRows = visibleRows + 1 end end
-check(visibleRows == 14, "nach Zuklappen 14 Zeilen, sind " .. visibleRows)
+check(visibleRows == 19, "nach Zuklappen 19 Zeilen, sind " .. visibleRows)
 ns.launcher.list.rows[1]:Click()
 -- Spiel wählen: Steinschlag (kurze Spiele stehen in jeder Kategorie zuerst)
 local function rowOf(id)
