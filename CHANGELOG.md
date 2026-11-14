@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Route names showed an empty box instead of the arrow between the two places; they now read "Orgrimmar » Sun Rock".
+
 ## 1.0.0
 
 First full release. Found a bug or have an idea? https://github.com/Koslowsky1337/Pastime/issues

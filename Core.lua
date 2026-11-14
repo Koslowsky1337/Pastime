@@ -403,8 +403,9 @@ local function clip(s, max)
     return (table.concat(out):gsub("[%s%-']+$", "")) .. "…"
 end
 
+-- „»“ statt Pfeil: die Schriften des Spiels kennen „→“ nicht und zeigen ein Kästchen
 function ns.RouteLabel(r, max)
-    return ("%s → %s"):format(clip(ns.ShortName(r.from) or "?", max), clip(ns.ShortName(r.to) or "?", max))
+    return ("%s » %s"):format(clip(ns.ShortName(r.from) or "?", max), clip(ns.ShortName(r.to) or "?", max))
 end
 
 function ns.RouteScores(r, def, mode)

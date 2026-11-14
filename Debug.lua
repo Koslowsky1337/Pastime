@@ -34,7 +34,7 @@ function ns.DebugLines()
     if t.active then
         local K = ns.KINDS[t.kind] or ns.KINDS.flug
         local since = t.phase == "ride" and t.start or t.waitStart
-        add("%sTrip:|r %s · %s · %s → %s · %s%s", H, K.one, t.phase == "wait" and "waiting" or "travelling",
+        add("%sTrip:|r %s · %s · %s » %s · %s%s", H, K.one, t.phase == "wait" and "waiting" or "travelling",
             ns.ShortName(t.from) or "?", ns.ShortName(t.to) or "?", ns.FormatTime(GetTime() - (since or GetTime())),
             t.expected and (" / expected " .. ns.FormatTime(t.expected)) or "")
         add("%sTrip ID:|r %d · played: %s · auto-opened: %s · pending: %d", H, t.id, yesno(t.played),
@@ -54,7 +54,7 @@ function ns.DebugLines()
         add("%sMoving:|r %.1f m/s · own speed %s · walking: %s · carried: %s (%d/4)", H, LV.v or 0,
             LV.speed and ("%.1f"):format(LV.speed) or "?", yesno(LV.moving), yesno(LV.carried), LV.nc or 0)
         if LV.dock then
-            add("%sDock:|r %s → %s · %d m", H, LV.dock.name, LV.dock.to, math.floor((LV.dd or 0) + 0.5))
+            add("%sDock:|r %s » %s · %d m", H, LV.dock.name, LV.dock.to, math.floor((LV.dd or 0) + 0.5))
         else
             add("%sDock:|r none on this continent", H)
         end

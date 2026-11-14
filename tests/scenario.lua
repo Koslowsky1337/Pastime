@@ -297,7 +297,7 @@ check(ns.run.state == "over", "Snake im Flug vorbei")
 local fkey = "flug:Crossroads, Brachland > Orgrimmar, Durotar"
 local froute = PastimeDB.routes[fkey]
 check(froute and froute.scores.snake and froute.scores.snake[1].s == 10, "Streckenrekord Snake gespeichert")
-check(ns.overlay.text.text:find("Streckenrekord Crossroads → Orgrimmar"), "Overlay nennt Streckenrekord: " .. ns.overlay.text.text)
+check(ns.overlay.text.text:find("Streckenrekord Crossroads » Orgrimmar"), "Overlay nennt Streckenrekord: " .. ns.overlay.text.text)
 -- Partie 2: 2048 läuft noch bei der Landung
 ns.StartGame(ns.gamesById["2048"])
 g = ns.run.game
@@ -467,7 +467,7 @@ local flugRow
 for _, r in ipairs(rows) do if r.shown and not r.item.header and r.item.key == fkey then flugRow = r end end
 flugRow:Click()
 local body = ns.records.detail.body.text
-check(ns.records.detail.title.text == "Crossroads → Orgrimmar", "Titel Strecke: " .. ns.records.detail.title.text)
+check(ns.records.detail.title.text == "Crossroads » Orgrimmar", "Titel Strecke: " .. ns.records.detail.title.text)
 check(body:find("Windnatter") and body:find("2048") and body:find("1%."), "Platzierungen: " .. body)
 check(ns.records.detail.sub.text:find("2× gereist"), "Untertitel: " .. ns.records.detail.sub.text)
 ns.frame.tabs[1]:Click()

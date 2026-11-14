@@ -33,8 +33,8 @@ check(PastimeDB.routes["flug:A > B"].scores["runepairs:mittel"][1].s == 40 and P
     "Streckenrekorde ziehen um")
 check(PastimeDB.stats.games.taverndice.n == 4 and PastimeDB.stats.games.kniffel == nil and PastimeDB.modes.fourinarow == "schwer"
     and PastimeDB.lastGame == "totemecho", "Statistik, Schwierigkeit und letztes Spiel ziehen um")
-check(ns.RouteLabel({ from = "Zoram'gar-Außenposten, Ashenvale", to = "Orgrimmar, Durotar" }, 14) == "Zoram'gar-Auße… → Orgrimmar"
-    and ns.RouteLabel({ from = "Zoram'gar-Außenposten, Ashenvale", to = "Orgrimmar" }) == "Zoram'gar-Außenposten → Orgrimmar",
+check(ns.RouteLabel({ from = "Zoram'gar-Außenposten, Ashenvale", to = "Orgrimmar, Durotar" }, 14) == "Zoram'gar-Auße… » Orgrimmar"
+    and ns.RouteLabel({ from = "Zoram'gar-Außenposten, Ashenvale", to = "Orgrimmar" }) == "Zoram'gar-Außenposten » Orgrimmar",
     "lange Ortsnamen werden nur auf Wunsch gekürzt: " .. ns.RouteLabel({ from = "Zoram'gar-Außenposten, Ashenvale", to = "Orgrimmar" }, 14))
 SlashCmdList.PASTIME("")
 check(ns.frame:IsShown() and #ERRORS_FORWARDED == 0, "Fenster öffnet sich ohne Fehler")
