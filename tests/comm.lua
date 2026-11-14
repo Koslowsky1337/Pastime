@@ -39,7 +39,7 @@ C._Reset()
 local hello = C.Encode("HELLO", 100)
 check(C.Accept("OtherAddon", hello, "WHISPER", "Thrall") == nil, "foreign prefix")
 check(C.Accept(C.PREFIX, hello, "CHANNEL", "Thrall") == nil, "public channels ignored")
-check(C.Accept(C.PREFIX, hello, "WHISPER", "Guenther") == nil, "own messages ignored")
+check(C.Accept(C.PREFIX, hello, "WHISPER", "Thokk") == nil, "own messages ignored")
 C_FriendList = { IsIgnored = function(n) return n == "Troll" end }
 check(C.Accept(C.PREFIX, hello, "WHISPER", "Troll") == nil, "ignored players dropped")
 local okCount = 0

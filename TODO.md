@@ -12,7 +12,7 @@ Diese Liste muss abgehakt sein, bevor `v1.0.0` getaggt wird.
 - [x] Paket 5: Sprache und Formate (Zahlen, Datum, Ortsnamen wie im Client)
 - [x] Paket 6: Spiel-Kleinigkeiten (Anzeige Runenpaare/Solitär, Blackjack-Ankunftstext, Enter beim Angeln, Top 10 im Tooltip, Strg-Tasten, toter Knopf „Fortsetzen“ entfernt)
 - [x] Paket 7: Lesbarkeit und Farbschwäche (2048, Wortraten, Kristall statt Amethyst, Kartenrücken, langer Zielname)
-- [ ] Paket 8: Tests härten
+- [x] Paket 8: Tests härten (Wertungsregeln, Übersetzungen, Allianz-Anleger, Migration; `tests/all.py` meldet jetzt auch abgebrochene Suites)
 - [ ] Bot- und Glücksspiele: Gegner macht Fehler, man kann gewinnen
 
 ### Dazu im Spiel prüfen

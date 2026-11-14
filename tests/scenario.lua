@@ -283,7 +283,7 @@ ONTAXI = true
 fire("PLAYER_CONTROL_LOST")
 RunTimers()
 local trip = ns.trip
-check(trip.active and trip.kind == "flug" and trip.to == "Orgrimmar, Durotar" and trip.from == "Das Wegekreuz, Brachland", "Flug erkannt mit Route")
+check(trip.active and trip.kind == "flug" and trip.to == "Orgrimmar, Durotar" and trip.from == "Crossroads, Brachland", "Flug erkannt mit Route")
 check(ns.frame:IsShown() and ns.launcher:IsVisible(), "Auswahl öffnet sich beim Abflug")
 check(ns.launcher.status.text:find("Orgrimmar"), "Fußzeile zeigt Flug: " .. ns.launcher.status.text)
 check(ns.launcher.detail.route.shown and ns.launcher.detail.route.text:find("noch kein Eintrag"), "Streckenzeile in Details: " .. ns.launcher.detail.route.text)
@@ -294,10 +294,10 @@ check(ns.run.tripId == trip.id, "Partie gehört zum Flug")
 key("RIGHT"); g.fx, g.fy = 12, 11; tick(0.16)
 tick(3)
 check(ns.run.state == "over", "Snake im Flug vorbei")
-local fkey = "flug:Das Wegekreuz, Brachland > Orgrimmar, Durotar"
+local fkey = "flug:Crossroads, Brachland > Orgrimmar, Durotar"
 local froute = PastimeDB.routes[fkey]
 check(froute and froute.scores.snake and froute.scores.snake[1].s == 10, "Streckenrekord Snake gespeichert")
-check(ns.overlay.text.text:find("Streckenrekord Das Wegekreuz → Orgrimmar"), "Overlay nennt Streckenrekord: " .. ns.overlay.text.text)
+check(ns.overlay.text.text:find("Streckenrekord Crossroads → Orgrimmar"), "Overlay nennt Streckenrekord: " .. ns.overlay.text.text)
 -- Partie 2: 2048 läuft noch bei der Landung
 ns.StartGame(ns.gamesById["2048"])
 g = ns.run.game
@@ -337,7 +337,7 @@ check(found50, "Endergebnis 50 in der allgemeinen Bestenliste")
 -- Landung mit „Beenden & werten“ ------------------------------------------------
 ns.frame:Hide()
 TakeTaxiNode(3); ONTAXI = true; fire("PLAYER_CONTROL_LOST"); RunTimers()
-check(trip.active and trip.to == "Ratschet, Brachland", "zweiter Flug nach Ratschet")
+check(trip.active and trip.to == "Ratchet, Brachland", "zweiter Flug nach Ratchet")
 ns.StartGame(ns.gamesById.tetris)
 g = ns.run.game
 key("SPACE")
@@ -350,8 +350,8 @@ check(ns.run.state == "over" and ns.overlay.title.text == "Gewertet", "Beenden &
 local nT = 0
 for _, e in ipairs(PastimeDB.scores.tetris or {}) do if e.s == tscore then nT = nT + 1 end end
 check(nT == 1, "Tetris allgemein genau einmal gewertet (" .. nT .. ")")
-local rr = PastimeDB.routes["flug:Das Wegekreuz, Brachland > Ratschet, Brachland"]
-check(rr and rr.scores.tetris and rr.scores.tetris[1].s == tscore, "Tetris auf Strecke Ratschet")
+local rr = PastimeDB.routes["flug:Crossroads, Brachland > Ratchet, Brachland"]
+check(rr and rr.scores.tetris and rr.scores.tetris[1].s == tscore, "Tetris auf Strecke Ratchet")
 
 -- Wiederholter Flug: Restzeit bekannt; ungenutzt -> Fenster schließt sich
 ns.ShowLauncher()
@@ -464,7 +464,7 @@ local flugRow
 for _, r in ipairs(rows) do if r.shown and not r.item.header and r.item.key == fkey then flugRow = r end end
 flugRow:Click()
 local body = ns.records.detail.body.text
-check(ns.records.detail.title.text == "Das Wegekreuz → Orgrimmar", "Titel Strecke: " .. ns.records.detail.title.text)
+check(ns.records.detail.title.text == "Crossroads → Orgrimmar", "Titel Strecke: " .. ns.records.detail.title.text)
 check(body:find("Windnatter") and body:find("2048") and body:find("1%."), "Platzierungen: " .. body)
 check(ns.records.detail.sub.text:find("2× gereist"), "Untertitel: " .. ns.records.detail.sub.text)
 ns.frame.tabs[1]:Click()

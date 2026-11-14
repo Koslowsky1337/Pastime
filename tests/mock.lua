@@ -96,7 +96,7 @@ time = os.time
 GetCursorPosition = function() return 0, 0 end
 IsShiftKeyDown = function() return SHIFT or false end
 InCombatLockdown = function() return COMBAT or false end
-UnitName = function() return "Guenther" end
+UnitName = function() return "Thokk" end
 GetLocale = function() return "deDE" end
 function GetBuildInfo() return "1.60.1", "70840", "Nov  5 2026", 16001 end
 for _, n in ipairs({ "GameFontNormal", "GameFontHighlight", "GameFontNormalSmall", "GameFontHighlightSmall",
@@ -123,7 +123,7 @@ IsControlKeyDown = function() return CTRL or false end
 IsAltKeyDown = function() return ALT or false end
 FLASHED = 0
 function FlashClientIcon() FLASHED = FLASHED + 1 end
-function GetMinimapZoneText() return "Das Wegekreuz" end
+function GetMinimapZoneText() return "Crossroads" end
 
 -- Timer
 TIMERS = {}
@@ -151,7 +151,8 @@ end
 -- Taxi
 ONTAXI = false
 UnitOnTaxi = function() return ONTAXI end
-TAXINODES = { { "Das Wegekreuz, Brachland", "CURRENT" }, { "Orgrimmar, Durotar", "REACHABLE" }, { "Ratschet, Brachland", "REACHABLE" } }
+-- Namen wie im deutschen Forever-Client (Ortsnamen englisch, Gebiete deutsch)
+TAXINODES = { { "Crossroads, Brachland", "CURRENT" }, { "Orgrimmar, Durotar", "REACHABLE" }, { "Ratchet, Brachland", "REACHABLE" } }
 NumTaxiNodes = function() return #TAXINODES end
 TaxiNodeName = function(i) return TAXINODES[i][1] end
 TaxiNodeGetType = function(i) return TAXINODES[i][2] end
@@ -174,6 +175,17 @@ MAPS = {
     [1412] = { c = 1, ox = 0, oy = 3000, w = 5000, h = 3400 },      -- Mulgore
     [1420] = { c = 0, ox = 0, oy = 0, w = 4500, h = 3000 },         -- Tirisfal
     [1434] = { c = 0, ox = 0, oy = 20000, w = 6000, h = 7000 },     -- Schlingendorntal
+    -- Karten der Allianz- und der übrigen Anleger (Lage frei gewählt, ohne Überschneidung)
+    [1453] = { c = 0, ox = 0, oy = 30000, w = 1800, h = 1200 },     -- Stormwind
+    [1424] = { c = 0, ox = 10000, oy = 0, w = 3200, h = 2100 },     -- Vorgebirge von Hillsbrad
+    [1437] = { c = 0, ox = 10000, oy = 10000, w = 4100, h = 2700 }, -- Sumpfland
+    [1416] = { c = 0, ox = 20000, oy = 0, w = 2800, h = 1900 },     -- Alteracgebirge
+    [1439] = { c = 1, ox = 0, oy = -8000, w = 6500, h = 4400 },     -- Dunkelküste
+    [1438] = { c = 1, ox = 0, oy = -20000, w = 5100, h = 3400 },    -- Teldrassil
+    [1445] = { c = 1, ox = 20000, oy = 20000, w = 5200, h = 3500 }, -- Marschen von Dustwallow
+    [1446] = { c = 1, ox = 20000, oy = 30000, w = 6900, h = 4600 }, -- Tanaris
+    [2548] = { c = 1, ox = 30000, oy = 40000, w = 4000, h = 3000 }, -- Flusslande
+    [2521] = { c = 2, ox = 0, oy = 0, w = 3000, h = 2000 },         -- Insel Zephras
 }
 PLAYER = { map = 1413, x = 0.52, y = 0.30 }
 SPEED, MOVING, INSTANCE = 0, false, false

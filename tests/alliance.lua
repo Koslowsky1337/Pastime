@@ -96,6 +96,29 @@ check(g.set.cards[1].emblem.tex:find("Alliance"), "Runenpaare: Allianz-Wappen")
 g = start("blackjack")
 check(g.dealerCards[1].emblem.tex:find("PVP_02"), "Kartenrücken: Allianz-Banner")
 
+-- Schiff Stormwind -> Auberdine: Anleger der Allianz, die der Horde zählen nicht
+local function ttick(n) for _ = 1, n or 1 do NOW = NOW + 0.5; ns.TransportTick() end end
+ns.ShowLauncher(); ns.frame:Hide()
+local have = ns.DockCount()
+check(have == 15, "Allianz: 15 Anleger (6 für alle, 9 der Allianz), sind " .. have)
+PLAYER.map, PLAYER.x, PLAYER.y = 1453, 0.2322, 0.5505
+SPEED, MOVING = 0, false
+ttick(12)
+check(ns.trip.active and ns.trip.kind == "schiff" and ns.trip.from == L["Stormwind"] and ns.trip.to == "Auberdine",
+    "Allianz: wartet in Stormwind auf das Schiff nach Auberdine")
+for _ = 1, 8 do PLAYER.x = PLAYER.x + 8 / 1800; ttick(1) end
+check(ns.trip.phase == "ride", "Allianz: Abfahrt erkannt")
+PLAYER.map, PLAYER.x, PLAYER.y = 1439, 0.3079, 0.4082
+ttick(1); ttick(8)
+local ar = PastimeDB.routes[ns.RouteKey("schiff", L["Stormwind"], "Auberdine")]
+check(not ns.trip.active and ar and ar.n == 1, "Allianz: Ankunft in Auberdine, Strecke gemerkt")
+PLAYER.map, PLAYER.x, PLAYER.y = 1411, 0.5082, 0.1354      -- Zeppelinturm der Horde
+ttick(14)
+check(not ns.trip.active, "Allianz: am Zeppelinturm von Orgrimmar passiert nichts")
+PLAYER.map, PLAYER.x, PLAYER.y = 1413, 0.20, 0.20
+ttick(2)
+PastimeDB.routes = {}
+
 -- Testflug: Ziel der eigenen Fraktion
 SlashCmdList.PASTIME("testflug 20")
 check(ns.trip.active and ns.trip.to == L["Stormwind"], "Testflug der Allianz geht nach Stormwind: " .. tostring(ns.trip.to))

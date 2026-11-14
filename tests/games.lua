@@ -660,6 +660,71 @@ check(g.lockT ~= nil, "Runenpaare: falsches Paar liegt offen")
 g:Flip(c1)
 check(g.lockT == nil and not g.cards[a1].up and not g.cards[b1].up and g.cards[c1].up, "Runenpaare: Klick deckt sofort zu und dreht die neue Karte")
 
+-- Regeln, die ein Mutationstest unbemerkt verändern konnte ---------------------------
+-- Bestenlisten: Reihenfolge, Obergrenzen, persönliche Bestleistung
+do
+    local mines, snake = ns.gamesById.minen, ns.gamesById.snake
+    PastimeDB.scores["minen:leicht"], PastimeDB.scores.snake = {}, {}
+    for _, s in ipairs({ 80, 40, 60 }) do ns.SubmitScore(mines, "leicht", s) end
+    local l = PastimeDB.scores["minen:leicht"]
+    check(l[1].s == 40 and l[2].s == 60 and l[3].s == 80, "Zeit-Spiele: die kürzeste Zeit steht oben")
+    local rank, personal = ns.SubmitScore(mines, "leicht", 30)
+    check(rank == 1 and personal, "neue Bestzeit: Platz 1 und persönliche Bestleistung")
+    rank, personal = ns.SubmitScore(mines, "leicht", 70)
+    check(rank == 4 and not personal, "schlechtere Zeit: Platz 4 und keine Bestleistung")
+    for i = 1, 12 do ns.SubmitScore(snake, nil, i * 10) end
+    l = PastimeDB.scores.snake
+    check(#l == 10 and l[1].s == 120 and l[10].s == 30, "Top 10: die besten zehn bleiben")
+    check(ns.SubmitScore(snake, nil, 5) == nil and #l == 10, "ein elfter Platz wird nicht eingetragen")
+    local rx = ns.Route("flug", "X", "Y")
+    for i = 1, 7 do ns.SubmitRouteScore(rx, snake, nil, i) end
+    check(#rx.scores.snake == 5 and rx.scores.snake[1].s == 7 and rx.scores.snake[5].s == 3, "Strecke: Top 5")
+    PastimeDB.routes = {}
+end
+-- Steinschlag: zwei Reihen auf einmal geben 300 Punkte mal Stufe
+g = start("tetris")
+for y = 18, 19 do for x = 2, 9 do g.board[y][x] = { 1, 0, 0 } end end
+g.cur = { kind = "O", n = 2, cells = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } }, x = 0, y = 18 }
+g.score = 0
+g:Do("drop"); tick(0.3)
+check(g.lines == 2 and g.score == 300, "Steinschlag: zwei Reihen = 300 Punkte (" .. g.score .. ")")
+-- Blackjack zahlt 3 zu 2
+g = start("blackjack")
+g.gold, g.bet, g.state, g.hole = 90, 10, "play", false
+g.player = { { rank = 1, suit = 1 }, { rank = 13, suit = 2 } }
+g.dealer = { { rank = 10, suit = 3 }, { rank = 7, suit = 4 } }
+g:Settle()
+check(g.gold == 115, "Blackjack zahlt 3 zu 2: aus 10 Einsatz werden 25 (" .. g.gold .. ")")
+-- Edelsteine: die zweite Kette zählt doppelt
+g = start("edelsteine")
+for y = 1, 8 do for x = 1, 8 do g.grid[y][x] = ((x + 2 * y) % 6) + 1 end end      -- Brett ohne Reihen
+g.grid[8][1], g.grid[8][2], g.grid[8][3] = 1, 1, 1
+check(#g.FindRuns(g.grid) == 1, "Edelsteine: genau eine Dreierreihe vorbereitet")
+g.score, g.chain = 0, 1
+g:Resolve()
+check(g.score == 60 and g.chain == 2, "Edelsteine: Dreierreihe in der zweiten Kette = 60 Punkte (" .. g.score .. ")")
+tick(3)
+-- Minenfeld: der erste Klick ist samt Nachbarn immer frei
+local safe = true
+for _ = 1, 40 do
+    g = start("minen", "leicht")
+    g.set.cells[41].scripts.OnClick(g.set.cells[41], "LeftButton")
+    for _, j in ipairs(g:Neighbors(41)) do if g.mine[j] then safe = false end end
+    if g.mine[41] or g.opened < 9 then safe = false end
+end
+check(safe, "Minenfeld: erster Klick öffnet immer ein freies Feld samt Nachbarn (40 Versuche)")
+-- Murloc-Invasion: drei Leben · Kobold-Hauen: 60 Sekunden · Windreiter: Lücke 145 bis 108
+g = start("murlocs")
+check(g.lives == 3, "Murloc-Invasion: drei Leben")
+g = start("kobold")
+tick(31)
+check(not over() and g.time > 28 and g.time < 30, "Kobold-Hauen: nach 31 s läuft die Runde noch (" .. g.time .. ")")
+g = start("flappy")
+check(g:GapSize() == 145 and g:Speed() == 150, "Windreiter: Lücke 145 und Tempo 150 am Anfang")
+g.score = 30
+check(g:GapSize() == 108 and g:Speed() == 235, "Windreiter: engste Lücke 108, Höchsttempo 235")
+ns.ShowLauncher()
+
 -- Befehl: Teilwort erst ab drei Zeichen
 check(ns.FindGame("a") == nil and ns.FindGame("ei") == nil and ns.FindGame("soli") == ns.gamesById.solitaer
     and ns.FindGame("2048") == ns.gamesById["2048"], "/pastime <Spiel>: Teilwort erst ab drei Zeichen")
