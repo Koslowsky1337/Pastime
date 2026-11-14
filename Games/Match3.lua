@@ -267,7 +267,6 @@ ns.RegisterGame({
     category = "knobeln",
     length = "lang",
     icon = "Interface\\Icons\\INV_Misc_Gem_Amethyst_01",
-    keyboard = true,
     width = SIZE, height = SIZE,
     desc = L["Swap neighbouring gems to line up three or more of a kind. Falling gems set off chains that count double and triple. You have 30 moves."],
     controls = L["Click two neighbouring gems one after the other · or arrows/WASD + Space"],

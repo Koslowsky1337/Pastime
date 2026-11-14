@@ -179,7 +179,6 @@ ns.RegisterGame({
     category = "knobeln",
     length = "kurz",
     icon = "Interface\\Icons\\Spell_Nature_StoneSkinTotem",
-    keyboard = true,
     width = SIZE, height = SIZE,
     desc = L["The elemental totems light up in a sequence – repeat it in the same order. Every round adds one more totem, and the spirits grow more impatient."],
     controls = L["Click the totems · or arrow keys/WASD (up Air, right Fire, down Earth, left Water) · 1–4"],

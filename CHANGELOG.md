@@ -11,6 +11,12 @@ Please report anything odd: https://github.com/Koslowsky1337/Pastime/issues
 - Route records: a route can be deleted (the button asks once more before it does).
 - English clients show 1,054,000 and ISO dates instead of the German 1.054.000 and 13.11.26.
 - German client: Undercity, Thunder Bluff, Stormwind, Booty Bay, Ratchet and Southshore are named as the game names them. The Alliance test flight heads for Stormwind.
+- Leaderboards: hover the list in the game details to see all ten places; the route records show all five places per game.
+- Rune Pairs and Solitaire: the large display now counts moves and time while you play.
+- Goblin Blackjack: the arrival dialog explains that the run is scored when it ends.
+- Fishing: Enter opens the chat again instead of casting.
+- Keys held with Ctrl or Alt no longer steer the game (Ctrl+S toggles the sound instead of turning the serpent).
+- `/pastime` followed by one or two letters no longer starts a random game.
 
 ## 1.0.0-beta1 – first beta
 

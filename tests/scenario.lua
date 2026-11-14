@@ -92,6 +92,12 @@ check(not key("LSHIFT"), "Shift allein wird weitergereicht")
 SHIFT = true
 check(not key("7"), "Shift-7 (Chat mit /) wird weitergereicht")
 SHIFT = false
+-- Strg+S schaltet den Ton: darf weder die Natter lenken noch geschluckt werden
+CTRL = true
+BINDINGS["CTRL-S"] = "TOGGLESOUND"
+check(not key("S") and #g.queue == 0, "Strg+S (Ton an/aus) wird weitergereicht und lenkt nicht")
+check(key("W") and #g.queue == 0, "Strg+W ohne erlaubte Belegung wird geschluckt und lenkt nicht")
+CTRL = false
 -- Taste vor dem Spiel gedrückt (WoW hat das Drücken gesehen): Loslassen muss an WoW gehen
 do
     local gv = ns.gameView

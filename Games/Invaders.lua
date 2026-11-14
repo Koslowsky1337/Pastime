@@ -283,7 +283,6 @@ ns.RegisterGame({
     category = "geschick",
     length = "lang",
     icon = ICON_MURLOC,
-    keyboard = true,
     resumeDelay = 3,               -- nach einer Pause erst 3-2-1
     width = W, height = H,
     desc = L["Mrgllglll! Whole swarms of murlocs march on the shore. Stop them with bow and arrow, take cover behind the crates and hit the golden murloc king. Every wave is faster."],

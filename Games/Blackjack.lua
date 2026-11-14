@@ -288,7 +288,6 @@ ns.RegisterGame({
     category = "karten",
     length = "kurz",
     icon = "Interface\\Icons\\INV_Misc_Coin_01",
-    keyboard = true,
     noLandingScore = true,     -- gewertet wird erst, wenn ein Lauf pleite endet
     scoreLabel = L["Highest gold"],
     width = W, height = H,

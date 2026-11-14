@@ -269,7 +269,6 @@ ns.RegisterGame({
     category = "karten",
     length = "lang",
     icon = "Interface\\Icons\\INV_Misc_Dice_02",
-    keyboard = true,
     width = W, height = H,
     desc = L["Roll up to three times, hold the good dice, then fill one of the 13 boxes – from ones to five of a kind. Reach 63 in the upper section for a 35-point bonus. Perfect for long zeppelin rides."],
     controls = L["Space: roll · 1–5 or click a die: hold · Click a box: score it"],

@@ -99,6 +99,8 @@ function ns.HandleKey(key, down)
         ns.Pause(); used = true
     elseif run.countdown then
         -- Countdown läuft: nicht ans Spiel geben (wird unten geschluckt, Chat & Co. kommen durch)
+    elseif (IsControlKeyDown and IsControlKeyDown()) or (IsAltKeyDown and IsAltKeyDown()) then
+        -- mit Strg/Alt ist es keine Spieltaste: Strg+S schaltet den Ton und lenkt nicht nach unten
     elseif run.state == "running" and run.game.Key and run.game:Key(key, true) then
         used = true
     end
@@ -323,6 +325,8 @@ function ns.ShowLandedOverlay()
             table.insert(lines, L["Unknown route – no route score."])
         elseif def.lowerIsBetter then
             table.insert(lines, L["This game only counts when solved – no route score."])
+        elseif def.noLandingScore then
+            table.insert(lines, L["This game is only scored when the run ends – no route score."])
         else
             table.insert(lines, L["No points yet – no route score."])
         end
@@ -525,6 +529,23 @@ local function CreateLauncher(parent)
         Ink(right, "text", dark)
         d.scoreLines[i] = { left = left, right = right }
     end
+    -- Die Liste zeigt fünf Plätze, der Tooltip alle zehn (Fläche: Überschrift und die ersten drei Zeilen)
+    d.scoreHit = CreateFrame("Frame", nil, d)
+    d.scoreHit:SetPoint("TOPLEFT", d.scoreHead, "TOPLEFT", 0, 0)
+    d.scoreHit:SetPoint("BOTTOMRIGHT", d.scoreLines[3].right, "BOTTOMRIGHT", 0, 0)
+    d.scoreHit:EnableMouse(true)
+    d.scoreHit:SetScript("OnEnter", ns.Wrap("bestenliste", function(self)
+        local def = ns.selected
+        local list = def and ns.GetScores(def, ns.DefaultMode(def)) or {}
+        if #list == 0 then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(d.scoreTitle or L["Leaderboard"], 1, 0.82, 0)
+        for i, e in ipairs(list) do
+            GameTooltip:AddDoubleLine(("%d. %s  |cff999999%s|r"):format(i, e.p or "?", e.d or ""), ns.FormatScore(def, e.s), 1, 1, 1, 1, 1, 1)
+        end
+        GameTooltip:Show()
+    end))
+    d.scoreHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     d.stats = ns.FontString(d, "QuestFontNormalSmall")
     d.stats:SetPoint("BOTTOMLEFT", 18, 18)
@@ -540,11 +561,6 @@ local function CreateLauncher(parent)
     end)
     d.play:SetHeight(26)
     d.play:SetPoint("BOTTOMRIGHT", -16, 14)
-    d.resume = ns.CreateButton(d, L["Continue"], 110, function()
-        ns.ShowView("game")
-    end)
-    d.resume:SetHeight(26)
-    d.resume:SetPoint("RIGHT", d.play, "LEFT", -6, 0)
 
     -- Fußzeile: Status + Einstellungen
     v.status = ns.FontString(v, "GameFontNormalSmall")
@@ -614,12 +630,14 @@ function ns.UpdateLauncher()
         d.scoreHead:ClearAllPoints()
         d.scoreHead:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -12)
         local modeName = ns.ModeName(def, mode)
-        d.scoreHead:SetText(L["Leaderboard"] .. (modeName and (" – " .. modeName) or ""))
         local scores = ns.GetScores(def, mode)
         local tbest, troute = ns.TripBest(def, mode)
         local showRoute = troute or (ns.trip.active and ns.trip.from and ns.trip.to)
         -- mit Schwierigkeitsknöpfen und Streckenzeile reicht der Platz nur für vier Plätze
         local maxLines = (showRoute and def.modes) and 4 or 5
+        d.scoreTitle = L["Leaderboard"] .. (modeName and (" – " .. modeName) or "")
+        -- stehen mehr Plätze in der Liste, als hier passen: Hinweis auf den Tooltip
+        d.scoreHead:SetText(d.scoreTitle .. (#scores > maxLines and ("  |cff6b5a3a(" .. L["hover: top 10"] .. ")|r") or ""))
         for i, line in ipairs(d.scoreLines) do
             local e = i <= maxLines and scores[i]
             if e then
@@ -643,9 +661,6 @@ function ns.UpdateLauncher()
         else
             d.route:Hide()
         end
-        local unfinished = ns.run and ns.run.def == def and ns.run.state == "paused"
-        d.resume:SetShown(unfinished and true or false)
-        d.play:SetText(unfinished and L["New game"] or L["Play"])
     end
 
     -- Fußzeile
@@ -917,9 +932,9 @@ local function RouteBody(r, dark)
             local list = r.scores[ns.ScoreKey(def, m.id)]
             if list and #list > 0 then
                 table.insert(lines, ("|cff%s%s%s|r"):format(head, def.name, m.name and (" – " .. m.name) or ""))
-                for i = 1, math.min(3, #list) do
+                for i = 1, #list do
                     local e = list[i]
-                    table.insert(lines, ("   |cff%s%d.|r  %s  ·  %s  |cff%s(%s)|r"):format(dark and "ffffff" or MEDAL[i], i,
+                    table.insert(lines, ("   |cff%s%d.|r  %s  ·  %s  |cff%s(%s)|r"):format(dark and "ffffff" or MEDAL[i] or soft, i,
                         ns.FormatScore(def, e.s), e.p or "?", soft, e.d or ""))
                 end
                 table.insert(lines, " ")
@@ -1014,7 +1029,7 @@ function ns.UpdateRecords()
         ns.SetIcon(d.icon.icon, ns.TEX.dice)
         d.title:SetText(L["No journeys yet"])
         d.sub:SetText("")
-        d.body:SetText(L["Take a flight path, a zeppelin or a boat. Whatever you play on the way ends up here – with first, second and third place for every game on each route."])
+        d.body:SetText(L["Take a flight path, a zeppelin or a boat. Whatever you play on the way ends up here – with the five best results for every game on each route."])
     else
         local K = ns.KINDS[r.kind] or ns.KINDS.flug
         local tex = ns.TEX.kind[r.kind] or ns.TEX.question

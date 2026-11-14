@@ -159,7 +159,7 @@ function Game:Update(dt)
 end
 
 function Game:Key(k, down)
-    if k ~= "SPACE" and k ~= "ENTER" and k ~= "UP" and k ~= "W" then return false end
+    if k ~= "SPACE" and k ~= "UP" and k ~= "W" then return false end      -- Enter bleibt für den Chat
     if down then self:Hook() end
     return true
 end
@@ -262,7 +262,6 @@ ns.RegisterGame({
     category = "geschick",
     length = "kurz",
     icon = ICON_POLE,
-    keyboard = true,
     width = SIZE, height = SIZE,
     desc = L["Cast ten times and strike as soon as the bobber dips – but not at the first twitch! The faster you react, the rarer the catch. Catch several in a row for a streak bonus."],
     controls = L["Space or click: cast and strike"],

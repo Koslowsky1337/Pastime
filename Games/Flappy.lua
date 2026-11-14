@@ -259,7 +259,6 @@ ns.RegisterGame({
     category = "geschick",
     length = "kurz",
     icon = ICON,
-    keyboard = true,
     resumeDelay = 3,               -- nach einer Pause erst 3-2-1, sonst stürzt man sofort ab
     width = BW, height = BH,
     desc = L["Guide your wind rider through the spires of Thousand Needles. Every wingbeat lifts you up, and gravity pulls you down in between. Each spire makes it faster and tighter."],

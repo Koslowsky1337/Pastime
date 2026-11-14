@@ -245,7 +245,6 @@ ns.RegisterGame({
     category = "knobeln",
     length = "kurz",
     icon = "Interface\\Icons\\INV_Misc_Note_02",
-    keyboard = true,
     textInput = true,          -- P ist hier ein Buchstabe, keine Pause
     width = W, height = H,
     desc = L["Guess the hidden five-letter word – all of them come from Azeroth. Green: right letter in the right place, gold: in the word, but somewhere else. You have six tries."],

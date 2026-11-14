@@ -214,7 +214,6 @@ ns.RegisterGame({
     category = "geschick",
     length = "lang",
     icon = "Interface\\Icons\\INV_Crate_01",
-    keyboard = true,
     resumeDelay = 3,               -- nach einer Pause erst 3-2-1
     width = W, height = H,
     desc = L["Keep the ball in play with your paddle and smash the wall. Legendary and epic bricks need two hits. Every level gets faster – you have three balls."],

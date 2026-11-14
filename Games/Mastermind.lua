@@ -201,7 +201,6 @@ ns.RegisterGame({
     category = "knobeln",
     length = "kurz",
     icon = "Interface\\Icons\\INV_Misc_Gem_Sapphire_01",
-    keyboard = true,
     width = W, height = H,
     desc = L["A jeweller has hidden four gems in a secret order. Guess the combination – after each try, gold and silver pegs tell you how close you are. You have ten tries."],
     controls = L["Click the gems or press 1–6 · Backspace: undo · Enter/Space: check"],

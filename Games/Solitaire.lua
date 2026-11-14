@@ -245,7 +245,10 @@ function Game:Select(loc)
 end
 
 function Game:Update(dt)
-    if self.started and not self.done then self.time = self.time + dt end
+    if self.started and not self.done then
+        self.time = self.time + dt
+        self.score = self.time         -- große Anzeige zählt mit; gewertet wird erst das gelöste Spiel
+    end
     if self.drag then self:DragMove() end
     if self.auto then
         self.auto = self.auto - dt
@@ -405,7 +408,6 @@ ns.RegisterGame({
     category = "karten",
     length = "lang",
     icon = "Interface\\Icons\\INV_Misc_Ticket_Tarot_Maelstrom_01",
-    keyboard = true,
     width = W, height = H,
     lowerIsBetter = true,
     scoreLabel = L["Time"],

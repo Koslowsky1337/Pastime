@@ -228,7 +228,7 @@ ns.LENGTHS = {
 }
 ns.games, ns.gamesById = {}, {}
 
--- def: id, name, category, icon, short, desc, controls, keyboard, width, height,
+-- def: id, name, category, icon, short, desc, controls, width, height,
 --      Create(host, board) -> Spielobjekt; optional modes, lowerIsBetter, FormatScore, aliases
 function ns.RegisterGame(def)
     def.order = #ns.games + 1
@@ -256,6 +256,7 @@ function ns.FindGame(query)
         if g.id == query or g.name:lower() == query then return g end
         for _, a in ipairs(g.aliases or {}) do if a == query then return g end end
     end
+    if #query < 3 then return nil end      -- „/pastime a“ soll kein Spiel starten
     for _, g in ipairs(ns.games) do
         if g.name:lower():find(query, 1, true) then return g end
     end

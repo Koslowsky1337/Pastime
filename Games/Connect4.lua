@@ -294,7 +294,6 @@ ns.RegisterGame({
     category = "knobeln",
     length = "kurz",
     icon = ICON_HORDE,
-    keyboard = true,
     width = W, height = H,
     modes = { { id = "leicht", name = L["Easy"] }, { id = "mittel", name = L["Medium"] }, { id = "schwer", name = L["Hard"] } },
     alliance = { icon = ICON_ALLY },

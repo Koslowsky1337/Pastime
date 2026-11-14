@@ -288,7 +288,6 @@ ns.RegisterGame({
     category = "geschick",
     length = "kurz",
     icon = ICON,
-    keyboard = true,
     resumeDelay = 3,               -- nach einer Pause erst 3-2-1
     scoreLabel = L["Metres"],
     width = W, height = H,

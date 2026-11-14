@@ -80,6 +80,10 @@ end
 UIParent = Mock("Frame", "UIParent")
 Minimap = Mock("Frame", "Minimap")
 GameTooltip = Mock("GameTooltip", "GameTooltip")
+TIP = {}      -- Zeilen des zuletzt gezeigten Tooltips
+function GameTooltip:SetOwner() TIP = {} end
+function GameTooltip:AddLine(t) table.insert(TIP, tostring(t)) end
+function GameTooltip:AddDoubleLine(l, r) table.insert(TIP, tostring(l) .. " | " .. tostring(r)) end
 DEFAULT_CHAT_FRAME = Mock("Frame")
 CHAT = {}
 function DEFAULT_CHAT_FRAME:AddMessage(t) table.insert(CHAT, t) end
@@ -113,7 +117,10 @@ BINDINGS = { W = "MOVEFORWARD", UP = "MOVEFORWARD", S = "MOVEBACKWARD", DOWN = "
     D = "STRAFERIGHT", SPACE = "JUMP", Q = "MULTIACTIONBAR1BUTTON3", E = "MULTIACTIONBAR1BUTTON4",
     ["1"] = "ACTIONBUTTON1", TAB = "TARGETNEARESTENEMY", B = "TOGGLEBACKPACK", M = "TOGGLEWORLDMAP",
     ENTER = "OPENCHAT", ["SHIFT-7"] = "OPENCHATSLASH", R = "REPLY", NUMLOCK = "TOGGLEAUTORUN" }
-function GetBindingFromInput(key) return BINDINGS[(SHIFT and "SHIFT-" or "") .. key] end
+-- wie GetBindingFullInput im Client: gedrückte Zusatztasten in der Reihenfolge ALT, CTRL, SHIFT
+function GetBindingFromInput(key) return BINDINGS[(ALT and "ALT-" or "") .. (CTRL and "CTRL-" or "") .. (SHIFT and "SHIFT-" or "") .. key] end
+IsControlKeyDown = function() return CTRL or false end
+IsAltKeyDown = function() return ALT or false end
 FLASHED = 0
 function FlashClientIcon() FLASHED = FLASHED + 1 end
 function GetMinimapZoneText() return "Das Wegekreuz" end

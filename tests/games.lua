@@ -158,6 +158,7 @@ check(over() and best("kobold") == g.score, "Kobold-Runde endet nach 60 s mit We
 
 -- Angeln ----------------------------------------------------------------------
 g = start("angeln")
+check(not key("ENTER") and g.state == "ready", "Angeln: Enter geht an den Chat, nicht ans Spiel")
 key("SPACE")
 check(g.state == "wait", "ausgeworfen")
 key("SPACE")
@@ -305,6 +306,7 @@ for icon, list in pairs(byIcon) do ids[#ids + 1] = list end
 g.set.cards[ids[1][1]].scripts.OnClick(g.set.cards[ids[1][1]])
 g.set.cards[ids[2][1]].scripts.OnClick(g.set.cards[ids[2][1]])
 check(g.lockT ~= nil and g.moves == 1, "Fehlversuch sperrt kurz")
+check(g.score == 1 and ns.CurrentScore(ns.run) == nil, "Runenpaare: große Anzeige zählt die Züge mit, gewertet wird erst gelöst")
 tick(1)
 check(not g.cards[ids[1][1]].up, "Karten wieder zu")
 for _, list in ipairs(ids) do
@@ -500,6 +502,14 @@ check(g.bet == 20 and #g.player == 3 and g.state ~= "play", "Blackjack: Verdoppe
 -- Landung: Blackjack wird nur nach vollen Runden gewertet
 ns.StartGame(ns.gamesById.blackjack)
 check(ns.CurrentScore(ns.run) == nil, "Blackjack ohne Wertung bei Ankunft mitten in der Sitzung")
+ns.ShowLauncher()
+SlashCmdList.PASTIME("testflug 5")
+ns.StartGame(ns.gamesById.blackjack)
+NOW = NOW + 6; RunTickers()
+check(ns.overlay.kind == "landed" and ns.overlay.text.text:find(ns.L["This game is only scored when the run ends – no route score."], 1, true)
+    and ns.overlay.btn2.text == ns.L["Quit"], "Blackjack: Ankunftsdialog erklärt die Wertung am Ende des Laufs: " .. ns.overlay.text.text)
+ns.ShowLauncher()
+SlashCmdList.PASTIME("testflug löschen")
 
 -- Solitär ---------------------------------------------------------------------------
 g = start("solitaer")
@@ -508,6 +518,8 @@ for i = 1, 7 do for _, c in ipairs(g.tab[i]) do if c.up then up = up + 1 else do
 check(up == 7 and down == 21 and #g.stock == 24, "Auslage: 7 offen, 21 verdeckt, 24 im Stapel")
 key("SPACE")
 check(#g.waste == 1 and #g.stock == 23, "Karte gezogen")
+tick(2)
+check(g.score > 1.5 and ns.CurrentScore(ns.run) == nil, "Solitär: große Anzeige zeigt die laufende Zeit, gewertet wird erst gelöst")
 for _ = 1, 23 do key("SPACE") end
 key("SPACE")
 check(#g.stock == 24 and #g.waste == 0, "Stapel neu gemischt")
@@ -642,6 +654,29 @@ g:Flip(a1); g:Flip(b1)
 check(g.lockT ~= nil, "Runenpaare: falsches Paar liegt offen")
 g:Flip(c1)
 check(g.lockT == nil and not g.cards[a1].up and not g.cards[b1].up and g.cards[c1].up, "Runenpaare: Klick deckt sofort zu und dreht die neue Karte")
+
+-- Befehl: Teilwort erst ab drei Zeichen
+check(ns.FindGame("a") == nil and ns.FindGame("ei") == nil and ns.FindGame("soli") == ns.gamesById.solitaer
+    and ns.FindGame("2048") == ns.gamesById["2048"], "/pastime <Spiel>: Teilwort erst ab drei Zeichen")
+-- Bestenliste: fünf Plätze in der Auswahl, alle zehn im Tooltip
+PastimeDB.scores.kobold = {}
+for i = 1, 7 do ns.SubmitScore(ns.gamesById.kobold, nil, i * 10) end
+ns.ShowLauncher(); ns.selected = ns.gamesById.kobold; ns.UpdateUI()
+local det = ns.launcher.detail
+check(det.scoreHead.text:find(ns.L["hover: top 10"], 1, true) and det.scoreLines[5].left.text ~= "", "Auswahl: Hinweis auf weitere Plätze")
+det.scoreHit.scripts.OnEnter(det.scoreHit)
+check(#TIP == 8 and TIP[8]:find("7. ", 1, true) and TIP[2]:find("70", 1, true), "Tooltip zeigt alle 7 Einträge (" .. #TIP .. " Zeilen)")
+PastimeDB.scores.kobold = { PastimeDB.scores.kobold[1] }
+ns.UpdateUI()
+check(not det.scoreHead.text:find(ns.L["hover: top 10"], 1, true), "kein Hinweis, wenn alles zu sehen ist")
+-- Reiserekorde: alle fünf Plätze je Spiel
+local rt = ns.Route("flug", "A", "B")
+for i = 1, 6 do ns.SubmitRouteScore(rt, ns.gamesById.snake, nil, i * 10) end
+ns.ShowFrame("records"); ns.selectedRoute = ns.RouteKey("flug", "A", "B"); ns.UpdateRecords()
+local rbody = ns.records.detail.body.text
+check(#rt.scores.snake == 5 and rbody:find("5.|r", 1, true) and not rbody:find("6.|r", 1, true), "Reiserekorde zeigen alle fünf Plätze")
+PastimeDB.routes = {}
+ns.ShowLauncher()
 
 -- Zufallstest: alle Spiele mit wilden Tasten ---------------------------------------
 local KEYS = { "UP", "DOWN", "LEFT", "RIGHT", "W", "A", "S", "D", "SPACE", "ENTER", "1", "2", "3", "4", "5", "6", "7",

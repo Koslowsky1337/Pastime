@@ -252,7 +252,6 @@ ns.RegisterGame({
     category = "knobeln",
     length = "kurz",
     icon = ICON_MINE,
-    keyboard = false,
     width = 416, height = 416,
     modes = { { id = "leicht", name = L["Easy (9×9)"] }, { id = "mittel", name = L["Medium (16×16)"] } },
     lowerIsBetter = true,

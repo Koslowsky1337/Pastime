@@ -255,7 +255,6 @@ ns.RegisterGame({
     category = "knobeln",
     length = "lang",
     icon = "Interface\\Icons\\INV_Misc_Gem_Ruby_01",
-    keyboard = true,
     width = SIZE, height = SIZE,
     desc = L["Slide all tiles in one direction – equal tiles merge and rise one quality level: Poor, Common, Uncommon, Rare, Epic, Legendary … Can you reach the titanic 2048?"],
     controls = L["Arrow keys or WASD slide all tiles · P/Esc: pause"],

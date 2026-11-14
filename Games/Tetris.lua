@@ -326,7 +326,6 @@ ns.RegisterGame({
     category = "geschick",
     length = "lang",
     icon = "Interface\\Icons\\INV_Stone_04",
-    keyboard = true,
     resumeDelay = 3,               -- nach einer Pause erst 3-2-1
     width = COLS * SIZE, height = ROWS * SIZE,
     previewLabel = L["Next block"],

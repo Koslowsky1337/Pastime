@@ -109,6 +109,7 @@ function Game:Flip(i)
     self.host:Sound("click")
     if #self.open == 2 then
         self.moves = self.moves + 1
+        self.score = self.moves        -- große Anzeige zählt mit; gewertet wird erst das gelöste Spiel
         local a, b = self.cards[self.open[1]], self.cards[self.open[2]]
         if a.icon == b.icon then
             a.done, b.done = true, true
@@ -167,7 +168,6 @@ ns.RegisterGame({
     category = "knobeln",
     length = "kurz",
     icon = "Interface\\Icons\\INV_Misc_Rune_01",
-    keyboard = true,
     width = 420, height = 420,
     modes = { { id = "leicht", name = L["Easy (4×4)"] }, { id = "mittel", name = L["Medium (6×5)"] } },
     lowerIsBetter = true,
