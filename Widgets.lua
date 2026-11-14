@@ -41,9 +41,9 @@ end
 -- Fensterfarben je Fraktion: Horde rot, Allianz blau (ns.ApplyFaction wählt beim Login)
 ns.THEMES = {
     Horde = { border = { 1, 0.55, 0.45 }, bg = { 1, 0.82, 0.8 }, inset = { 0.72, 0.42, 0.36 },
-        crest = "Interface\\Icons\\Achievement_PVP_H_H" },
+        card = { 0.5, 0.1, 0.08 }, crest = "Interface\\Icons\\Achievement_PVP_H_H" },
     Alliance = { border = { 0.55, 0.72, 1 }, bg = { 0.8, 0.88, 1 }, inset = { 0.42, 0.55, 0.8 },
-        crest = "Interface\\Icons\\Achievement_PVP_A_A" },
+        card = { 0.1, 0.2, 0.5 }, crest = "Interface\\Icons\\Achievement_PVP_A_A" },
 }
 ns.THEME = ns.THEMES.Horde
 

@@ -38,8 +38,10 @@ local WORDS = ns.LOCALE == "deDE" and WORDS_DE or WORDS_EN
 local GOOD = {}
 for _, w in ipairs(WORDS) do if #w == LEN then GOOD[#GOOD + 1] = w end end
 local ROWS_KB = ns.KEYBOARD_ROWS
+-- Grün und Grau so gewählt, dass sie auch bei Rot-Grün-Schwäche klar von Gold abstehen;
+-- richtige Felder bekommen zusätzlich einen Rahmen (siehe Render)
 local STATE_COLOR = {
-    [0] = { 0.14, 0.12, 0.1 }, [1] = { 0.28, 0.26, 0.24 }, [2] = { 0.78, 0.62, 0.12 }, [3] = { 0.3, 0.62, 0.22 },
+    [0] = { 0.14, 0.12, 0.1 }, [1] = { 0.22, 0.21, 0.20 }, [2] = { 0.78, 0.62, 0.12 }, [3] = { 0.08, 0.56, 0.30 },
 }
 
 local Game = {}
@@ -151,7 +153,7 @@ function Game:Render()
             local c = STATE_COLOR[st]
             ns.Paint(cell.bg, c[1], c[2], c[3], 1, st > 0 and 0.75 or nil)
             cell.text:SetText(text:sub(i, i))
-            cell.border:SetShown(not g and r == #self.guesses + 1 and not self.done)
+            cell.border:SetShown(st == 3 or (not g and r == #self.guesses + 1 and not self.done))
         end
     end
     for ch, key in pairs(self.keys) do

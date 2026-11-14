@@ -11,7 +11,7 @@ Diese Liste muss abgehakt sein, bevor `v1.0.0` getaggt wird.
 - [x] Paket 4: Zeppelin und Schiff (Anleger, Reload unterwegs, heruntergefallen, Ruhestein, Tod), Strecke löschen
 - [x] Paket 5: Sprache und Formate (Zahlen, Datum, Ortsnamen wie im Client)
 - [x] Paket 6: Spiel-Kleinigkeiten (Anzeige Runenpaare/Solitär, Blackjack-Ankunftstext, Enter beim Angeln, Top 10 im Tooltip, Strg-Tasten, toter Knopf „Fortsetzen“ entfernt)
-- [ ] Paket 7: Lesbarkeit und Farbschwäche
+- [x] Paket 7: Lesbarkeit und Farbschwäche (2048, Wortraten, Kristall statt Amethyst, Kartenrücken, langer Zielname)
 - [ ] Paket 8: Tests härten
 - [ ] Bot- und Glücksspiele: Gegner macht Fehler, man kann gewinnen
 
@@ -24,6 +24,10 @@ Diese Liste muss abgehakt sein, bevor `v1.0.0` getaggt wird.
 - [ ] **Reiserekorde:** „Strecke löschen“ fragt nach und löscht erst beim zweiten Klick 📸.
 - [ ] **Bestenliste:** Bei mehr als fünf Einträgen steht „(Maus: Top 10)“ neben der Überschrift; der Tooltip zeigt alle Plätze 📸.
 - [ ] **Strg+S** in der Windnatter schaltet den Ton und lenkt nicht nach unten.
+- [ ] **2048:** dunkle Zahlen auf den hellen Kacheln (2, 4, 8, 64 …), weiße auf Blau, Lila und Rot 📸.
+- [ ] **Wortraten:** richtige Buchstaben sind dunkelgrün mit goldenem Rahmen, vorhandene golden 📸.
+- [ ] **Edelstein-Code und Edelsteine:** der türkise Kristall (statt Amethyst) wird angezeigt, kein grünes Kästchen 📸.
+- [ ] **Ankunft mit langem Zielnamen** (z. B. Zoram'gar-Außenposten): der Titel bricht um und bleibt im Rahmen 📸.
 - [ ] **Ortsnamen:** Zeppelin- und Schiffsstrecken heißen jetzt „Undercity“, „Ratchet“, „Booty Bay“ wie im Client. Mit einem Allianz-Charakter prüfen: Heißt es dort „Stormwind“, „Southshore“ und „Hafen von Menethil“? Alte Strecken mit „Unterstadt“ oder „Ratschet“ bleiben in der Liste stehen (über „Strecke löschen“ entfernen).
 
 ## 1. Prüfung im Spiel (16 Spiele)

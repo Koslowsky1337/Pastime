@@ -24,6 +24,7 @@ SlashCmdList.PASTIME("")
 
 -- Fenster in Allianz-Blau
 check(ns.THEME == ns.THEMES.Alliance and ns.THEME.border[3] > ns.THEME.border[1], "Fenster: blaue Akzente")
+check(ns.THEME.card[3] > ns.THEME.card[1] and ns.THEMES.Horde.card[1] > ns.THEMES.Horde.card[3], "Kartenrücken: blau für die Allianz, rot für die Horde")
 
 -- Namen, Icons und Texte der Varianten
 local G = ns.gamesById

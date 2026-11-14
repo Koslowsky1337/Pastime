@@ -70,7 +70,8 @@ function Game:Draw(i)
     else
         b.face:Hide(); b.icon:Hide()
         b.back:Show(); b.emblem:Show()
-        ns.Paint(b.back, 0.45, 0.08, 0.06, 1, 0.55)
+        local back = ns.THEME.card      -- Rückseite in der Fraktionsfarbe
+        ns.Paint(b.back, back[1], back[2], back[3], 1, 0.55)
     end
 end
 

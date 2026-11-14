@@ -9,7 +9,8 @@ local GEMS = {
     { L["Emerald"], "Interface\\Icons\\INV_Misc_Gem_Emerald_01" },
     { L["Sapphire"], "Interface\\Icons\\INV_Misc_Gem_Sapphire_01" },
     { L["Topaz"], "Interface\\Icons\\INV_Misc_Gem_Topaz_01" },
-    { L["Amethyst"], "Interface\\Icons\\INV_Misc_Gem_Amethyst_01" },
+    -- Kristall statt Amethyst: der sah bei Rot-Grün-Schwäche fast wie der Saphir aus
+    { L["Crystal"], "Interface\\Icons\\INV_Misc_Gem_Crystal_01" },
     { L["Diamond"], "Interface\\Icons\\INV_Misc_Gem_Diamond_01" },
 }
 

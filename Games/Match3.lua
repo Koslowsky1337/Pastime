@@ -8,7 +8,8 @@ local MOVES = 30
 local GEMS = {
     "Interface\\Icons\\INV_Misc_Gem_Ruby_01", "Interface\\Icons\\INV_Misc_Gem_Emerald_01",
     "Interface\\Icons\\INV_Misc_Gem_Sapphire_01", "Interface\\Icons\\INV_Misc_Gem_Topaz_01",
-    "Interface\\Icons\\INV_Misc_Gem_Amethyst_01", "Interface\\Icons\\INV_Misc_Gem_Diamond_01",
+    -- Kristall statt Amethyst: der sah bei Rot-Grün-Schwäche fast wie der Saphir aus
+    "Interface\\Icons\\INV_Misc_Gem_Crystal_01", "Interface\\Icons\\INV_Misc_Gem_Diamond_01",
 }
 
 local Game = {}

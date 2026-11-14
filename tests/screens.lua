@@ -72,6 +72,17 @@ ns.run.game.score = 1054000
 slash("testflug")
 scan("Ankunft")
 
+-- 4b. Ankunft mit langem Zielnamen: der Titel bricht um und bleibt im Rahmen
+ns.ShowLauncher()
+local longFrom, longTo = "Brackenwall, Marschen von Dustwallow", "Zoram'gar-Außenposten, Ashenvale"
+ns.BeginTrip({ kind = "flug", from = longFrom, to = longTo })
+ns.StartGame(ns.gamesById.tetris)
+ns.run.game.score = 1054000
+ns.EndTrip(true)
+scan("Ankunft mit langem Zielnamen")
+ns.ShowLauncher()
+ns.DB.routes[ns.RouteKey("flug", longFrom, longTo)] = nil      -- in der Liste würde der Name gekürzt (Tooltip zeigt ihn ganz)
+
 -- 5. Reiserekorde
 ns.ShowFrame("records")
 scan("Reiserekorde")

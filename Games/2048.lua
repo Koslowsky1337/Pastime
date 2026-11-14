@@ -166,6 +166,10 @@ function Game:Update(dt)
     end
 end
 
+-- Kachelfarbe hell genug für dunkle Schrift? (Weiß auf Weiß oder Gold war kaum lesbar)
+function Game.IsLight(q) return 0.299 * q[2] + 0.587 * q[3] + 0.114 * q[4] > 0.45 end
+Game.QUALITY, Game.BEYOND = QUALITY, BEYOND
+
 function Game:Render()
     for y = 1, N do
         for x = 1, N do
@@ -181,9 +185,15 @@ function Game:Render()
                 local font = FONTS[math.min(digits, #FONTS)]
                 if t.font ~= font then
                     t.num:SetFontObject(_G[font] and font or "GameFontHighlightHuge")
-                    t.num:SetTextColor(1, 1, 1)
                     t.font = font
                 end
+                -- helle Kacheln: dunkle Schrift ohne Schatten; dunkle Kacheln: weiße Schrift mit Schatten
+                local light = Game.IsLight(q)
+                local c = light and 0.1 or 1
+                t.num:SetTextColor(c, c, c)
+                t.name:SetTextColor(c, c, c)
+                t.num:SetShadowColor(0, 0, 0, light and 0 or 1)
+                t.name:SetShadowColor(0, 0, 0, light and 0 or 1)
                 t.name:SetText(q[1])
                 local p = self.pop[y * 10 + x]
                 if p then

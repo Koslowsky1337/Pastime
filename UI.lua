@@ -255,6 +255,7 @@ local function CreateOverlay(parent)
     o.box = box
     o.title = ns.FontString(box, "GameFontNormalHuge", "CENTER")
     o.title:SetPoint("TOP", 0, -22)
+    o.title:SetWidth(300)      -- lange Ortsnamen („Gelandet in Zoram'gar-Außenposten!“) brechen um
     o.text = ns.FontString(box, "GameFontHighlight", "CENTER")
     o.text:SetPoint("TOP", o.title, "BOTTOM", 0, -10)
     o.text:SetWidth(300)
@@ -299,7 +300,8 @@ function ns.ShowOverlay(kind, title, text)
         o.btn2:SetText(L["Back to games"])
     end
     local th = o.text:GetStringHeight() or 40
-    o.box:SetHeight(math.max(150, 112 + th))
+    local extra = math.max(0, (o.title:GetStringHeight() or 0) - 24)      -- zweizeiliger Titel
+    o.box:SetHeight(math.max(150, 112 + th + extra))
     o:Show()
 end
 
@@ -897,6 +899,16 @@ local function CreateRouteRow(parent)
         ns.PlaySound("click")
         ns.UpdateRecords()
     end)
+    -- lange Streckennamen werden in der Liste gekürzt: voller Name im Tooltip
+    row:SetScript("OnEnter", function(self)
+        local r = self.item and self.item.route
+        if not r then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(ns.RouteLabel(r), 1, 0.82, 0)
+        GameTooltip:AddLine((ns.KINDS[r.kind] or ns.KINDS.flug).one .. (r.t and (" · " .. ns.FormatTime(r.t)) or ""), 1, 1, 1)
+        GameTooltip:Show()
+    end)
+    row:SetScript("OnLeave", function() GameTooltip:Hide() end)
     return row
 end
 

@@ -413,6 +413,8 @@ check(#g.guesses == 1 and g.letters.O == 2 and g.letters.T == 1, "Rateversuch au
 for ch in ("HORDE"):gmatch(".") do key(ch) end
 key("ENTER")
 check(over() and g.score == 500, "erraten im 2. Versuch: " .. g.score)
+check(g.cells[2][1].border:IsShown() and g.cells[2][5].border:IsShown() and not g.cells[1][2].border:IsShown(),
+    "Wortraten: richtige Felder tragen einen Rahmen (nicht nur die Farbe)")
 
 -- Kniffel ---------------------------------------------------------------------------
 local Y = start("kniffel")
@@ -595,6 +597,9 @@ g = start("edelsteine")
 check(g.msg.__parent == ns.gamesById.edelsteine._board.textLayer, "Edelsteine: Meldungen über den Steinen")
 g = start("2048")
 check(g.banner.__parent == ns.gamesById["2048"]._board.textLayer, "2048: Banner über den Kacheln")
+check(g.IsLight(g.QUALITY[4]) and g.IsLight(g.QUALITY[512]) and g.IsLight(g.QUALITY[2048]) and g.IsLight(g.QUALITY[8])
+    and not g.IsLight(g.QUALITY[16]) and not g.IsLight(g.QUALITY[1024]) and not g.IsLight(g.BEYOND),
+    "2048: helle Kacheln bekommen dunkle Schrift, dunkle weiße")
 -- G3: Pause-Hinweis zentral in der Seitenleiste
 g = start("snake"); ns.UpdateSidePanel()
 local ctl = ns.gameView.side.controls.text
