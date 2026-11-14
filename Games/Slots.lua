@@ -13,30 +13,52 @@ Game.__index = Game
 -- des Linieneinsatzes (ein Fünftel des Einsatzes). Schon der kleinste Treffer zahlt mehr als
 -- den ganzen Einsatz. Die Münze ist Joker. Auszahlungsquote rund 97 % (tests/games.lua rechnet nach).
 Game.SYMBOLS = {
-    { icon = "Interface\\Icons\\INV_Misc_Fish_02", w = 8, pay = { 6, 10, 25 } },
-    { icon = "Interface\\Icons\\INV_Misc_Bomb_04", w = 7, pay = { 7, 12, 30 } },
-    { icon = "Interface\\Icons\\INV_Misc_Head_Murloc_01", w = 6, pay = { 8, 15, 40 } },
-    { icon = "Interface\\Icons\\INV_Misc_Gem_Emerald_01", w = 5, pay = { 10, 20, 60 } },
-    { icon = "Interface\\Icons\\INV_Misc_Gem_Ruby_01", w = 3, pay = { 12, 35, 150 } },
-    { icon = "Interface\\Icons\\INV_Misc_Coin_01", w = 2, pay = { 25, 100, 500 } },
+    { icon = "Interface\\Icons\\INV_Misc_Fish_02", w = 10, pay = { 6, 8, 14 } },
+    { icon = "Interface\\Icons\\INV_Misc_Bomb_04", w = 9, pay = { 6, 10, 20 } },
+    { icon = "Interface\\Icons\\INV_Misc_Head_Murloc_01", w = 7, pay = { 6, 12, 28 } },
+    { icon = "Interface\\Icons\\INV_Misc_Gem_Emerald_01", w = 4, pay = { 8, 15, 50 } },
+    { icon = "Interface\\Icons\\INV_Misc_Gem_Ruby_01", w = 3, pay = { 10, 24, 100 } },
+    { icon = "Interface\\Icons\\INV_Misc_Coin_01", w = 3, pay = { 15, 50, 250 } },
 }
 local WILD = #Game.SYMBOLS
 -- Gewinnlinien: Reihe je Walze (drei Reihen, zwei Diagonalen)
 Game.LINES = { { 1, 1, 1, 1, 1 }, { 2, 2, 2, 2, 2 }, { 3, 3, 3, 3, 3 }, { 1, 2, 3, 2, 1 }, { 3, 2, 1, 2, 3 } }
 local STRIP = {}
 for i, s in ipairs(Game.SYMBOLS) do for _ = 1, s.w do STRIP[#STRIP + 1] = i end end
-local FIRST_STOP, STOP_STEP = 0.5, 0.25      -- die Walzen bleiben von links nach rechts stehen
+local FIRST_STOP, STOP_STEP, TEASE = 0.9, 0.45, 1.1      -- die Walzen bleiben von links nach rechts stehen; TEASE: Extrazeit vor einer spannenden Walze
+
+-- Gleiche Symbole von links (Münze zählt mit) unter den ersten upto Feldern einer Linie
+function Game.Run(s, upto)
+    local sym = WILD
+    for i = 1, upto do if s[i] ~= WILD then sym = s[i]; break end end
+    local n = 0
+    for i = 1, upto do
+        if s[i] == sym or s[i] == WILD then n = n + 1 else break end
+    end
+    return n, sym
+end
 
 -- Eine Linie (fünf Symbole von links): Auszahlung und Zahl der zählenden Felder
 function Game.LinePay(s)
-    local sym = WILD
-    for i = 1, COLS do if s[i] ~= WILD then sym = s[i]; break end end
-    local n = 0
-    for i = 1, COLS do
-        if s[i] == sym or s[i] == WILD then n = n + 1 else break end
-    end
+    local n, sym = Game.Run(s, COLS)
     if n < 3 then return 0, 0 end
     return Game.SYMBOLS[sym].pay[n - 2], n
+end
+
+-- Spannung: Felder der Linien, auf denen vor Walze col noch alles passt. Vor der dritten
+-- Walze zählen nur die wertvollen Symbole (Smaragd, Rubin, Münze), danach jede laufende Reihe.
+function Game.Tease(grid, col)
+    local cells, any = {}, false
+    for _, line in ipairs(Game.LINES) do
+        local s = {}
+        for c = 1, col - 1 do s[c] = grid[c][line[c]] end
+        local n, sym = Game.Run(s, col - 1)
+        if n == col - 1 and (col > 3 or sym >= 4) then
+            any = true
+            for c = 1, col - 1 do cells[c * 10 + line[c]] = true end
+        end
+    end
+    return any and cells or nil
 end
 
 -- Ganzes Feld grid[Walze][Reihe]: Summe der Linien und die Felder, die gewonnen haben
@@ -62,7 +84,7 @@ local function randomGrid()
 end
 
 function Game:Clear()
-    self.won = {}
+    self.won, self.hot = {}, nil
 end
 
 function Game:Start()
@@ -72,32 +94,60 @@ end
 
 function Game:Deal()
     self.final = randomGrid()
+    self:Plan()
     self.state, self.spin, self.flick, self.won = "spin", 0, 0, {}
     self.msg:SetText("")
     self.sub:SetText("")
     self:Render()
 end
 
+-- Wann welche Walze stehen bleibt: vor einer spannenden Walze dauert es länger
+function Game:Plan()
+    self.stops, self.tease = {}, {}
+    local t = FIRST_STOP
+    for c = 1, COLS do
+        if c > 1 then
+            self.tease[c] = c >= 3 and Game.Tease(self.final, c) or nil
+            t = t + STOP_STEP + (self.tease[c] and TEASE or 0)
+        end
+        self.stops[c] = t
+    end
+end
+
 function Game:Update(dt)
-    if self.state ~= "spin" then return self:Tick(dt) end
+    if self.state ~= "spin" then
+        -- Gewinnfelder blinken, solange das Ergebnis steht
+        if self.state == "result" and next(self.won) then
+            self.blink = (self.blink or 0) + dt
+            local on = self.blink % 0.5 < 0.3
+            if on ~= self.blinkOn then self.blinkOn = on; self:Render() end
+        end
+        return self:Tick(dt)
+    end
     local before = self.spin
     self.spin = self.spin + dt
     self.flick = self.flick + dt
     local flick = self.flick >= 0.07
     if flick then self.flick = 0 end
+    self.hot = nil
     for c = 1, COLS do
-        local stop = FIRST_STOP + (c - 1) * STOP_STEP
+        local stop = self.stops[c]
         if self.spin >= stop then
             self.grid[c] = self.final[c]
-            if before < stop then self.host:Sound("click") end
-        elseif flick then
-            for r = 1, ROWS do self.grid[c][r] = STRIP[math.random(#STRIP)] end
+            if before < stop then self.host:Sound(self.tease[c] and "point" or "click") end
+        else
+            -- die nächste Walze: läuft sie auf etwas Gutes zu, leuchten die Felder davor
+            if not self.hot and (c == 1 or self.spin >= self.stops[c - 1]) then self.hot = self.tease[c] end
+            if flick then
+                for r = 1, ROWS do self.grid[c][r] = STRIP[math.random(#STRIP)] end
+            end
         end
     end
-    if self.spin < FIRST_STOP + (COLS - 1) * STOP_STEP then return self:Render() end
+    if self.spin < self.stops[COLS] then return self:Render() end
+    self.hot, self.blink, self.blinkOn = nil, 0, true
     local sum, cells = Game.Evaluate(self.final)
     self.won = cells
-    self:Pay(math.floor(self.bet * sum / #Game.LINES), sum > 0 and L["Winning line!"] or L["No luck this time."], sum > 0 and 2 or 1)
+    self:Pay(math.floor(self.bet * sum / #Game.LINES), sum > 0 and L["Winning line!"] or L["No luck this time."], sum > 0 and 2.6 or 1.2)
 end
 
 function Game:Key(k, down)
@@ -109,7 +159,8 @@ function Game:Render()
         for r = 1, ROWS do
             local cell = self.cells[c][r]
             ns.SetIcon(cell.icon, Game.SYMBOLS[self.grid[c][r]].icon)
-            cell.glow:SetShown(self.won[c * 10 + r] == true)
+            local key = c * 10 + r
+            cell.glow:SetShown((self.won[key] == true and self.blinkOn ~= false) or (self.hot ~= nil and self.hot[key] == true))
         end
     end
     self:BaseRender()

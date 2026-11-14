@@ -113,8 +113,15 @@ Zum Schluss: `/pastime debug` aus, `/reload`, dann Screenshots und Protokoll aus
 
 ## 5. Release
 - [x] README (= CurseForge-Beschreibung) an die Änderungen anpassen (auch: Horde/Allianz-Varianten), Link zu den GitHub-Issues ergänzen – danach den Text auf der CurseForge-Seite ersetzen
-- [ ] CHANGELOG: zum Release oben den Abschnitt `1.0.0` anlegen (jetzt steht dort `Unreleased`, darunter `1.0.0-beta2`; vor dem nächsten Tag `Unreleased` umbenennen)
+- [x] CHANGELOG: Abschnitt `1.0.0` steht oben
 - [x] Version in `Pastime.toc` und `Core.lua` prüfen (kommt jetzt aus dem Tag; im Beta-Zip nachsehen, ob in der TOC die Tag-Version steht)
 - [x] Dateiliste der `.toc` prüfen (29 Einträge, alle vorhanden, keine doppelt)
 - [x] Secret-Scan über die ganze Historie (14.11.: keine Treffer; jeder neue Commit wird einzeln geprüft)
-- [ ] Tag `v1.0.0`, GitHub-Release mit Zip
+- [x] Tag `v1.0.0` (15.11.; CurseForge baut daraus die Vollversion)
+- [ ] GitHub-Release zum Tag anlegen (von Hand auf GitHub: *Releases → Draft a new release → v1.0.0*)
+
+## 6. Ideen für 1.1
+- [ ] Goblin-Automat: Freispiele und Scatter-Symbole
+- [ ] Goblin-Roulette: Animation wie bei einem echten Kessel
+- [ ] Tavernen-Hold'em: wer mitten in einer Hand geht, bekommt den Stand vor der Hand zurück – bei Bedarf den Einsatz der Hand abziehen
+- [ ] Arbeitsordner von `Pastetime` in `Pastime` umbenennen (Sitzung schließen, umbenennen, neu öffnen)

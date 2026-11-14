@@ -882,17 +882,24 @@ while true do
 end
 check(rtp > 0.94 and rtp < 0.99, ("Automat: Auszahlungsquote %.1f %%"):format(rtp * 100))
 check(minPay > #g.LINES, "Automat: schon der kleinste Treffer zahlt mehr als den Einsatz (" .. minPay .. " > " .. #g.LINES .. ")")
-check(1 - (1 - lineHit) ^ 5 > 0.3, ("Automat: rund %.0f %% der Drehungen gewinnen"):format((1 - (1 - lineHit) ^ 5) * 100))
-check(g.LinePay({ 1, 1, 1, 2, 3 }) == 6 and g.LinePay({ 1, 6, 1, 1, 3 }) == 10 and g.LinePay({ 6, 6, 2, 2, 2 }) == 30
-    and g.LinePay({ 2, 1, 1, 1, 1 }) == 0 and g.LinePay({ 6, 6, 6, 6, 6 }) == 500, "Automat: Linien zählen von links, die Münze ist Joker")
+check(1 - (1 - lineHit) ^ 5 > 0.4, ("Automat: rund %.0f %% der Drehungen gewinnen"):format((1 - (1 - lineHit) ^ 5) * 100))
+check(g.LinePay({ 1, 1, 1, 2, 3 }) == 6 and g.LinePay({ 1, 6, 1, 1, 3 }) == 8 and g.LinePay({ 6, 6, 2, 2, 2 }) == 20
+    and g.LinePay({ 2, 1, 1, 1, 1 }) == 0 and g.LinePay({ 6, 6, 6, 6, 6 }) == 250, "Automat: Linien zählen von links, die Münze ist Joker")
 local sum, cells = g.Evaluate({ { 1, 2, 3 }, { 1, 2, 4 }, { 1, 3, 5 }, { 2, 2, 2 }, { 3, 3, 3 } })
 check(sum == 6 and cells[11] and cells[21] and cells[31] and not cells[41], "Automat: obere Reihe mit drei Fischen gewinnt, die Felder leuchten")
 key("1")
 check(g.state == "spin" and g.bet == 10, "Automat: Einsatz startet die Walzen")
 g.final = { { 6, 1, 2 }, { 6, 3, 3 }, { 6, 3, 4 }, { 6, 4, 5 }, { 6, 5, 1 } }
-tick(2)
-check(g.state == "result" and g.gold == 100 - 10 + 10 * 500 / 5, "Automat: fünf Münzen in der oberen Reihe zahlen 500-fach auf die Linie, Gold " .. g.gold)
-tick(2.5)
+g:Plan()
+check(g.tease[3] and g.tease[5] and g.stops[5] > 0.9 + 4 * 0.45 + 3, "Automat: vor den Walzen 3 bis 5 dauert es länger, wenn die Münzen passen")
+tick(1.5)
+check(g.state == "spin" and g.hot and g.cells[1][1].glow:IsShown(), "Automat: die passenden Felder leuchten, während die nächste Walze läuft")
+tick(6)
+check(g.state == "result" and g.gold == 100 - 10 + 10 * 250 / 5, "Automat: fünf Münzen in der oberen Reihe zahlen 250-fach auf die Linie, Gold " .. g.gold)
+local dull = { { 1, 2, 3 }, { 2, 3, 1 }, { 3, 1, 2 }, { 1, 2, 3 }, { 2, 3, 1 } }
+check(g.Tease(dull, 3) == nil and g.Tease({ { 1, 2, 3 }, { 1, 3, 1 }, { 4, 1, 2 } }, 3) == nil and g.Tease({ { 5, 2, 3 }, { 5, 3, 1 }, { 4, 1, 2 } }, 3) ~= nil,
+    "Automat: Spannung vor Walze 3 nur bei wertvollen Symbolen")
+tick(3.5)
 check(g.state == "bet", "Automat: danach wieder setzen")
 
 -- Goblin-Poker: halten, tauschen, erhöhen oder passen, Vergleich mit dem Goblin

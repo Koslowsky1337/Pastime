@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
 
-- Goblin Slots is now a five-reel machine with three rows and five lines. The coin is wild, and every win pays more than your bet; about one spin in three wins.
+First full release. Found a bug or have an idea? https://github.com/Koslowsky1337/Pastime/issues
+
+- Goblin Slots is now a five-reel machine with three rows and five lines. The coin is wild, and every win pays more than your bet; about four spins in ten win. The reels take their time, and when a line is building up, the next reel keeps you waiting while the matching symbols glow.
 - Goblin Poker replaces Draw Poker: you play five cards against the goblin, swap once, then raise or fold.
 - Goblin Roulette replaces Goblin Baccarat: you place your own chips on numbers, dozens and the even chances.
 - Tavern Hold'em is now a table tournament: you buy in, all four start with the same chips, nobody can bet more than they have, there is an all-in button, and players who run out of chips are gone. Win the table or get up between hands with your chips.
