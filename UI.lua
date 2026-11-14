@@ -210,6 +210,7 @@ end
 function ns.GameOver(res)
     local run = ns.run
     if not run or run.state == "over" then return end
+    if ns.staging then run.state = "over"; return end      -- gestellte Szene (/pastime shots): nichts werten
     res = res or {}
     run.state = "over"
     run.overAt = GetTime()

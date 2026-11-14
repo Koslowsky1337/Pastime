@@ -376,6 +376,10 @@ local SCENES = {
 function ns.PhotoTour()
     if InCombatLockdown() then return ns.Print(L["Not possible in combat."]) end
     ns.ShowFrame()
+    -- solange die Tour läuft, wertet GameOver nichts (ein Kodo ohne Reiter läuft sonst in den Kaktus).
+    -- Der Zeitgeber hebt die Sperre auch dann auf, wenn eine Szene mit einem Fehler abbricht.
+    ns.staging = true
+    C_Timer.After(#SCENES * 2 + 5, function() ns.staging = nil end)
     local i = 0
     local step
     step = ns.Wrap("fotos", function()
@@ -383,6 +387,7 @@ function ns.PhotoTour()
         local scene = SCENES[i]
         if not scene then
             ns.ShowLauncher()
+            ns.staging = nil
             return ns.Print((L["%d screenshots saved in the Screenshots folder of your game."]):format(#SCENES))
         end
         scene()

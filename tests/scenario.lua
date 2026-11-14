@@ -468,6 +468,14 @@ do
     check(shots == 8, "Fototour: acht Screenshots, sind " .. shots)
     check(scoresAfter == scoresBefore and PastimeDB.blackjack.gold == goldBefore and pursesAfter < 100, "Fototour: nichts gewertet, kein Tisch gespeichert")
     check(ns.launcher:IsVisible() and not ns.run, "Fototour: endet in der Spielauswahl")
+    check(ns.staging == nil, "Fototour: die Wertungssperre ist wieder aufgehoben")
+    ns.StartGame(ns.gamesById.kodo)
+    ns.staging = true
+    ns.GameOver({ score = 99999 })
+    ns.staging = nil
+    local kodoBest = PastimeDB.scores.kodo and PastimeDB.scores.kodo[1] and PastimeDB.scores.kodo[1].s
+    check(ns.run.state == "over" and kodoBest ~= 99999, "Fototour: ein Spielende in einer gestellten Szene wird nicht gewertet")
+    ns.ShowLauncher()
     local errs = 0
     for _, e in ipairs(PastimeDB.log) do if e.l == "E" then errs = errs + 1; print("  " .. e.c .. ": " .. e.m) end end
     check(errs == 0, "Fototour: keine Fehler im Protokoll")
