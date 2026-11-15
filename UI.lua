@@ -1192,7 +1192,8 @@ local MP_NOTES = {
     offline = L["That player is not online."],
 }
 
-local MP_CIRCLES = { mpFriends = L["Friend"], mpParty = L["Group"], mpGuild = L["Guild"] }
+-- Woher man einen Spieler kennt: farbiges Kürzel hinter dem Namen (Freund rosa, Gruppe blau, Gilde grün)
+local MP_TAGS = { mpFriends = "|cffff80c0(F)|r", mpParty = "|cff6fa8ff(P)|r", mpGuild = "|cff60e060(G)|r" }
 
 local function CreateMPView(parent)
     local v = CreateFrame("Frame", nil, parent)
@@ -1208,6 +1209,9 @@ local function CreateMPView(parent)
     v.empty:SetPoint("TOPLEFT", 12, -36)
     v.empty:SetWidth(312)
     v.empty:SetText(L["Nobody here yet. Players appear when they are in your group or guild, have Pastime and have multiplayer switched on."])
+    local legend = ns.FontString(list, "GameFontDisableSmall", "LEFT")
+    legend:SetPoint("BOTTOMLEFT", 12, 10)
+    legend:SetText(MP_TAGS.mpFriends .. " " .. L["Friend"] .. "   " .. MP_TAGS.mpParty .. " " .. L["Group"] .. "   " .. MP_TAGS.mpGuild .. " " .. L["Guild"])
     v.rows = {}
     for i = 1, MP_ROWS do
         local row = CreateFrame("Frame", nil, list)
@@ -1276,10 +1280,9 @@ function ns.UpdateMPView()
         local p = players[i]
         row:SetShown(p ~= nil)
         if p then
-            row.name:SetText(p.name)
+            row.name:SetText(p.name .. " " .. (MP_TAGS[p.circle] or ""))
             local w, l, d = MP.Record(p.name)
-            local from = MP_CIRCLES[p.circle] or ""
-            row.rec:SetText(from .. (w + l + d > 0 and (" · " .. (L["%d won · %d lost"]):format(w, l)) or ""))
+            row.rec:SetText(w + l + d > 0 and (L["%d won · %d lost"]):format(w, l) or "")
             row.btn.who = p.name
             row.btn:SetEnabled(s == nil)
         end

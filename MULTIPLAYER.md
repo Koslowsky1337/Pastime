@@ -24,6 +24,15 @@ Jeder bestimmt selbst, wo er als Mitspieler erscheint:
 
 Wer einen Kreis abschaltet, erscheint dort bei niemandem und sieht dort auch niemanden. Spieler auf der Ignorierliste werden nie angezeigt und können nichts schicken.
 
+### Wer gerade da ist (ab Beta 2)
+
+- **Nachrichten klären nur, wer Pastime mit Mehrspieler hat.** Ob jemand gerade online ist, sagt der Client: Gruppen-, Gilden- und Freundesliste führen den Online-Status. Es gibt keinen wiederkehrenden Ping.
+- **In der Liste steht,** wer sich in dieser Sitzung mit Mehrspieler gemeldet hat und laut Client online ist. Verlässt jemand die Gruppe oder loggt aus, verschwindet er sofort. Die 15-Minuten-Frist der Beta 1 entfällt.
+- **Abmelden:** Wer den Mehrspieler ausschaltet oder sich für einen Kreis unsichtbar macht, meldet das einmal, damit er bei den anderen nicht weiter als spielbar dasteht.
+- **Freunde:** Beim Einloggen und beim Öffnen des Reiters geht eine Meldung an jeden Freund, den die Freundesliste als online zeigt und der in dieser Sitzung noch keine bekommen hat. Wer Pastime hat, antwortet einmal. Ein eigenes Ereignis „Freund kommt online“ wird nicht gebraucht.
+- **Kennzeichnung:** Hinter dem Namen steht ein farbiges Kürzel: (F) Freund in Rosa, (P) Gruppe in Blau, (G) Gilde in Grün. Steht jemand in mehreren Kreisen, gilt Freund vor Gruppe vor Gilde.
+- **Offen bis zum Selbsttest:** in welcher Form die drei Listen Namen liefern (voller Name mit Leerzeichen wie der Absender, oder nur der Vorname).
+
 ## 3. Was gesendet wird
 
 | Nachricht | Weg | Inhalt | Wann |

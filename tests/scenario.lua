@@ -625,6 +625,7 @@ RunTimers()
 local st = ns.copyFrame.text or ""
 check(ns.selfTest == nil and ns.copyFrame.shown and ns.copyFrame.title.text == ns.L["Pastime self-test"], "Selbsttest: das Ergebnis öffnet sich zum Kopieren")
 check(st:find("Pastime self%-test: %d+ problem") and st:find("API C_Timer.After", 1, true) and st:find("sound fanfare (kit 888)", 1, true) and st:find("direct messages confirmed earlier", 1, true)
+    and (st:find("guild list:", 1, true) or not ns.Comm.registered)
     and st:find("daily task:", 1, true) and st:find("textures:", 1, true), "Selbsttest: Schnittstellen, Klänge, Texturen und Tagesaufgabe stehen im Ergebnis")
 check(not st:find("Thokk", 1, true), "Selbsttest: kein Charaktername im Ergebnis")
 check(ns.selfFrame.step.text == (ns.L["Done: %d problem(s)"]):format(tonumber(st:match("(%d+) problem"))),

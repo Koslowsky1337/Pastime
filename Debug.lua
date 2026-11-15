@@ -258,7 +258,8 @@ local NEEDED = { "C_Timer.After", "C_Timer.NewTicker", "PlaySound", "SOUNDKIT", 
     "IsInGuild", "IsInGroup", "IsInRaid", "Settings.RegisterVerticalLayoutCategory", "Settings.RegisterProxySetting" }
 local OPTIONAL = { "C_AddOns.GetAddOnMetadata", "C_FriendList.IsIgnored", "C_FriendList.GetNumFriends", "C_FriendList.GetFriendInfoByIndex",
     "Ambiguate", "GetBindingFromInput", "FlashClientIcon", "PanelTemplates_TabResize", "issecretvalue", "ChatFrame_AddMessageEventFilter",
-    "GetNumGroupMembers", "GetRaidRosterInfo", "GetGuildRosterInfo", "CreateSettingsButtonInitializer" }
+    "GetNumGroupMembers", "GetRaidRosterInfo", "GetGuildRosterInfo", "GetNumGuildMembers", "UnitIsConnected", "GetUnitName",
+    "CreateSettingsButtonInitializer" }
 
 local function lookup(path)
     local v = _G
@@ -399,6 +400,50 @@ function ns.SelfTest()
             add(nil, ("own sender name: %s; same as UnitName: %s; contains a space: %s; contains a dash: %s"):format(me and "known from the echo" or "unknown (no guild or group)",
                 tostring(me == short), tostring(me ~= nil and me:find(" ", 1, true) ~= nil), tostring(me ~= nil and me:find("-", 1, true) ~= nil)))
             add(nil, "your own id in this report: " .. mask(me or short))
+            -- Für den Mehrspieler: In welcher Form nennen Gruppen-, Gilden- und Freundesliste die Namen, und
+            -- steht der eigene Absendername genau so darin? Ausgegeben werden nur Zahlen, keine Namen.
+            local function shape(label, names, online)
+                local space, dash, hit = 0, 0, false
+                for _, n in ipairs(names) do
+                    if n:find(" ", 1, true) then space = space + 1 end
+                    if n:find("-", 1, true) then dash = dash + 1 end
+                    if me and n == me then hit = true end
+                end
+                add(nil, ("%s: %d names, %d online, %d with a space, %d with a dash, own sender name among them: %s"):format(label, #names, online,
+                    space, dash, tostring(hit)))
+            end
+            local names, online = {}, 0
+            for i = 1, GetNumGroupMembers and GetNumGroupMembers() or 0 do
+                local unit = (IsInRaid and IsInRaid()) and ("raid" .. i) or (i == 1 and "player" or ("party" .. (i - 1)))
+                local n = UnitName(unit)
+                if type(n) == "string" then
+                    names[#names + 1] = n
+                    if UnitIsConnected and UnitIsConnected(unit) then online = online + 1 end
+                end
+            end
+            shape("group list (UnitName)", names, online)
+            names, online = {}, 0
+            for i = 1, GetNumGuildMembers and GetNumGuildMembers() or 0 do
+                local n, _, _, _, _, _, _, _, on = GetGuildRosterInfo(i)
+                if type(n) == "string" then
+                    names[#names + 1] = n
+                    if on then online = online + 1 end
+                end
+            end
+            shape("guild list", names, online)
+            names, online = {}, 0
+            local F = C_FriendList
+            for i = 1, F and F.GetNumFriends and F.GetNumFriends() or 0 do
+                local info = F.GetFriendInfoByIndex(i)
+                if type(info) == "table" and type(info.name) == "string" then
+                    names[#names + 1] = info.name
+                    if info.connected then online = online + 1 end
+                end
+            end
+            shape("friend list", names, online)
+            local full = GetUnitName and GetUnitName("player", true)
+            add(nil, ("own name forms: GetUnitName(player, true) equals sender name: %s; UnitName returns %d value(s)"):format(tostring(me ~= nil and full == me),
+                select("#", UnitName("player"))))
             local ok, res = ns.Try("SelfTest:SendAddonMessage", C_ChatInfo.SendAddonMessage, C.PREFIX, question, "WHISPER", me or short)
             add(ok and (res == true or res == 0), ("direct addon message to yourself sent (%s), result %s"):format(me and "full sender name" or "UnitName", tostring(res)))
         end))

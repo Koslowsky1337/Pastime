@@ -250,8 +250,8 @@ MP._Reset(); PastimeDB.mp.paused = {}; PastimeDB.mp.stats = {}
 ns.ShowFrame("mp")
 local v = ns.mpView
 check(v:IsShown() and ns.frame.tabs[3]:IsShown() and ns.frame.tabs[3].key == "mp", "freigeschaltet gibt es den Reiter „Mehrspieler“")
-check(v.rows[1]:IsShown() and v.rows[1].name.text == JAINA and v.rows[1].rec.text == ns.L["Group"] and not v.rows[2]:IsShown() and not v.empty:IsShown(),
-    "die Liste zeigt die Mitspielerin und woher man sie kennt")
+check(v.rows[1]:IsShown() and v.rows[1].name.text:find(JAINA, 1, true) == 1 and v.rows[1].name.text:find("(P)", 1, true) and not v.rows[2]:IsShown() and not v.empty:IsShown(),
+    "die Liste zeigt die Mitspielerin, dahinter das Kürzel für die Gruppe")
 check(v.title.text == ns.L["Multiplayer"] and not v.buttons[1]:IsShown(), "ohne Sitzung steht dort die Anleitung")
 click(v.rows[1].btn)
 check(MP.session and MP.session.state == "asking" and v.title.text == JAINA and v.text.text == ns.L["Waiting for an answer …"]
