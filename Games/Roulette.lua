@@ -155,9 +155,7 @@ function Game:Render()
     self.ball:SetShown(n ~= nil)
     for i, h in ipairs(self.hist) do
         local v = self.history[i]
-        h.bg:SetShown(v ~= nil)
-        h.fs:SetText(v and tostring(v) or "")
-        if v then h.bg:SetColorTexture(v == 0 and 0.05 or (RED[v] and 0.55 or 0.08), v == 0 and 0.4 or 0.08, v == 0 and 0.12 or (RED[v] and 0.06 or 0.09), 1) end
+        h:SetText(v and ("|cff%s%d|r"):format(colorOf(v), v) or "")
     end
     if self.state == "spin" then self.msg:SetText("") end
     self:BaseRender()
@@ -206,16 +204,16 @@ local function Create(host, board)
     if g.numText.SetTextScale then g.numText:SetTextScale(1.4) end
     g.msg:SetPoint("CENTER", board, "TOPLEFT", 311, -236)
     g.sub:SetWidth(196)
-    -- Die letzten Zahlen links neben dem Tisch: oben die neueste
+    -- Die letzten Zahlen links neben dem Tisch: oben die neueste. Nur farbige Ziffern unter einer
+    -- Überschrift, keine Kästchen – sonst sehen sie aus wie Felder zum Setzen.
     g.hist, g.history = {}, {}
+    local head = ns.FontString(board, "GameFontDisableSmall", "LEFT")
+    head:SetPoint("TOPLEFT", board, "TOPLEFT", 4, -(Y0 - 14))
+    head:SetText(L["Last"])
     for i = 1, HISTORY do
-        local bg = ns.Box(board, "BORDER", 0, 0, 0, 1)
-        bg:SetSize(22, 14)
-        bg:SetPoint("TOPLEFT", board, "TOPLEFT", 3, -(Y0 + (i - 1) * 16))
-        bg:Hide()
-        local fs = ns.FontString(board, "GameFontHighlightSmall", "CENTER")
-        fs:SetPoint("CENTER", bg, "CENTER")
-        g.hist[i] = { bg = bg, fs = fs }
+        local fs = ns.FontString(board, i == 1 and "GameFontNormal" or "GameFontHighlightSmall", "CENTER")
+        fs:SetPoint("CENTER", board, "TOPLEFT", 14, -(Y0 + 8 + (i - 1) * 16))
+        g.hist[i] = fs
     end
     local function cell(spot, x, y, w, h, r, gr, b, text)
         local btn = CreateFrame("Button", nil, board)

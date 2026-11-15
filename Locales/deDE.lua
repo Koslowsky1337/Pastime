@@ -553,6 +553,7 @@ L["Click or arrows/WASD\nup gold · right silver\ndown emerald · left ruby"] = 
 L["Five reels"] = "Fünf Walzen"
 L["Winning line!"] = "Gewinnlinie!"
 L["Per line: 3 · 4 · 5 of a kind from the left. The coin is wild. Runes anywhere: free spins."] = "Je Linie: 3 · 4 · 5 gleiche von links. Die Münze ist Joker. Runen irgendwo: Freispiele."
+L["Last"] = "Zuletzt"
 L["Free spins left: %d"] = "Freispiele übrig: %d"
 L["Free spin · %d left"] = "Freispiel · noch %d"
 L["%d free spins!"] = "%d Freispiele!"

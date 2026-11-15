@@ -1050,7 +1050,7 @@ tick(1)
 check(g.state == "result" and g.gold == 80 + 360 and g.numText.text:find("17", 1, true) and g.cells[17].hit:IsShown(),
     "Roulette: 17 fällt – Zahl zahlt 35:1, Rot verliert, Gold " .. g.gold)
 check(g.WHEEL[g.pos + 1] == 17, "Roulette: die Kugel liegt im Fach der 17")
-check(g.history[1] == 17 and g.hist[1].fs.text == "17" and g.hist[1].bg:IsShown() and not g.hist[2].bg:IsShown(), "Roulette: die 17 steht oben in der Liste der letzten Zahlen")
+check(g.history[1] == 17 and g.hist[1].text:find("17", 1, true) and g.hist[2].text == "", "Roulette: die 17 steht oben in der Liste der letzten Zahlen")
 tick(3)
 check(g.state == "bet" and g.bet == 0 and next(g.bets) == nil, "Roulette: neue Runde, Tisch leer")
 key("SPACE")
