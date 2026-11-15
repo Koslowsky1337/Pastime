@@ -226,9 +226,9 @@ local DEFAULTS = {
     settings = { autoOpen = true, landAlarm = true, hideInCombat = true, sound = true },
     scores = {}, stats = {}, routes = {}, minimap = {}, collapsed = {}, modes = {},
     frame = false, lastGame = false, debug = false, log = {}, logSession = 0,
-    blackjack = { gold = 100, peak = 100 },   -- Goblin-Gold bleibt zwischen Partien erhalten
+    blackjack = { gold = 1000, peak = 1000 },   -- Goblin-Gold bleibt zwischen Partien erhalten
     purses = {},                              -- dasselbe für die übrigen Glücksspiele: purses[id] = { gold, peak }
-    jackpot = 1000,                           -- gemeinsamer Topf aller Glücksspiele (ns.Gamble)
+    jackpot = 10000,                          -- gemeinsamer Topf aller Glücksspiele (ns.Gamble)
     daily = {},                               -- Tagesaufgabe: { last = Tag der letzten erledigten, streak = Serie }
 }
 
@@ -246,9 +246,36 @@ end
 local RENAMED = { tetris = "rockfall", flappy = "windrider", breakout = "wallbreaker", simon = "totemecho",
     memory = "runepairs", kniffel = "taverndice", viergewinnt = "fourinarow" }
 
+local GOLD_GAMES = { "blackjack", "slots", "drawpoker", "higherlower", "roulette", "holdem" }
+
+-- Bis 1.2 begann jeder Lauf der Glücksspiele mit 100 Gold, seither mit 1000. Einmalig bekommen
+-- laufende Töpfe und alte Rekorde die 900 Gold dazu, damit sie mit neuen Läufen vergleichbar bleiben.
+local function raiseStartGold(db)
+    local purses = { db.blackjack }
+    for _, p in pairs(type(db.purses) == "table" and db.purses or {}) do purses[#purses + 1] = p end
+    for _, p in ipairs(purses) do
+        if type(p) == "table" and tonumber(p.gold) then
+            p.gold, p.peak = p.gold + 900, (tonumber(p.peak) or p.gold) + 900
+        end
+    end
+    local function lift(t)
+        if type(t) ~= "table" then return end
+        for _, id in ipairs(GOLD_GAMES) do
+            for _, e in ipairs(type(t[id]) == "table" and t[id] or {}) do
+                if type(e) == "table" and tonumber(e.s) then e.s = e.s + 900 end
+            end
+        end
+    end
+    lift(db.scores)
+    for _, r in pairs(type(db.routes) == "table" and db.routes or {}) do if type(r) == "table" then lift(r.scores) end end
+end
+
 local function InitDB()
+    if type(PastimeDB) == "table" and next(PastimeDB) ~= nil and not PastimeDB.gold1000 then raiseStartGold(PastimeDB) end
     PastimeDB = fill(type(PastimeDB) == "table" and PastimeDB or {}, DEFAULTS)
     ns.DB = PastimeDB
+    ns.DB.gold1000 = true
+    ns.DB.jackpot = math.max(10000, tonumber(ns.DB.jackpot) or 0)
     local st = ns.DB.stats
     st.total, st.flight, st.games = st.total or 0, st.flight or 0, st.games or {}
     -- 0.1.0 merkte nur Flugzeiten (flights["A > B"] = { t, d })
@@ -278,13 +305,13 @@ local function InitDB()
     rekey(ns.DB.scores); rekey(st.games); rekey(ns.DB.modes)
     for _, r in pairs(ns.DB.routes) do if type(r) == "table" then rekey(r.scores) end end
     ns.DB.lastGame = RENAMED[ns.DB.lastGame] or ns.DB.lastGame
-    -- bis 1.1 standen auch Läufe in den Listen, die nie über die 100 Gold Startkapital kamen
+    -- Läufe, die nie über das Startgold kamen, stehen nicht in den Listen (bis 1.1 taten sie das)
     local function unbust(t)
         if type(t) ~= "table" then return end
-        for _, id in ipairs({ "blackjack", "slots", "drawpoker", "higherlower", "roulette", "holdem" }) do
+        for _, id in ipairs(GOLD_GAMES) do
             local list = type(t[id]) == "table" and t[id] or {}
             for i = #list, 1, -1 do
-                if type(list[i]) ~= "table" or (tonumber(list[i].s) or 0) <= 100 then table.remove(list, i) end
+                if type(list[i]) ~= "table" or (tonumber(list[i].s) or 0) <= 1000 then table.remove(list, i) end
             end
             if #list == 0 then t[id] = nil end
         end
@@ -421,7 +448,7 @@ ns.DAILY = {
     snake = 300, windrider = 15, kodo = 200, kobold = 300, angeln = 300, rockfall = 2000, wallbreaker = 500, murlocs = 1000,
     totemecho = 8, runepairs = true, code = true, wortraten = true, fourinarow = true, minen = true, ["2048"] = 3000,
     edelsteine = 800, taverndice = 150, solitaer = true,
-    blackjack = 500, slots = 500, drawpoker = 500, higherlower = 500, roulette = 500, holdem = 500,
+    blackjack = 2000, slots = 2000, drawpoker = 2000, higherlower = 2000, roulette = 2000, holdem = 2000,
 }
 
 local function dayNumber()

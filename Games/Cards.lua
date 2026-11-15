@@ -212,7 +212,7 @@ end
 local Gamble = {}
 Gamble.__index = Gamble
 ns.Gamble = Gamble
-local START_GOLD, MIN_BET = 100, 10
+local START_GOLD, MIN_BET = 1000, 10
 Gamble.START_GOLD, Gamble.MIN_BET = START_GOLD, MIN_BET
 
 -- Einsätze: 10 Gold, ¼ und ½ des Golds (auf 5 abgerundet, mindestens 10)
@@ -268,7 +268,7 @@ end
 -- legt einen Teil seiner Beute zurück; wer gewinnt, füllt ihn nicht). Gezählt wird mit Bruchteilen,
 -- angezeigt und ausgezahlt kaufmännisch gerundet.
 ---- jedes Spiel hat ein seltenes Ereignis (rund eines in 1.000 bis 3.500 Runden), bei dem er fällt.
-local JACKPOT_START = 1000
+local JACKPOT_START = 10000
 function Gamble.Feed(amount)
     ns.DB.jackpot = math.max(JACKPOT_START, (tonumber(ns.DB.jackpot) or JACKPOT_START) + amount * 0.1)
 end
@@ -490,6 +490,6 @@ function Gamble.New(class, host, board, id, msgY)
     g.cashBtn:SetHeight(24)
     g.cashBtn:SetPoint("BOTTOM", board, "BOTTOM", 0, 42)
     if g.cashBtn.SetMotionScriptsWhileDisabled then g.cashBtn:SetMotionScriptsWhileDisabled(true) end
-    ns.SetTooltip(g.cashBtn, L["Cash out"], L["Ends the run and scores your highest gold. Possible between hands once you have more than 100 gold."])
+    ns.SetTooltip(g.cashBtn, L["Cash out"], (L["Ends the run and scores your highest gold. Possible between hands once you have more than %d gold."]):format(START_GOLD))
     return g
 end

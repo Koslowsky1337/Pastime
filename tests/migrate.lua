@@ -25,12 +25,12 @@ check(r and r.t == 118 and r.last == "08.11.26" and r.kind == "flug", "alte Flug
 check(PastimeDB.flights == nil, "die alte Liste ist danach weg")
 check(PastimeDB.settings.autoOpen == false and PastimeDB.settings.landAlarm == true and PastimeDB.settings.sound == true,
     "Einstellungen: Gespeichertes bleibt, Fehlendes wird ergänzt")
-check(PastimeDB.logSession == 1 and PastimeDB.blackjack.gold == 100 and type(PastimeDB.scores) == "table",
+check(PastimeDB.logSession == 1 and PastimeDB.blackjack.gold == 1000 and PastimeDB.jackpot == 10000 and type(PastimeDB.scores) == "table",
     "Sitzungszähler und neue Felder sind angelegt")
 local S = PastimeDB.scores
 check(S.rockfall and S.rockfall[1].s == 900 and S.tetris == nil and S["fourinarow:schwer"] and S["viergewinnt:schwer"] == nil
     and S.kobold[1].s == 7, "Bestenlisten ziehen auf die neuen Spiel-IDs um")
-check(#S.blackjack == 1 and S.blackjack[1].s == 340 and S.roulette == nil, "Glücksspiel-Läufe, die nie über 100 Gold kamen, fliegen aus den Bestenlisten")
+check(#S.blackjack == 1 and S.blackjack[1].s == 1240 and S.roulette == nil, "Glücksspiel-Rekorde ziehen auf 1000 Gold Startkapital um; Läufe ohne Gewinn fliegen raus")
 check(PastimeDB.routes["flug:A > B"].scores["runepairs:mittel"][1].s == 40 and PastimeDB.routes["flug:A > B"].scores["memory:mittel"] == nil,
     "Streckenrekorde ziehen um")
 check(PastimeDB.stats.games.taverndice.n == 4 and PastimeDB.stats.games.kniffel == nil and PastimeDB.modes.fourinarow == "schwer"

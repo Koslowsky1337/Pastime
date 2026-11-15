@@ -6,7 +6,7 @@ local KEYS = ns.KEYS
 
 local W, H = 420, 440
 local CW, CH, STEP = 60, 84, 36
-local START_GOLD, MIN_BET = 100, 10
+local START_GOLD, MIN_BET = ns.Gamble.START_GOLD, ns.Gamble.MIN_BET
 local Cards = ns.Cards
 
 local Game = {}
@@ -303,7 +303,7 @@ local function Create(host, board)
     g.cashBtn:SetHeight(24)
     g.cashBtn:SetPoint("TOP", board, "TOP", 0, -204)
     if g.cashBtn.SetMotionScriptsWhileDisabled then g.cashBtn:SetMotionScriptsWhileDisabled(true) end
-    ns.SetTooltip(g.cashBtn, L["Cash out"], L["Ends the run and scores your highest gold. Possible between hands once you have more than 100 gold."])
+    ns.SetTooltip(g.cashBtn, L["Cash out"], (L["Ends the run and scores your highest gold. Possible between hands once you have more than %d gold."]):format(START_GOLD))
     return g
 end
 

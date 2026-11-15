@@ -29,6 +29,8 @@ Stand: `v1.2.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 - [x] Tagesaufgabe: ein Spiel pro Tag mit Ziel in der Fußzeile der Spielauswahl, Klick startet, Serie über aufeinanderfolgende Tage
 - [ ] **Im Spiel prüfen (nach 1.2):** Jackpot-Anzeige oben links in allen sechs Goldspielen samt Tooltip; Tagesaufgabe rechts in der Fußzeile, Klick startet das Spiel, Chat-Meldung beim Erreichen
 - [x] Goblin-Automat (für 1.3): Rune ist Joker und Scatter, höchstens eine je Walze (3 = 10 Freispiele, 4 = 20); Bonussymbol von Hand ziehen, Walzen füllen sich Feld für Feld, zweites Symbol bei Verlängerung; große Gewinne zählen hoch; Gewinnplan in den Spielregeln (Quote 96,4 %)
+- [x] Startgold 1000 statt 100 in allen Goldspielen, Jackpot ab 10.000 (laufende Töpfe und alte Rekorde einmalig +900)
+- [x] Automat: mehr kleine Treffer (zwei gleiche ab Murloc), Joker unter den Walzen erklärt (Quote 96,5 %, rund 56 % der Drehungen zahlen etwas)
 - [ ] **Im Spiel prüfen (für 1.3):** Fanfare beim Runen-Treffer hörbar? Ziehen des Bonussymbols (nur mittlere Walze, dann nur das Symbol); Auffüllen Feld für Feld; zweites Symbol nach Verlängerung; Hochzählen; Spielregeln mit Gewinnplan passen ins Fenster 📸
 - [ ] Tagesziele nach ein paar Tagen Spielen nachjustieren (`ns.DAILY` in `Core.lua`; Werte sind geschätzt)
 

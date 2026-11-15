@@ -10,8 +10,9 @@ local Game = setmetatable({}, { __index = ns.Gamble })
 Game.__index = Game
 
 -- Symbole: Gewicht je Feld und Auszahlung für 3, 4 und 5 gleiche von links – als Vielfaches
--- des Linieneinsatzes (ein Fünftel des Einsatzes). Schon der kleinste Treffer zahlt mehr als
--- den ganzen Einsatz.
+-- des Linieneinsatzes (ein Fünftel des Einsatzes); pair = Auszahlung schon für zwei gleiche.
+-- Viele kleine Treffer bringen weniger als den Einsatz zurück: gut die Hälfte der Drehungen
+-- zahlt etwas, rund jede siebte mehr als den Einsatz.
 -- Die Rune (letztes Symbol) ist Joker und Scatter zugleich: sie ersetzt auf jeder Linie jedes
 -- Symbol, liegt höchstens einmal je Walze und nie auf allen fünf. Drei oder vier Runen irgendwo
 -- zahlen sofort das RUNE_PAY-fache des ganzen Einsatzes und geben FREE Freispiele.
@@ -22,12 +23,12 @@ Game.__index = Game
 -- Auszahlungsquote samt Freispielen rund 96 % (tests/games.lua rechnet nach). Sie hängt stark
 -- an RUNE_CHANCE: ein halbes Prozent mehr sind gut fünf Punkte Quote.
 Game.SYMBOLS = {
-    { icon = "Interface\\Icons\\INV_Misc_Fish_02", w = 13, pay = { 6, 7, 10 }, expand = { 1, 3, 15 } },
-    { icon = "Interface\\Icons\\INV_Misc_Bomb_04", w = 10, pay = { 6, 8, 11 }, expand = { 2, 4, 20 } },
-    { icon = "Interface\\Icons\\INV_Misc_Head_Murloc_01", w = 7, pay = { 6, 8, 14 }, expand = { 3, 8, 40 } },
-    { icon = "Interface\\Icons\\INV_Misc_Gem_Emerald_01", w = 4, pay = { 7, 10, 25 }, expand = { 6, 20, 100 } },
-    { icon = "Interface\\Icons\\INV_Misc_Gem_Ruby_01", w = 3, pay = { 8, 12, 50 }, expand = { 10, 40, 250 } },
-    { icon = "Interface\\Icons\\INV_Misc_Coin_01", w = 3, pay = { 10, 25, 200 } },
+    { icon = "Interface\\Icons\\INV_Misc_Fish_02", w = 13, pay = { 4, 6, 10 }, expand = { 1, 3, 15 } },
+    { icon = "Interface\\Icons\\INV_Misc_Bomb_04", w = 10, pay = { 4, 7, 11 }, expand = { 2, 4, 20 } },
+    { icon = "Interface\\Icons\\INV_Misc_Head_Murloc_01", w = 7, pair = 1, pay = { 5, 8, 14 }, expand = { 3, 8, 40 } },
+    { icon = "Interface\\Icons\\INV_Misc_Gem_Emerald_01", w = 4, pair = 2, pay = { 6, 10, 25 }, expand = { 6, 20, 100 } },
+    { icon = "Interface\\Icons\\INV_Misc_Gem_Ruby_01", w = 3, pair = 2, pay = { 8, 12, 50 }, expand = { 10, 40, 250 } },
+    { icon = "Interface\\Icons\\INV_Misc_Coin_01", w = 3, pair = 3, pay = { 10, 25, 200 } },
     { icon = "Interface\\Icons\\INV_Misc_Rune_01" },
 }
 local COIN, RUNE = 6, 7
@@ -64,13 +65,13 @@ end
 -- Eine Linie (fünf Symbole von links): Auszahlung und Zahl der zählenden Felder
 function Game.LinePay(s)
     local n, sym = Game.Run(s, COLS)
-    local pay = n >= 3 and Game.SYMBOLS[sym].pay[n - 2] or 0
+    local pay = n >= 3 and Game.SYMBOLS[sym].pay[n - 2] or (n == 2 and Game.SYMBOLS[sym].pair or 0)
     -- Runen vorn können als Münzen mehr wert sein als die längere Reihe, die sie ergänzen
     -- (vier Runen und ein Fisch: 25 statt 10): es zählt die bessere Lesart
     local runes = 0
     while s[runes + 1] == RUNE do runes = runes + 1 end
     if runes >= 3 and Game.SYMBOLS[COIN].pay[runes - 2] > pay then return Game.SYMBOLS[COIN].pay[runes - 2], runes end
-    if n < 3 then return 0, 0 end
+    if pay == 0 then return 0, 0 end
     return pay, n
 end
 
@@ -305,11 +306,12 @@ function Game:Settle()
     end
     if jack then self:Jackpot() end
     self.won = cells
+    local win = math.floor(self.stake * sum / #Game.LINES) + (award and self.stake * bonus or 0) + extra
+    local small = win <= self.bet      -- ein Treffer, der den Einsatz nicht wieder einspielt
     local text = filled == COLS and L["FULL SCREEN!"] or (filled and (L["Bonus symbol on %d reels!"]):format(filled))
         or award and (L["%d free spins!"]):format(award)
-        or (sum > 0 and L["Winning line!"] or (self.isFree and (L["Free spins left: %d"]):format(self.free) or L["No luck this time."]))
-    self.pending = { math.floor(self.stake * sum / #Game.LINES) + (award and self.stake * bonus or 0) + extra, text,
-        (sum > 0 or award or filled) and 2.6 or 1.2 }
+        or (sum > 0 and (small and (L["%d gold back"]):format(win) or L["Winning line!"]) or (self.isFree and (L["Free spins left: %d"]):format(self.free) or L["No luck this time."]))
+    self.pending = { win, text, (award or filled or (sum > 0 and not small)) and 2.6 or (sum > 0 and 1.6 or 1.2) }
     if #steps == 0 then return self:Finish() end
     self.state, self.steps, self.stepT = "expand", steps, FILL_WAIT
     self.sub:SetText(text)
@@ -461,10 +463,10 @@ end
 
 -- Gewinnplan für die Spielregeln: je Symbol die Linien und, wo es Bonussymbol sein kann, die Walzen
 local function Rules()
-    local t = { L["Payouts as multiples of your bet. Left: 3 · 4 · 5 of a kind on a line. Right in gold: the bonus symbol on 3 · 4 · 5 reels in a free spin."] }
+    local t = { L["Payouts as multiples of your bet. Left: 2 · 3 · 4 · 5 of a kind on a line. Right in gold: the bonus symbol on 3 · 4 · 5 reels in a free spin."] }
     for i = 1, COIN do
         local s = Game.SYMBOLS[i]
-        local line = ("|T%s:16|t  %s · %s · %s"):format(s.icon, mult(s.pay[1]), mult(s.pay[2]), mult(s.pay[3]))
+        local line = ("|T%s:16|t  %s · %s · %s · %s"):format(s.icon, s.pair and mult(s.pair) or "–", mult(s.pay[1]), mult(s.pay[2]), mult(s.pay[3]))
         if s.expand then
             line = line .. ("    |cffffd100%s · %s · %s|r"):format(mult(s.expand[1]), mult(s.expand[2]), mult(s.expand[3]))
         end
@@ -517,15 +519,16 @@ local function Create(host, board)
     end
     -- Unter den Walzen steht nur, was die Rune tut; der ganze Gewinnplan steht in den Spielregeln
     local rune = board:CreateTexture(nil, "ARTWORK")
-    rune:SetSize(22, 22)
-    rune:SetPoint("TOP", board, "TOP", 0, -304)
+    rune:SetSize(18, 18)
+    rune:SetPoint("TOP", board, "TOP", 0, -302)
     ns.SetIcon(rune, Game.SYMBOLS[RUNE].icon)
     local info = ns.FontString(board, "GameFontHighlightSmall", "CENTER")
-    info:SetPoint("TOP", board, "TOP", 0, -330)
+    info:SetPoint("TOP", board, "TOP", 0, -323)
     info:SetWidth(W - 16)
-    info:SetText((L["The rune is wild. 3 runes: %d free spins · 4 runes: %d free spins"]):format(Game.FREE[1], Game.FREE[2]))
+    info:SetText(L["The rune is wild: it stands in for any symbol and joins a line together."] .. "\n"
+        .. (L["3 runes anywhere: %d free spins · 4 runes: %d free spins"]):format(Game.FREE[1], Game.FREE[2]))
     local hint = ns.FontString(board, "GameFontDisableSmall", "CENTER")
-    hint:SetPoint("TOP", board, "TOP", 0, -347)
+    hint:SetPoint("TOP", board, "TOP", 0, -351)
     hint:SetWidth(W - 16)
     hint:SetText(L["All payouts: “Rules” on the right"])
     return g

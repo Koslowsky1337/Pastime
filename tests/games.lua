@@ -507,15 +507,15 @@ g.state, g.player, g.dealer, g.hole = "play", { { rank = 10, suit = 1 }, { rank 
 g:Settle()
 tick(2)
 check(over() and best("blackjack") == 2000, "Blackjack: pleite – Höchststand 2000 gewertet")
-check(PastimeDB.blackjack.gold == 100 and PastimeDB.blackjack.peak == 100, "Blackjack: neuer Lauf mit 100 Gold")
+check(PastimeDB.blackjack.gold == 1000 and PastimeDB.blackjack.peak == 1000, "Blackjack: neuer Lauf mit 1000 Gold")
 check(ns.overlay.text.text:find(ns.gamesById.blackjack.scoreLabel, 1, true), "Blackjack: Spielende zeigt den höchsten Goldstand")
 PastimeDB.scores.blackjack = nil
 g = start("blackjack")
-g.gold, g.peak, g.bet, g.state, g.t = 0, 100, 10, "result", 0.1
+g.gold, g.peak, g.bet, g.state, g.t = 0, 1000, 10, "result", 0.1
 tick(0.3)
-check(over() and best("blackjack") == nil, "Blackjack: pleite mit Höchststand 100 wird nicht gewertet")
+check(over() and best("blackjack") == nil, "Blackjack: pleite, ohne je über dem Startgold gewesen zu sein, wird nicht gewertet")
 -- Jackpot: Pik-Ass und Pik-Bube holen ihn
-PastimeDB.jackpot = 1000
+PastimeDB.jackpot = 10000
 PastimeDB.blackjack.gold, PastimeDB.blackjack.peak = 400, 400
 g = start("blackjack")
 check(g.jackText.text:find("1000", 1, true), "Blackjack: der Jackpot steht oben links")
@@ -523,7 +523,7 @@ g.deck = { { rank = 2, suit = 1 }, { rank = 3, suit = 1 }, { rank = 4, suit = 1 
     { rank = 8, suit = 1 }, { rank = 9, suit = 1 }, { rank = 2, suit = 2 }, { rank = 3, suit = 2 }, { rank = 4, suit = 2 }, { rank = 5, suit = 2 },
     { rank = 6, suit = 2 }, { rank = 7, suit = 2 }, { rank = 9, suit = 2 }, { rank = 8, suit = 2 }, { rank = 11, suit = 3 }, { rank = 1, suit = 3 } }
 key("SPACE")
-check(g.jackWon == 1000 and PastimeDB.jackpot == 1000 and g.gold == 400 - 10 + 1000 + 25 and g.jackText.text:find("JACKPOT", 1, true),
+check(g.jackWon == 10000 and PastimeDB.jackpot == 10000 and g.gold == 400 - 10 + 10000 + 25 and g.jackText.text:find("JACKPOT", 1, true),
     "Blackjack: Pik-Ass und Pik-Bube holen den Jackpot (dazu der Blackjack 3:2), Gold " .. g.gold)
 tick(3)
 check(g.state == "bet" and g.jackWon == nil and g.jackText.text:find("1000", 1, true), "Blackjack: danach zeigt die Anzeige wieder den Topf")
@@ -548,7 +548,7 @@ g.gold, g.peak, g.state = 100, 100, "bet"
 g:Render()
 key(ns.KEYS.cash)
 check(g.state == "bet" and g.cashBtn:IsShown() and not g.cashBtn:IsEnabled(), "Blackjack: Kasse machen geht nicht ohne Gewinn")
-g.gold, g.peak = 250, 400
+g.gold, g.peak = 2500, 4000
 g:Render()
 check(g.cashBtn:IsEnabled(), "Blackjack: mit Gewinn ist „Kasse machen“ freigegeben")
 key("SPACE")
@@ -558,14 +558,14 @@ if g.state == "play" then
     check(g.state == "play", "Blackjack: Taste für die Kasse wirkt mitten in der Hand nicht")
 end
 g = start("blackjack")
-g.gold, g.peak, g.state = 250, 400, "bet"
+g.gold, g.peak, g.state = 2500, 4000, "bet"
 g:Render()
 key(ns.KEYS.cash)
-check(over() and ns.overlay.title.text == ns.L["Victory!"] and ns.overlay.text.text:find("250", 1, true),
+check(over() and ns.overlay.title.text == ns.L["Victory!"] and ns.overlay.text.text:find("2500", 1, true),
     "Blackjack: Kasse machen beendet den Lauf als Gewinn: " .. ns.overlay.text.text)
 local cashed = false
-for _, e in ipairs(PastimeDB.scores.blackjack) do if e.s == 400 then cashed = true end end
-check(cashed and PastimeDB.blackjack.gold == 100 and PastimeDB.blackjack.peak == 100, "Blackjack: Höchststand 400 gewertet, neuer Lauf mit 100 Gold")
+for _, e in ipairs(PastimeDB.scores.blackjack) do if e.s == 4000 then cashed = true end end
+check(cashed and PastimeDB.blackjack.gold == 1000 and PastimeDB.blackjack.peak == 1000, "Blackjack: Höchststand 4000 gewertet, neuer Lauf mit 1000 Gold")
 -- Landung: Blackjack wird nur nach vollen Runden gewertet
 ns.StartGame(ns.gamesById.blackjack)
 check(ns.CurrentScore(ns.run) == nil, "Blackjack ohne Wertung bei Ankunft mitten in der Sitzung")
@@ -868,29 +868,30 @@ for _, id in ipairs({ "slots", "drawpoker", "higherlower", "roulette", "holdem" 
     g = start(id)
     key(ns.KEYS.cash)
     check(g.state == "bet" and not g.cashBtn:IsEnabled(), id .. ": Kasse machen geht nicht ohne Gewinn")
-    g.gold, g.peak = 250, 400
+    g.gold, g.peak = 2500, 4000
     g:Render()
     key(ns.KEYS.cash)
-    check(over() and ns.overlay.title.text == ns.L["Victory!"] and best(id) == 400 and PastimeDB.purses[id].gold == 100,
-        id .. ": Kasse machen wertet den Höchststand 400")
+    check(over() and ns.overlay.title.text == ns.L["Victory!"] and best(id) == 4000 and PastimeDB.purses[id].gold == 1000,
+        id .. ": Kasse machen wertet den Höchststand 4000, neuer Lauf mit 1000 Gold")
     -- Pleite: der Lauf endet, Höchststand zählt
     g = start(id)
-    g.gold, g.peak, g.bet, g.state = 0, 900, 10, "bet"
+    g.gold, g.peak, g.bet, g.state = 0, 9000, 10, "bet"
     g:Pay(0, "", 0.1)
     tick(0.3)
-    check(over() and ns.overlay.title.text == ns.L["Broke!"] and best(id) == 900, id .. ": pleite – Höchststand 900 gewertet")
-    check(PastimeDB.blackjack.gold ~= nil and PastimeDB.purses[id].peak == 100, id .. ": eigener Topf, Blackjack bleibt unberührt")
+    check(over() and ns.overlay.title.text == ns.L["Broke!"] and best(id) == 9000, id .. ": pleite – Höchststand 9000 gewertet")
+    check(PastimeDB.blackjack.gold ~= nil and PastimeDB.purses[id].peak == 1000, id .. ": eigener Topf, Blackjack bleibt unberührt")
     -- Pleite, ohne je über dem Startgold gewesen zu sein: kein Eintrag in der Bestenliste
     PastimeDB.scores[id] = nil
     g = start(id)
-    g.gold, g.peak, g.bet, g.state = 0, 100, 10, "bet"
+    g.gold, g.peak, g.bet, g.state = 0, 1000, 10, "bet"
     g:Pay(0, "", 0.1)
     tick(0.3)
-    check(over() and ns.overlay.title.text == ns.L["Broke!"] and best(id) == nil, id .. ": pleite mit Höchststand 100 wird nicht gewertet")
+    check(over() and ns.overlay.title.text == ns.L["Broke!"] and best(id) == nil, id .. ": pleite, ohne je über dem Startgold gewesen zu sein, wird nicht gewertet")
 end
 
 -- Goblin-Automat: Auszahlungsquote einer Linie über alle Stellungen (jede der fünf Linien ist gleich verteilt).
 -- Ein Feld zeigt mit einem Drittel der Walzenchance die Rune, sonst ein Symbol nach Gewicht.
+PastimeDB.purses.slots = { gold = 100, peak = 100 }
 g = start("slots")
 local nSym = #g.SYMBOLS
 local wsum = 0
@@ -918,7 +919,8 @@ while true do
     for sym = 1, 6 do
         local n = 0
         while n < 5 and (seq[n + 1] == sym or seq[n + 1] == 7) do n = n + 1 end
-        if n >= 3 and g.SYMBOLS[sym].pay[n - 2] > best then best = g.SYMBOLS[sym].pay[n - 2] end
+        local v = n >= 3 and g.SYMBOLS[sym].pay[n - 2] or (n == 2 and g.SYMBOLS[sym].pair or 0)
+        if v > best then best = v end
     end
     if g.LinePay(seq) ~= best then wrong = wrong + 1 end
     local i = 5
@@ -962,8 +964,8 @@ end
 rtp = a + p3 * V[g.FREE[1]] + p4 * V[g.FREE[2]]
 check(rtp > 0.94 and rtp < 0.99, ("Automat: Auszahlungsquote mit Freispielen, Bonussymbolen und Runengold %.1f %%"):format(rtp * 100))
 check(trigger > 1 / 60 and trigger < 1 / 35, ("Automat: Freispiele bei jeder %.0f. Drehung"):format(1 / trigger))
-check(minPay > #g.LINES, "Automat: schon der kleinste Treffer zahlt mehr als den Einsatz (" .. minPay .. " > " .. #g.LINES .. ")")
-check(1 - (1 - lineHit) ^ 5 > 0.33, ("Automat: rund %.0f %% der Drehungen gewinnen"):format((1 - (1 - lineHit) ^ 5) * 100))
+check(minPay >= 1 and minPay < #g.LINES, "Automat: es gibt kleine Treffer unter dem Einsatz (kleinster: " .. minPay .. " Linieneinsatz)")
+check(1 - (1 - lineHit) ^ 5 > 0.5, ("Automat: rund %.0f %% der Drehungen zahlen etwas"):format((1 - (1 - lineHit) ^ 5) * 100))
 -- Walzen: höchstens eine Rune je Walze, nie fünf; die Häufigkeit passt zu RUNE_CHANCE
 local most, double, reelsWithRune = 0, 0, 0
 for _ = 1, 4000 do
@@ -979,13 +981,14 @@ for _ = 1, 4000 do
 end
 check(double == 0 and most <= 4, "Automat: höchstens eine Rune je Walze und nie fünf (meiste: " .. most .. ")")
 check(math.abs(reelsWithRune / 20000 - r) < 0.02, ("Automat: eine Walze zeigt in %.1f %% der Fälle eine Rune"):format(reelsWithRune / 200))
-check(g.LinePay({ 1, 1, 1, 2, 3 }) == 6 and g.LinePay({ 1, 7, 1, 1, 3 }) == 7 and g.LinePay({ 7, 7, 2, 2, 2 }) == 11
-    and g.LinePay({ 2, 1, 1, 1, 1 }) == 0 and g.LinePay({ 6, 6, 6, 6, 6 }) == 200 and g.LinePay({ 6, 6, 1, 1, 1 }) == 0,
-    "Automat: Linien zählen von links, die Rune ist Joker, die Münze nicht")
+check(g.LinePay({ 1, 1, 1, 2, 3 }) == 4 and g.LinePay({ 1, 7, 1, 1, 3 }) == 6 and g.LinePay({ 7, 7, 2, 2, 2 }) == 11
+    and g.LinePay({ 2, 1, 1, 1, 1 }) == 0 and g.LinePay({ 6, 6, 6, 6, 6 }) == 200 and g.LinePay({ 6, 6, 1, 1, 1 }) == 3
+    and g.LinePay({ 1, 1, 2, 2, 2 }) == 0 and g.LinePay({ 3, 7, 1, 1, 1 }) == 1,
+    "Automat: Linien zählen von links, die Rune ist Joker, die Münze nicht; ab dem Murloc zahlen schon zwei gleiche")
 check(g.LinePay({ 6, 6, 6, 7, 1 }) == 25 and g.LinePay({ 1, 1, 7, 1, 1 }) == 10 and g.LinePay({ 7, 7, 7, 7, 7 }) == 200,
     "Automat: die Rune ergänzt jede Reihe; nur Runen zählen als Münzen")
 local sum, cells = g.Evaluate({ { 1, 2, 3 }, { 1, 2, 4 }, { 1, 3, 5 }, { 2, 2, 2 }, { 3, 3, 3 } })
-check(sum == 6 and cells[11] and cells[21] and cells[31] and not cells[41], "Automat: obere Reihe mit drei Fischen gewinnt, die Felder leuchten")
+check(sum == 4 and cells[11] and cells[21] and cells[31] and not cells[41], "Automat: obere Reihe mit drei Fischen gewinnt, die Felder leuchten")
 local function reach(st) for _ = 1, 400 do if g.state == st then return true end; tick(0.1) end end
 local function spun() reach("result") end
 key("SPACE")
@@ -998,7 +1001,7 @@ check(g.state == "spin" and g.hot and g.cells[1][1].glow:IsShown(), "Automat: di
 local jp = math.floor(PastimeDB.jackpot + 0.5)
 spun()
 check(g.gold == 100 - 10 + 10 * 200 / 5 + jp, "Automat: fünf Münzen in der oberen Reihe zahlen 200-fach auf die Linie, Gold " .. g.gold)
-check(g.jackWon == jp and PastimeDB.jackpot == 1000 and g.jackText.text:find("JACKPOT", 1, true), "Automat: fünf Münzen auf einer Linie holen den Jackpot")
+check(g.jackWon == jp and PastimeDB.jackpot == 10000 and g.jackText.text:find("JACKPOT", 1, true), "Automat: fünf Münzen auf einer Linie holen den Jackpot")
 check(g.count ~= nil and not g.msg.text:find("+390 Gold", 1, true), "Automat: ein großer Gewinn wird hochgezählt statt sofort angezeigt: " .. g.msg.text)
 tick(2.5)
 check(g.state == "result" and g.count == nil and g.msg.text:find("+390 Gold", 1, true), "Automat: am Ende des Hochzählens steht der ganze Gewinn: " .. g.msg.text)
@@ -1015,8 +1018,8 @@ g.final = { { 7, 1, 2 }, { 2, 7, 3 }, { 3, 1, 7 }, { 1, 2, 3 }, { 2, 3, 1 } }
 g:Plan()
 check(g.tease[3] and g.tease[3][11] and g.tease[3][22], "Automat: zwei Runen machen die dritte Walze spannend")
 spun()
--- mittlere Reihe Fisch–Rune–Fisch (6), Diagonale Rune–Rune–Rune–Bombe–Bombe (11): 17 Linieneinsätze = 34, dazu 2 × 10
-check(g.free == 10 and g.gold == gold - 10 + 34 + 20 and g.cells[3][3].glow:IsShown() and PastimeDB.purses.slots.free == 10,
+-- mittlere Reihe Fisch–Rune–Fisch (4), Diagonale Rune–Rune–Rune–Bombe–Bombe (11): 15 Linieneinsätze = 30, dazu 2 × 10
+check(g.free == 10 and g.gold == gold - 10 + 30 + 20 and g.cells[3][3].glow:IsShown() and PastimeDB.purses.slots.free == 10,
     "Automat: drei Runen geben zehn Freispiele, zahlen den doppelten Einsatz und zählen als Joker, Gold " .. g.gold)
 gold = g.gold
 reach("pick")
@@ -1044,7 +1047,7 @@ check(g.state == "spin" and g.free == 9 and g.bet == 0 and g.gold == gold, "Auto
 g.final = { { 1, 2, 3 }, { 1, 3, 1 }, { 1, 1, 2 }, { 2, 2, 3 }, { 3, 3, 1 } }
 g:Plan()
 spun()
-check(g.state == "result" and g.gold == gold + 10 * 6 / 5, "Automat: Freispiel zahlt zum auslösenden Einsatz, Gold " .. g.gold)
+check(g.state == "result" and g.gold == gold + 10 * 5 / 5, "Automat: Freispiel zahlt zum auslösenden Einsatz (drei Fische 4, zwei Murlocs 1), Gold " .. g.gold)
 g = start("slots")
 check(g.state == "free" and g.free == 9 and g.stake == 10 and g.specials[1] == 5, "Automat: Freispiele und Bonussymbol überstehen das Schließen")
 -- Bonussymbol Fisch auf den Walzen 1, 2, 4 und 5 (mit Lücke): die vier Walzen füllen sich Feld für Feld, dann 3 Linieneinsätze dazu
@@ -1105,9 +1108,18 @@ g.free = 0; g:Save()
 reach("bet")
 check(g.state == "bet" and g.free == 0 and PastimeDB.purses.slots.free == nil and #g.specials == 0 and not g.bonus:IsShown() and not g.auto,
     "Automat: nach dem letzten Freispiel wieder setzen, Bonussymbole und Auto-Spin sind weg")
+-- kleiner Treffer: zwei Murlocs auf einer Diagonale bringen einen Linieneinsatz zurück
+key("SPACE")
+g.final = { { 1, 2, 3 }, { 2, 3, 2 }, { 2, 2, 2 }, { 1, 2, 3 }, { 2, 3, 1 } }
+g:Plan()
+before = g.gold
+spun()
+check(g.gold == before + 2 and g.sub.text == (ns.L["%d gold back"]):format(2) and g.msg.text:find("-8", 1, true),
+    "Automat: ein kleiner Treffer bringt einen Teil des Einsatzes zurück und wird ehrlich als Minus gezeigt: " .. g.msg.text)
+reach("bet")
 -- der Gewinnplan steht in den Spielregeln, als Vielfaches des Einsatzes
 local rules = ns.gamesById.slots.rules()
-check(rules:find("×1[.,]2 · ×1[.,]4 · ×2") and rules:find("×0[.,]2 · ×0[.,]6 · ×3") and rules:find("×40", 1, true),
+check(rules:find("– · ×0[.,]8 · ×1[.,]2 · ×2") and rules:find("×0[.,]2 · ×1 · ×1[.,]6") and rules:find("×0[.,]2 · ×0[.,]6 · ×3") and rules:find("×40", 1, true),
     "Automat: die Spielregeln zeigen den Gewinnplan als Vielfaches des Einsatzes")
 -- Fester Einsatz: einmal einstellen, dann nur noch drehen; Auto-Spin
 PastimeDB.purses.slots = { gold = 300, peak = 300 }
@@ -1124,7 +1136,7 @@ check(g:Wager() == 100, "Automat: 1 senkt den Einsatz")
 key("SPACE")
 check(g.state == "spin" and g.bet == 100 and g.gold == 200, "Automat: Leertaste dreht zum eingestellten Einsatz")
 local fed = PastimeDB.jackpot
-g.final = { { 1, 2, 3 }, { 2, 3, 4 }, { 4, 1, 2 }, { 1, 2, 3 }, { 2, 3, 1 } };      -- keine Linie gewinnt
+g.final = { { 1, 2, 1 }, { 2, 1, 2 }, { 2, 2, 2 }, { 1, 2, 3 }, { 2, 3, 1 } };      -- keine Linie gewinnt
  g:Plan(); tick(8)
 check(g.state == "bet" and g:Wager() == 100, "Automat: der Einsatz bleibt für die nächste Drehung stehen")
 check(math.abs(PastimeDB.jackpot - fed - 10) < 0.001, "Jackpot: ein Zehntel des Verlusts (100) fließt in den Topf")
@@ -1155,6 +1167,7 @@ check(not g.auto and g.free == 10 and g.state == "result", "Automat: Auto-Spin h
 PastimeDB.purses.slots = nil
 
 -- Goblin-Poker: halten, tauschen, erhöhen oder passen, Vergleich mit dem Goblin
+PastimeDB.purses.drawpoker = { gold = 100, peak = 100 }      -- ein Topf mitten im Lauf
 g = start("drawpoker")
 local kp = g.Keep(C("JH JD 3S 2C 9H"))
 check(kp[1] and kp[2] and not kp[3] and not kp[5], "Goblin-Poker: der Goblin behält sein Paar")
@@ -1192,6 +1205,7 @@ check(g.state == "result" and g.reveal and g.gold == 70 + 38 and g.goblinCards[1
     "Goblin-Poker: Vierling gewinnt (20 Einsatz, 18 Gewinn), die Karten des Goblins liegen offen, Gold " .. g.gold)
 
 -- Höher oder tiefer: Faktoren, Treffer, Topf nehmen
+PastimeDB.purses.higherlower = { gold = 100, peak = 100 }      -- ein Topf mitten im Lauf
 g = start("higherlower")
 check(g.Factor({ rank = 1 }, true) == nil and g.Factor({ rank = 2 }, false) == nil and g.Factor({ rank = 2 }, true) == 1
     and math.abs(g.Factor({ rank = 8 }, true) - 1.96) < 0.001, "Höher oder tiefer: Faktoren (Ass oben, 2 unten, 8 in der Mitte)")
@@ -1227,6 +1241,7 @@ key("1")
 check(g.state == "result" and g.gold == 90, "Höher oder tiefer: daneben – Topf weg")
 
 -- Goblin-Roulette: Chips legen, zurücknehmen, drehen, Auszahlung, Einsätze wiederholen
+PastimeDB.purses.roulette = { gold = 100, peak = 100 }      -- ein Topf mitten im Lauf
 g = start("roulette")
 check(g.Payout(17, 17, 10) == 360 and g.Payout(17, 18, 10) == 0 and g.Payout("red", 18, 10) == 20 and g.Payout("black", 18, 10) == 0
     and g.Payout("d2", 13, 10) == 30 and g.Payout("even", 0, 10) == 0 and g.Payout("low", 0, 10) == 0 and g.Payout("odd", 35, 10) == 20,
@@ -1277,14 +1292,15 @@ do
     check(g.solo == 0 and g.jackWon == nil, "Roulette: mit weiteren Chips auf dem Tisch zählt der Treffer nicht")
     tick(3); click(17); key("SPACE"); g.final = 17; tick(5)
     tick(3); click(17); jp = math.floor(PastimeDB.jackpot + 0.5); key("SPACE"); g.final = 17; tick(5)
-    check(g.jackWon == jp and PastimeDB.jackpot == 1000, "Roulette: zweimal hintereinander allein auf der gefallenen Zahl – Jackpot")
+    check(g.jackWon == jp and PastimeDB.jackpot == 10000, "Roulette: zweimal hintereinander allein auf der gefallenen Zahl – Jackpot")
     tick(3)
 end
-g.last = { red = 5000 }
+g.last = { red = 5000000 }
 key("SPACE")
 check(g.state == "bet" and g.last == nil and g.spinBtn.text == ns.L["Spin (Space)"], "Roulette: reicht das Gold nicht, werden die alten Einsätze vergessen")
 
 -- Tavernen-Hold'em: Turnier am Tisch
+PastimeDB.purses.holdem = { gold = 100, peak = 100 }      -- ein Topf mitten im Lauf
 g = start("holdem")
 local hb = g.Bets(1000)
 check(hb[1] == 250 and hb[2] == 500 and hb[3] == 1000, "Hold'em: Einkauf ¼ / ½ / alles")

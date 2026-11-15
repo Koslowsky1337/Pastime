@@ -2,10 +2,12 @@
 
 ## 1.3.0
 
+- Gold games: every run now starts with 1,000 gold instead of 100, and the jackpot starts at 10,000. Running purses and old records get the extra 900 gold once, so they stay comparable.
+- Goblin Slots: more small wins. From the murloc upwards two of a kind already pay a little, and three fish or bombs pay less than before. A good half of all spins now return something; small wins show honestly how much of your bet came back.
 - Goblin Slots, free spins reworked. The rune is now the wild symbol (the coin no longer is) and still the scatter: at most one per reel, three runes pay 2 times your bet and give 10 free spins, four pay 10 times and give 20.
 - Goblin Slots: when free spins hit you hear a fanfare and nothing spins on its own. You press Space to spin the middle reel for your bonus symbol, see it on its own, and then each Space plays one free spin (or switch on auto-spin for them).
 - Goblin Slots: whenever the bonus symbol lands on three or more reels in a free spin, those reels fill up with it field by field and pay for that many of a kind, gaps or not. Five reels fill the whole screen. Runes during free spins extend them and let you draw a second bonus symbol; both then pay.
-- Goblin Slots: big wins count up instead of just appearing. The pay table moved into the rules (button on the right) and is shown as multiples of your bet; below the reels you only see what the rune does. Line pays were adjusted; the payout rate stays at about 96 %.
+- Goblin Slots: big wins count up instead of just appearing. The pay table moved into the rules (button on the right) and is shown as multiples of your bet; below the reels you only see what the rune does and that it is the wild symbol that joins a line together. Line pays were adjusted; the payout rate stays at about 96 %.
 
 ## 1.2.0
 
