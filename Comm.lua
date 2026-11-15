@@ -1,8 +1,11 @@
 -- Pastime: Grundlage für den Mehrspieler (noch abgeschaltet) und Versionsabgleich
 --
--- Das Einzige, was Pastime heute sendet, ist die eigene Versionsnummer (Nachricht HELLO) an Gilde
--- und Gruppe – unsichtbar, als Addon-Nachricht, nie von Spieler zu Spieler. Wer eine höhere Nummer
--- empfängt, bekommt einmal einen Hinweis auf das Update. Siehe „Versionsabgleich“ weiter unten.
+-- Von selbst sendet Pastime heute nur die eigene Versionsnummer (Nachricht HELLO) an Gilde und
+-- Gruppe – unsichtbar, als Addon-Nachricht. Wer eine höhere Nummer empfängt, bekommt einmal einen
+-- Hinweis auf das Update. Siehe „Versionsabgleich“ weiter unten.
+-- Dazu kommt der Verbindungstest: Der Selbsttest (/pastime debug test) fragt mit PING in Gilde und
+-- Gruppe, wer Pastime hat; jedes andere Pastime antwortet unsichtbar und direkt mit PONG. So lässt
+-- sich prüfen, ob direkte Nachrichten zwischen zwei Spielern ankommen, bevor der Mehrspieler sie braucht.
 --
 -- Addon-Nachrichten sind für Spieler unsichtbar. Pastime erkennt seine eigenen
 -- an der Kennung PREFIX und am Protokoll-Kopf PROTO. Alles, was ankommt, gilt
@@ -52,6 +55,8 @@ local SESSION = word(12)
 -- Nachrichtentypen: Feldliste in fester Reihenfolge
 Comm.TYPES = {
     HELLO  = { int(0, 999999), int(0, 99) },                    -- Addon-Version (10300 = 1.3.0, 0 = Betastand), Mehrspieler-Stufe
+    PING   = { int(1, 999999) },                                -- Verbindungstest: Kennzahl
+    PONG   = { int(1, 999999) },                                -- Antwort mit derselben Kennzahl, direkt an den Fragenden
     INVITE = { SESSION, word(16), int(0, 2147483647), int(1, 600) },  -- Sitzung, Spiel-ID, Startwert, Sekunden
     ACCEPT = { SESSION },
     DECLINE = { SESSION },
@@ -191,7 +196,7 @@ function Comm.Accept(prefix, text, channel, sender)
         Comm.invites[sender] = { id = fields[1], game = fields[2], seed = fields[3], sec = fields[4], t = GetTime() }
     elseif kind == "ACCEPT" or kind == "DECLINE" then
         if not (s and s.pending and s.partner == sender and s.id == fields[1]) then return nil, "no invite" end
-    elseif kind ~= "HELLO" then
+    elseif kind ~= "HELLO" and kind ~= "PING" and kind ~= "PONG" then
         if not (s and s.partner == sender and s.id == fields[1]) then return nil, "not in session" end
         if kind == "MOVE" then
             if fields[2] <= (s.seq or 0) then return nil, "old move" end
@@ -218,8 +223,9 @@ local queue, lastSend = {}, 0
 local SEND_GAP = 0.5
 local RESULT_OK, RESULT_THROTTLE, RESULT_CHANNEL_THROTTLE = 0, 3, 8
 
+local OPEN = { HELLO = true, PING = true, PONG = true }      -- gehen auch ohne Mehrspieler
 function Comm.Send(kind, channel, target, ...)
-    if not (Comm.ENABLED or (kind == "HELLO" and Comm.VERSION_CHECK)) then return false end
+    if not (Comm.ENABLED or (OPEN[kind] and Comm.VERSION_CHECK)) then return false end
     local msg, err = Comm.Encode(kind, ...)
     if not msg then ns.Log("W", "comm", "not sent: %s", tostring(err)); return false end
     if #queue >= 20 then return false end
@@ -301,6 +307,32 @@ Comm.handlers.HELLO = function(sender, fields, channel)
     end
 end
 
+-- Verbindungstest. Ping() fragt in Gilde und Gruppe; wer antwortet, steht danach in Comm.ping.from
+-- (Name = Kanal, über den die Antwort kam). Geantwortet wird jedem Fragenden höchstens alle 20 Sekunden.
+local ponged = {}
+Comm.handlers.PING = function(sender, fields)
+    if GetTime() - (ponged[sender] or -20) < 20 then return end
+    ponged[sender] = GetTime()
+    Comm.Send("PONG", "WHISPER", sender, fields[1])
+end
+
+Comm.handlers.PONG = function(sender, fields, channel)
+    local p = Comm.ping
+    if p and fields[1] == p.nonce then p.from[sender] = channel end
+end
+
+function Comm.Ping()
+    if not Comm.registered then return nil end
+    local p = { nonce = math.random(1, 999999), from = {}, channels = {} }
+    Comm.ping = p
+    local function ask(channel)
+        if Comm.Send("PING", channel, nil, p.nonce) then p.channels[#p.channels + 1] = channel end
+    end
+    if IsInGuild and IsInGuild() then ask("GUILD") end
+    if IsInRaid and IsInRaid() then ask("RAID") elseif IsInGroup and IsInGroup() then ask("PARTY") end
+    return p
+end
+
 -- Beim Einloggen: zuhören, nach ein paar Sekunden die eigene Version melden und an ein
 -- früher gesehenes Update erinnern
 function Comm.StartVersionCheck()
@@ -336,5 +368,5 @@ end
 function Comm._Reset()
     wipe(perSender); total = nil; wipe(queue); lastSend = 0
     Comm.session = nil; wipe(Comm.invites)
-    wipe(lastHello); wipe(Comm.peers); Comm.noticed = nil; Comm.grouped = nil
+    wipe(lastHello); wipe(Comm.peers); wipe(ponged); Comm.noticed = nil; Comm.grouped = nil; Comm.ping = nil
 end

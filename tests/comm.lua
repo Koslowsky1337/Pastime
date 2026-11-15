@@ -115,6 +115,20 @@ C.OnMessage(C.PREFIX, C.Encode("HELLO", 10400, 0), "PARTY", "Thrall")
 C.OnMessage(C.PREFIX, C.Encode("HELLO", 10500, 1), "PARTY", "Garrosh")
 check(#CHAT == 1 and CHAT[1]:find("1.4.0", 1, true) and CHAT[1]:find("1.3.0", 1, true) and PastimeDB.newest == 10500 and C.peers.Garrosh.mp == 1,
     "a newer version is announced once per session and remembered: " .. tostring(CHAT[1]))
+-- Verbindungstest: PING in Gilde und Gruppe, jedes andere Pastime antwortet direkt mit PONG
+local before = #SENT
+C.OnMessage(C.PREFIX, C.Encode("PING", 4711), "GUILD", "Jaina"); flush()
+check(#SENT == before + 1 and SENT[#SENT][2] == "PT1^PONG^4711" and SENT[#SENT][3] == "WHISPER" and SENT[#SENT][4] == "Jaina",
+    "a ping is answered directly and invisibly with the same number")
+C.OnMessage(C.PREFIX, C.Encode("PING", 4712), "GUILD", "Jaina"); flush()
+check(#SENT == before + 1, "the same player is answered at most every 20 seconds")
+local ping = C.Ping(); flush()
+check(ping and #ping.channels == 2 and SENT[#SENT - 1][3] == "GUILD" and SENT[#SENT][3] == "PARTY" and SENT[#SENT][2] == "PT1^PING^" .. ping.nonce,
+    "the self-test asks in guild and group")
+C.OnMessage(C.PREFIX, C.Encode("PONG", ping.nonce), "WHISPER", "Jaina")
+C.OnMessage(C.PREFIX, C.Encode("PONG", ping.nonce % 999999 + 1), "WHISPER", "Rexxar")
+check(ping.from.Jaina == "WHISPER" and ping.from.Rexxar == nil, "only answers with the right number count")
+check(C.Send("INVITE", "WHISPER", "Thrall", "s1", "snake", 1, 60) == false, "multiplayer messages stay switched off")
 ns.Print = realPrint
 C_ChatInfo = nil
 C._Reset()

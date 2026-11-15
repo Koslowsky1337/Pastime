@@ -619,12 +619,17 @@ for line in dtext:gmatch("[^\n]+") do print("  " .. line:gsub("|c%x%x%x%x%x%x%x%
 local debugWas = PastimeDB.debug
 SlashCmdList.PASTIME("debug testlauf")
 check(PastimeDB.debug == debugWas and ns.selfTest ~= nil, "Selbsttest: startet, ohne den Debug-Modus umzuschalten")
+check(ns.selfFrame.shown and #ns.selfFrame.icons >= 30 and ns.selfFrame.step.text == ns.L["Checking the client …"],
+    "Selbsttest: ein Fenster zeigt, was geprüft wird, und alle Symbolbilder")
 RunTimers()
 local st = ns.copyFrame.text or ""
 check(ns.selfTest == nil and ns.copyFrame.shown and ns.copyFrame.title.text == ns.L["Pastime self-test"], "Selbsttest: das Ergebnis öffnet sich zum Kopieren")
 check(st:find("Pastime self%-test: %d+ problem") and st:find("API C_Timer.After", 1, true) and st:find("sound fanfare (kit 888)", 1, true)
     and st:find("daily task:", 1, true) and st:find("textures:", 1, true), "Selbsttest: Schnittstellen, Klänge, Texturen und Tagesaufgabe stehen im Ergebnis")
 check(not st:find("Thokk", 1, true), "Selbsttest: kein Charaktername im Ergebnis")
+check(ns.selfFrame.step.text == (ns.L["Done: %d problem(s)"]):format(tonumber(st:match("(%d+) problem"))) and ns.selfFrame.desc.text ~= "",
+    "Selbsttest: das Fenster zeigt am Ende das Ergebnis: " .. tostring(ns.selfFrame.step.text))
+ns.selfFrame:Hide()
 ns.copyFrame:Hide()
 
 -- Reiter „Einstellungen“: dieselben Schalter wie im Addon-Menü

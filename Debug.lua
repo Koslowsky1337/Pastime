@@ -268,6 +268,53 @@ local function lookup(path)
     return v
 end
 
+-- Wofür jeder Klang steht: der Selbsttest zeigt es an, während er läuft
+local SOUND_INFO = {
+    start = L["a game starts"], point = L["a point scored, a field filling up"], click = L["a button, a reel stopping"],
+    line = L["a line cleared"], big = L["a win"], over = L["game over"], record = L["new record, jackpot, daily task done"],
+    flag = L["a switch turned on"], alarm = L["landing alarm"], bad = L["a loss"], fanfare = L["free spins in the slot machine"],
+    t1 = L["totem tone 1"], t2 = L["totem tone 2"], t3 = L["totem tone 3"], t4 = L["totem tone 4"],
+}
+
+-- Fenster zum Zusehen: was gerade geprüft wird, und alle Symbolbilder zum Ansehen
+local function SelfTestFrame(paths)
+    local f = ns.selfFrame
+    if not f then
+        f = CreateFrame("Frame", "PastimeSelfTestFrame", UIParent, "BackdropTemplate")
+        f:SetBackdrop(BACKDROP_DIALOG_32_32 or ns.TOOLTIP_BACKDROP)
+        ns.TintDialog(f)
+        f:SetSize(440, 250)
+        f:SetPoint("TOP", 0, -80)
+        f:SetFrameStrata("DIALOG")
+        f:EnableMouse(true)
+        f.title = ns.FontString(f, "GameFontNormal", "CENTER")
+        f.title:SetPoint("TOP", 0, -18)
+        f.title:SetText(L["Pastime self-test"])
+        f.step = ns.FontString(f, "GameFontNormalLarge", "CENTER")
+        f.step:SetPoint("TOP", 0, -44)
+        f.step:SetWidth(400)
+        f.desc = ns.FontString(f, "GameFontHighlight", "CENTER")
+        f.desc:SetPoint("TOP", f.step, "BOTTOM", 0, -6)
+        f.desc:SetWidth(400)
+        f.icons = {}
+        ns.CreateCloseButton(f):SetPoint("TOPRIGHT", -4, -4)
+        tinsert(UISpecialFrames, "PastimeSelfTestFrame")
+        ns.selfFrame = f
+    end
+    for i, path in ipairs(paths) do
+        local icon = f.icons[i]
+        if not icon then
+            icon = f:CreateTexture(nil, "ARTWORK")
+            icon:SetSize(30, 30)
+            icon:SetPoint("TOPLEFT", 24 + ((i - 1) % 11) * 36, -116 - math.floor((i - 1) / 11) * 36)
+            f.icons[i] = icon
+        end
+        icon:SetTexture(path)
+    end
+    f:Show()
+    return f
+end
+
 function ns.SelfTest()
     if ns.selfTest then return end
     local out, bad = {}, 0
@@ -291,6 +338,9 @@ function ns.SelfTest()
     local paths = { "Interface\\CharacterFrame\\TempPortraitAlphaMask" }
     for _, def in ipairs(ns.games) do paths[#paths + 1] = def.icon end
     for _, path in ipairs(ns.SELFTEST_TEXTURES or {}) do paths[#paths + 1] = path end
+    local win = SelfTestFrame(paths)
+    win.step:SetText(L["Checking the client …"])
+    win.desc:SetText(L["Below are all symbol pictures. Empty or green squares would be missing pictures."])
     local missing = 0
     for _, path in ipairs(paths) do
         tex:SetTexture(path)
@@ -331,6 +381,8 @@ function ns.SelfTest()
         if IsInGuild and IsInGuild() then send("GUILD") end
         if IsInRaid and IsInRaid() then send("RAID") elseif IsInGroup and IsInGroup() then send("PARTY") end
     end
+    -- Verbindungstest: andere Pastime-Nutzer in Gilde und Gruppe antworten direkt und unsichtbar
+    local ping = C.Ping and C.Ping()
     add(nil, ("in guild %s · in group %s · in raid %s · peers heard %d"):format(tostring(IsInGuild and IsInGuild()), tostring(IsInGroup and IsInGroup()),
         tostring(IsInRaid and IsInRaid()), (function() local n = 0; for _ in pairs(C.peers or {}) do n = n + 1 end; return n end)()))
 
@@ -345,7 +397,10 @@ function ns.SelfTest()
             local ok, will = false, nil
             if id then ok, will = pcall(PlaySound, id, "SFX") end
             add(id ~= nil and ok and will and true or false, ("sound %s (kit %s) plays: %s"):format(kind, tostring(id), tostring(will)))
-            ns.Print(("|cffbbbbbb%d/%d · %s|r"):format(i, #kinds, kind))      -- damit man sieht, welcher Klang gerade läuft
+            -- damit man sieht, welcher Klang gerade läuft und wofür er steht
+            win.step:SetText((L["Sound %d of %d: %s"]):format(i, #kinds, kind))
+            win.desc:SetText(SOUND_INFO[kind] or "")
+            ns.Print(("|cffbbbbbb%d/%d · %s – %s|r"):format(i, #kinds, kind, SOUND_INFO[kind] or ""))
         end))
     end
     C_Timer.After(#kinds * 0.5 + 2, ns.Wrap("selbsttest", function()
@@ -361,6 +416,18 @@ function ns.SelfTest()
                 end
             end
         end
+        if ping then
+            local n, direct = 0, 0
+            for _, channel in pairs(ping.from) do n = n + 1; if channel == "WHISPER" then direct = direct + 1 end end
+            -- nur zählen: Namen anderer Spieler gehören nicht in einen Bericht
+            add(#ping.channels == 0 and nil or (n > 0 and direct == n) or (n > 0 and false or nil),
+                #ping.channels == 0 and "connection test: not in a guild or group, nobody to ask"
+                or (n == 0 and ("connection test via %s: no other Pastime answered (nobody online with 1.3 or newer, or direct messages do not arrive)"):format(table.concat(ping.channels, ", "))
+                or ("connection test via %s: %d other Pastime answered, %d of them directly"):format(table.concat(ping.channels, ", "), n, direct)))
+            win.desc:SetText(#ping.channels == 0 and L["Connection test: you are not in a guild or group."]
+                or (L["Connection test: %d other Pastime user(s) answered."]):format(n))
+        end
+        win.step:SetText((L["Done: %d problem(s)"]):format(bad))
         table.insert(out, 1, ("Pastime self-test: %d problem(s)"):format(bad))
         ns.selfTest = nil
         ns.Log(bad > 0 and "W" or "I", "selbsttest", "%d problem(s)", bad)
