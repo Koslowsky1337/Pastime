@@ -275,6 +275,19 @@ local function InitDB()
     rekey(ns.DB.scores); rekey(st.games); rekey(ns.DB.modes)
     for _, r in pairs(ns.DB.routes) do if type(r) == "table" then rekey(r.scores) end end
     ns.DB.lastGame = RENAMED[ns.DB.lastGame] or ns.DB.lastGame
+    -- bis 1.1 standen auch Läufe in den Listen, die nie über die 100 Gold Startkapital kamen
+    local function unbust(t)
+        if type(t) ~= "table" then return end
+        for _, id in ipairs({ "blackjack", "slots", "drawpoker", "higherlower", "roulette", "holdem" }) do
+            local list = type(t[id]) == "table" and t[id] or {}
+            for i = #list, 1, -1 do
+                if type(list[i]) ~= "table" or (tonumber(list[i].s) or 0) <= 100 then table.remove(list, i) end
+            end
+            if #list == 0 then t[id] = nil end
+        end
+    end
+    unbust(ns.DB.scores)
+    for _, r in pairs(ns.DB.routes) do if type(r) == "table" then unbust(r.scores) end end
     ns.DB.logSession = (tonumber(ns.DB.logSession) or 0) + 1
     ns.session = ns.DB.logSession
     for _, e in ipairs(pending) do e.s = ns.session; table.insert(ns.DB.log, e) end

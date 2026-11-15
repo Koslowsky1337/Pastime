@@ -47,7 +47,8 @@ function Game:Clear()
 end
 
 function Game:Start()
-    self.chip, self.last, self.pos, self.number, self.history = 1, nil, 0, nil, {}
+    local last = self:Purse().last      -- die Chips der letzten Runde überstehen das Schließen
+    self.chip, self.last, self.pos, self.number, self.history = 1, type(last) == "table" and last or nil, 0, nil, {}
     self:OpenRun()
 end
 
@@ -93,10 +94,16 @@ function Game:Spin()
     if self.bet == 0 then
         -- nichts gesetzt: die Chips der letzten Runde noch einmal legen, soweit das Gold reicht
         for spot, amount in pairs(self.last or {}) do self:Put(spot, amount) end
-        if self.bet == 0 then return end
+        if self.bet == 0 then
+            -- dafür reicht das Gold nicht mehr: die alten Chips vergessen
+            self.last, self:Purse().last = nil, nil
+            self:Hint()
+            return self:Render()
+        end
     end
     self.last = {}
     for spot, amount in pairs(self.bets) do self.last[spot] = amount end
+    self:Purse().last = self.last
     self.final = math.random(0, 36)
     self.from = self.pos % 37 + math.random(0, 36)      -- die Kugel wird irgendwo eingeworfen
     self.state, self.spin, self.pos = "spin", 0, self.from
@@ -165,6 +172,7 @@ function Game:Render()
         b:SetText((i == self.chip and "> " or "") .. (L["Chip %d (%d)"]):format(amounts[i], i))
     end
     self.spinBtn:SetShown(betting)
+    self.spinBtn:SetText(self.bet == 0 and self.last and L["Repeat bets (Space)"] or L["Spin (Space)"])
     self.cashBtn:SetEnabled(betting and self.bet == 0 and (self.gold or 0) > self.START_GOLD)
 end
 

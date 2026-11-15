@@ -3,7 +3,11 @@
 ## 1.2.0
 
 - Goblin Slots, Goblin Blackjack, Goblin Poker and Higher or Lower: you now set your bet once (10, 25, 50, 100, 250 … up to your gold) with 1 and 2 or the – and + buttons, 3 picks the highest, and Space plays. The bet stays for the next round and is remembered.
-- Goblin Slots: auto-spin. Press A or the button and the machine keeps spinning at your bet until you switch it off or run out of gold.
+- Goblin Slots: auto-spin. Press A or the button and the machine plays 20 spins at your bet. It stops early when free spins hit, when you switch it off or when you run out of gold.
+- Goblin Slots: three, four or five runes now also pay 1, 5 or 20 times your bet on the spot. The line pays were lowered slightly; the payout rate stays at about 96 %.
+- Goblin Roulette: the spin button offers “Repeat bets” when the table is empty, and your last bets survive closing the window.
+- Tavern Hold'em: closing the window in the middle of a hand keeps the hand exactly as it was; it continues when you come back.
+- Gold games: a run that never got above the 100 gold you start with is no longer entered in the records, and such old entries are removed.
 
 ## 1.1.0
 

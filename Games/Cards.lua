@@ -337,6 +337,7 @@ function Gamble:EndRun(res)
     local p = self:Purse()
     p.gold, p.peak = START_GOLD, START_GOLD
     res.score = self.peak
+    if self.peak <= START_GOLD then res.submit = false end      -- nie über dem Startgold: nichts zu werten
     res.text = res.text .. "\n" .. (L["You start again with %d gold."]):format(START_GOLD)
     return self.host:Over(res)
 end

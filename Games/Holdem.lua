@@ -125,12 +125,17 @@ function Game:Clear()
     self.stacks = nil
 end
 
--- Der Tisch bleibt über einen Neustart erhalten (Stand nach der letzten Hand).
--- shortcut: wer mitten in einer Hand geht, bekommt den Stand vor dieser Hand zurück; bei Bedarf den Einsatz der Hand abziehen
+-- Der Tisch bleibt über Schließen und Neustart erhalten – auch mitten in einer Hand: dann liegt
+-- sie beim nächsten Öffnen genau so wieder da (Karten, Töpfe, wer dran ist).
+local HAND = { "holes", "comm", "folded", "allin", "says", "reveal", "c", "r", "acted", "raises", "street", "cur", "seat", "state" }
 function Game:SaveTable()
     local t = nil
     if self.stacks then
         t = { stacks = { unpack(self.stacks) }, button = self.button, hands = self.hands, buyin = self.buyin }
+        if self.state == "act" or self.state == "bots" or self.state == "runout" then
+            t.hand = {}
+            for _, k in ipairs(HAND) do t.hand[k] = self[k] end
+        end
     end
     self:Purse().table = t
 end
@@ -147,6 +152,11 @@ function Game:Start()
         self.state = "between"
         self.msg:SetText(L["Back at the table."])
         self.sub:SetText("")
+        if type(t.hand) == "table" and type(t.hand.holes) == "table" and type(t.hand.c) == "table" then
+            for _, k in ipairs(HAND) do self[k] = t.hand[k] end
+            self.wait = 0.9
+            if self.state == "act" then self.sub:SetText(L["Your turn."]) end
+        end
         return self:Render()
     end
     p.table = nil
@@ -206,6 +216,7 @@ function Game:Advance()
             else
                 self.state, self.wait = "bots", 0.7
             end
+            self:SaveTable()
             return self:Render()
         end
         self.seat = s % SEATS + 1
@@ -220,6 +231,7 @@ function Game:EndRound()
     if can <= 1 then
         -- höchstens einer kann noch setzen: die restlichen Karten werden einfach aufgedeckt
         self.state, self.wait, self.reveal = "runout", 0.9, true
+        self:SaveTable()
         return self:Render()
     end
     self.street = self.street + 1
@@ -349,6 +361,7 @@ function Game:Update(dt)
         if self.wait <= 0 then
             if self.street == 4 then return self:Showdown() end
             self.street, self.wait = self.street + 1, 0.9
+            self:SaveTable()
             self.host:Sound("click")
             self:Render()
         end
