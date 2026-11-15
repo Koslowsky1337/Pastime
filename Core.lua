@@ -132,11 +132,13 @@ function ns.SessionErrors()
     return n
 end
 
-function ns.FormatLog(maxLines, onlyProblems, withRecent)
+function ns.FormatLog(maxLines, onlyProblems, withRecent, since)
     local log = ns.DB and ns.DB.log or {}
     local list = {}
     for _, e in ipairs(log) do
-        if not onlyProblems or e.l == "E" or e.l == "W" then table.insert(list, e) end
+        local problem = e.l == "E" or e.l == "W"
+        -- since: aus Sitzungen davor nur Fehler und Warnungen
+        if (not onlyProblems or problem) and (not since or problem or (e.s or 0) >= since) then table.insert(list, e) end
     end
     if withRecent then
         -- Kurzzeitspeicher an der richtigen Stelle einsortieren (beide Listen sind zeitlich geordnet)

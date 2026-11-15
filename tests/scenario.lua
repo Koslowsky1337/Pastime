@@ -593,6 +593,12 @@ ns.Log("I", "test", "Besuch von Fremdername und " .. ns.playerName)
 local report = ns.DiagReport()
 check(not report:find(ns.playerName, 1, true) and not report:find("Fremdername", 1, true) and report:find("Besuch von Char%d and Char%d") == nil
     and report:find("Besuch von Char%d und Char%d"), "Bericht: Charakternamen sind ersetzt")
+local oldInfo = { d = "2020-01-01 00:00:00", t = 1, l = "I", c = "alt", m = "uralte Info", s = -5 }
+local oldWarn = { d = "2020-01-01 00:00:00", t = 1, l = "W", c = "alt", m = "uralte Warnung", s = -5 }
+table.insert(PastimeDB.log, 1, oldWarn); table.insert(PastimeDB.log, 1, oldInfo)
+local trimmed = ns.DiagReport()
+check(not trimmed:find("uralte Info", 1, true) and trimmed:find("uralte Warnung", 1, true), "Bericht: aus alten Sitzungen nur Fehler und Warnungen")
+table.remove(PastimeDB.log, 1); table.remove(PastimeDB.log, 1)
 check(report:find("Kaputt: 3× since", 1, true) and report:find("== Log", 1, true), "Bericht: nennt fehlgeschlagene Client-Aufrufe und das Protokoll")
 PastimeDB.scores.kodo = nil
 table.remove(PastimeDB.log, posE)      -- der Testfehler soll die Fehlerprüfung am Ende nicht stören

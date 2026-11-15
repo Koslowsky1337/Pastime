@@ -214,8 +214,8 @@ function ns.DiagReport()
         end
     end
     add("")
-    add("== Log (last 120 entries, with the debug lines of the last minutes) ==")
-    add(ns.FormatLog(120, false, true))
+    add("== Log (this session and the one before, older errors and warnings; max. 120 lines) ==")
+    add(ns.FormatLog(120, false, true, (ns.session or 1) - 1))
     return ns.Anonymize(table.concat(out, "\n"))
 end
 
