@@ -615,6 +615,25 @@ print("---- Debug-Fenster ----")
 for line in dtext:gmatch("[^\n]+") do print("  " .. line:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
 
 -- Fehlerfreiheit ---------------------------------------------------------------
+-- Reiter „Einstellungen“: dieselben Schalter wie im Addon-Menü
+ns.ShowFrame("settings")
+local sv = ns.settingsView
+check(sv:IsShown() and not ns.launcher:IsShown() and #sv.checks == 5, "Einstellungen: der Reiter zeigt fünf Schalter (" .. #sv.checks .. ")")
+local was = PastimeDB.settings.sound
+check(sv.checks[4]:GetChecked() == was, "Einstellungen: der Haken zeigt den gespeicherten Wert")
+sv.checks[4]:SetChecked(not was)
+sv.checks[4].scripts.OnClick(sv.checks[4])
+check(PastimeDB.settings.sound == not was, "Einstellungen: ein Klick ändert die Einstellung")
+sv.checks[4]:SetChecked(was)
+sv.checks[4].scripts.OnClick(sv.checks[4])
+sv.checks[5]:SetChecked(false)
+sv.checks[5].scripts.OnClick(sv.checks[5])
+check(PastimeDB.minimap.hidden == true, "Einstellungen: der Minimap-Knopf lässt sich ausblenden")
+sv.checks[5]:SetChecked(true)
+sv.checks[5].scripts.OnClick(sv.checks[5])
+ns.frame.tabs[1].scripts.OnClick(ns.frame.tabs[1])
+check((ns.launcher:IsShown() or ns.gameView:IsShown()) and not sv:IsShown(), "Einstellungen: der Reiter „Spiele“ führt zurück")
+
 local errs = {}
 for _, e in ipairs(PastimeDB.log) do if e.l == "E" then table.insert(errs, e.c .. ": " .. e.m) end end
 check(#errs == 0, "keine Fehler im Protokoll:\n  " .. table.concat(errs, "\n  "))

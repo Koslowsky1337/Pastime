@@ -641,3 +641,4 @@ L["3 runes anywhere: %d free spins · 4 runes: %d free spins"] = "3 Runen irgend
 L["%d gold back"] = "%d Gold zurück"
 L["Payouts as multiples of your bet. Left: 2 · 3 · 4 · 5 of a kind on a line. Right in gold: the bonus symbol on 3 · 4 · 5 reels in a free spin."] = "Gewinne als Vielfaches deines Einsatzes. Links: 2 · 3 · 4 · 5 gleiche auf einer Linie. Rechts in Gold: das Bonussymbol auf 3 · 4 · 5 Walzen im Freispiel."
 L["A newer version of Pastime is available: %s (you have %s). Update it with your addon manager."] = "Es gibt eine neuere Version von Pastime: %s (du hast %s). Aktualisiere sie über deinen Addon-Manager."
+L["Settings"] = "Einstellungen"

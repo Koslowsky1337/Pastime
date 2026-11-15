@@ -135,6 +135,10 @@ ns.ShowLauncher()      -- die lange Strecke bleibt: Liste und Titel der Reiserek
 ns.ShowFrame("records")
 scan("Reiserekorde")
 
+-- 6. Einstellungen
+ns.ShowFrame("settings")
+scan("Einstellungen")
+
 for _, f in ipairs(found) do print("FEHLER: " .. f) end
 
 -- Gegenprobe: ein zu langer Knopftext muss auffallen, sonst ist der Prüfer blind

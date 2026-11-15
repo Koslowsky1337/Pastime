@@ -14,6 +14,8 @@ local OPTIONS = {
     { key = "sound", tip = L["Sounds for points, lines and game over."] },
 }
 
+ns.OPTIONS = OPTIONS      -- der Reiter „Einstellungen“ im Fenster zeigt dieselben Schalter
+
 local function Changed()
     if ns.UpdateUI then ns.UpdateUI() end
 end

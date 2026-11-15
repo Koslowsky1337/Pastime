@@ -1099,7 +1099,62 @@ local function SavePosition(f)
     ns.DB.frame = { point = point, relPoint = relPoint, x = x, y = y }
 end
 
-local TABS = { { "spiele", L["Games"] }, { "records", L["Route records"] } }
+---------------------------------------------------------------------------
+-- Einstellungen als Reiter: dieselben Schalter wie im Addon-Menü (Options.lua),
+-- jeder mit seiner Erklärung darunter
+---------------------------------------------------------------------------
+local function CreateSettingsView(parent)
+    local v = CreateFrame("Frame", nil, parent)
+    v:SetAllPoints()
+    local box = ns.CreateInset(v)
+    box:SetPoint("TOPLEFT", 16, -30)
+    box:SetPoint("BOTTOMRIGHT", -16, 16)
+    v.checks = {}
+    local y = -14
+    local function row(label, tip, get, set)
+        local c = ns.CreateCheck(box, label, function(_, on)
+            set(on)
+            ns.UpdateUI()
+            if ns.RefreshSettings then ns.RefreshSettings() end
+        end)
+        c:SetPoint("TOPLEFT", 14, y)
+        c.get = get
+        local text = ns.FontString(box, "GameFontHighlightSmall", "LEFT")
+        text:SetPoint("TOPLEFT", box, "TOPLEFT", 44, y - 24)
+        text:SetWidth(W - 32 - 64)
+        text:SetText(tip)
+        text:SetTextColor(0.75, 0.75, 0.75)
+        v.checks[#v.checks + 1] = c
+        y = y - 58
+    end
+    for _, o in ipairs(ns.OPTIONS or {}) do
+        local key = o.key
+        row(ns.SETTING_LABELS[key] or key, o.tip,
+            function() return ns.DB.settings[key] and true or false end,
+            function(on) ns.DB.settings[key] = on end)
+    end
+    row(L["Minimap button"], L["Shows the dice button at the minimap. Left-click opens the game collection, right-click these settings."],
+        function() return not ns.DB.minimap.hidden end,
+        function(on)
+            ns.DB.minimap.hidden = not on
+            if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end
+        end)
+    v.report = ns.CreateButton(box, L["Create bug report"], 200, function() ns.ShowReport() end)
+    v.report:SetPoint("BOTTOMLEFT", 14, 14)
+    ns.SetTooltip(v.report, L["Create bug report"], L["Opens a report with the recent log to copy into a GitHub issue. Character names are replaced."])
+    local version = ns.FontString(box, "GameFontDisableSmall", "RIGHT")
+    version:SetPoint("BOTTOMRIGHT", -14, 18)
+    version:SetText("Pastime " .. tostring(ns.VERSION))
+    return v
+end
+
+function ns.UpdateSettingsView()
+    local v = ns.settingsView
+    if not (v and v:IsShown()) then return end
+    for _, c in ipairs(v.checks) do c:SetChecked(c.get()) end
+end
+
+local TABS = { { "spiele", L["Games"] }, { "records", L["Route records"] }, { "settings", L["Settings"] } }
 
 function ns.CreateMainFrame()
     if ns.frame then return ns.frame end
@@ -1145,6 +1200,8 @@ function ns.CreateMainFrame()
     ns.gameView:Hide()
     ns.records = CreateRecords(f)
     ns.records:Hide()
+    ns.settingsView = CreateSettingsView(f)
+    ns.settingsView:Hide()
 
     -- Reiter unten (wie im Charakterfenster)
     f.tabs = {}
@@ -1157,8 +1214,8 @@ function ns.CreateMainFrame()
         if PanelTemplates_TabResize then ns.Try("PanelTemplates_TabResize", PanelTemplates_TabResize, tab, 0) end
         tab:SetScript("OnClick", ns.Wrap("reiter", function(self)
             ns.PlaySound("click")
-            if self.key == "records" then
-                ns.ShowView("records")
+            if self.key == "records" or self.key == "settings" then
+                ns.ShowView(self.key)
             else
                 ns.ShowView((ns.run and ns.run.state ~= "over") and "game" or "launcher")
             end
@@ -1192,9 +1249,10 @@ function ns.ShowView(which)
     ns.launcher:SetShown(which == "launcher")
     ns.gameView:SetShown(which == "game")
     ns.records:SetShown(which == "records")
+    ns.settingsView:SetShown(which == "settings")
     ns.view = which
     for _, tab in ipairs(ns.frame.tabs) do
-        local active = (tab.key == "records") == (which == "records")
+        local active = tab.key == which or (tab.key == "spiele" and (which == "launcher" or which == "game"))
         if PanelTemplates_SelectTab and PanelTemplates_DeselectTab then
             if active then PanelTemplates_SelectTab(tab) else PanelTemplates_DeselectTab(tab) end
         end
@@ -1212,8 +1270,8 @@ end
 function ns.ShowFrame(view)
     local f = ns.CreateMainFrame()
     local unfinished = ns.run and ns.run.state ~= "over"
-    if view == "records" then
-        ns.ShowView("records")
+    if view == "records" or view == "settings" then
+        ns.ShowView(view)
     else
         ns.ShowView(unfinished and "game" or "launcher")
         if not unfinished then ns.run = nil end
@@ -1230,6 +1288,7 @@ function ns.UpdateUI()
     ns.Safe("auswahl", ns.UpdateLauncher)
     ns.Safe("seitenleiste", ns.UpdateSidePanel)
     ns.Safe("reiserekorde", ns.UpdateRecords)
+    ns.Safe("einstellungen", ns.UpdateSettingsView)
     ns.UpdateKeyboard()
 end
 
