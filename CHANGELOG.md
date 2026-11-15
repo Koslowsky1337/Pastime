@@ -2,7 +2,10 @@
 
 ## 1.3.0
 
-- Goblin Slots: free spins now come with a bonus symbol. When free spins hit you get a fanfare, then you press Space to spin the middle reel for your bonus symbol, and after that each Space plays one free spin (or switch on auto-spin for them). Whenever it lands on three or more reels during a free spin, it fills those reels and pays for that many of a kind, gaps or not. Five reels fill the whole screen. To make room, runes now give 4, 7 or 10 free spins and the line pays were lowered slightly; the payout rate stays at about 96 %.
+- Goblin Slots, free spins reworked. The rune is now the wild symbol (the coin no longer is) and still the scatter: at most one per reel, three runes pay 2 times your bet and give 10 free spins, four pay 10 times and give 20.
+- Goblin Slots: when free spins hit you hear a fanfare and nothing spins on its own. You press Space to spin the middle reel for your bonus symbol, see it on its own, and then each Space plays one free spin (or switch on auto-spin for them).
+- Goblin Slots: whenever the bonus symbol lands on three or more reels in a free spin, those reels fill up with it field by field and pay for that many of a kind, gaps or not. Five reels fill the whole screen. Runes during free spins extend them and let you draw a second bonus symbol; both then pay.
+- Goblin Slots: big wins count up instead of just appearing. The pay table moved into the rules (button on the right) and is shown as multiples of your bet; below the reels you only see what the rune does. Line pays were adjusted; the payout rate stays at about 96 %.
 
 ## 1.2.0
 

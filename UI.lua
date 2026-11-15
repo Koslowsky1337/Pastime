@@ -188,7 +188,9 @@ function ns.ShowRules()
     if not run then return end
     ns.Pause()
     if run.state ~= "paused" or ns.overlay.kind ~= "pause" then return end      -- Spielende und Ankunft behalten ihren Dialog
-    ns.ShowOverlay("pause", L["Rules"], run.def.desc .. "\n\n|cffffd100" .. run.def.controls .. "|r")
+    -- manche Spiele hängen Eigenes an (der Automat seinen Gewinnplan)
+    ns.ShowOverlay("pause", L["Rules"], run.def.desc .. (run.def.rules and ("\n\n" .. run.def.rules()) or "")
+        .. "\n\n|cffffd100" .. run.def.controls .. "|r")
 end
 
 function ns.Resume()

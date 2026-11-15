@@ -28,8 +28,8 @@ Stand: `v1.2.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 - [x] Jackpot über alle sechs Goldspiele: 10 % jedes Verlusts, je Spiel ein seltener Auslöser (rund 1 zu 1.000 bis 3.400), Tooltip erklärt ihn
 - [x] Tagesaufgabe: ein Spiel pro Tag mit Ziel in der Fußzeile der Spielauswahl, Klick startet, Serie über aufeinanderfolgende Tage
 - [ ] **Im Spiel prüfen (nach 1.2):** Jackpot-Anzeige oben links in allen sechs Goldspielen samt Tooltip; Tagesaufgabe rechts in der Fußzeile, Klick startet das Spiel, Chat-Meldung beim Erreichen
-- [x] Goblin-Automat: Freispiele mit Bonussymbol, das ganze Walzen füllt (für 1.3; Freispiele 4/7/10, Quote 96,7 %)
-- [ ] **Im Spiel prüfen (für 1.3):** Bonussymbol oben in der Mitte samt Tooltip, Walzen füllen sich im Freispiel, Meldung „Vollbild“
+- [x] Goblin-Automat (für 1.3): Rune ist Joker und Scatter, höchstens eine je Walze (3 = 10 Freispiele, 4 = 20); Bonussymbol von Hand ziehen, Walzen füllen sich Feld für Feld, zweites Symbol bei Verlängerung; große Gewinne zählen hoch; Gewinnplan in den Spielregeln (Quote 96,4 %)
+- [ ] **Im Spiel prüfen (für 1.3):** Fanfare beim Runen-Treffer hörbar? Ziehen des Bonussymbols (nur mittlere Walze, dann nur das Symbol); Auffüllen Feld für Feld; zweites Symbol nach Verlängerung; Hochzählen; Spielregeln mit Gewinnplan passen ins Fenster 📸
 - [ ] Tagesziele nach ein paar Tagen Spielen nachjustieren (`ns.DAILY` in `Core.lua`; Werte sind geschätzt)
 
 ## 3. Später
