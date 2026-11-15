@@ -227,6 +227,8 @@ local DEFAULTS = {
     frame = false, lastGame = false, debug = false, log = {}, logSession = 0,
     blackjack = { gold = 100, peak = 100 },   -- Goblin-Gold bleibt zwischen Partien erhalten
     purses = {},                              -- dasselbe für die übrigen Glücksspiele: purses[id] = { gold, peak }
+    jackpot = 1000,                           -- gemeinsamer Topf aller Glücksspiele (ns.Gamble)
+    daily = {},                               -- Tagesaufgabe: { last = Tag der letzten erledigten, streak = Serie }
 }
 
 local function fill(t, defaults)
@@ -409,9 +411,52 @@ local function validScore(def, score)
     return score > 0 and score or nil
 end
 
+---------------------------------------------------------------------------
+-- Tagesaufgabe: jeden Tag ein Spiel mit einem Ziel. Zahl = mindestens so viele Punkte,
+-- true = eine gewertete Partie (gewinnen oder lösen). An aufeinanderfolgenden Tagen
+-- erledigt, wächst die Serie.
+---------------------------------------------------------------------------
+ns.DAILY = {
+    snake = 300, windrider = 15, kodo = 200, kobold = 300, angeln = 300, rockfall = 2000, wallbreaker = 500, murlocs = 1000,
+    totemecho = 8, runepairs = true, code = true, wortraten = true, fourinarow = true, minen = true, ["2048"] = 3000,
+    edelsteine = 800, taverndice = 150, solitaer = true,
+    blackjack = 500, slots = 500, drawpoker = 500, higherlower = 500, roulette = 500, holdem = 500,
+}
+
+local function dayNumber()
+    local t = date("*t")
+    return math.floor(time({ year = t.year, month = t.month, day = t.day, hour = 12 }) / 86400)
+end
+
+-- Spiel des Tages, sein Ziel, ob heute schon erledigt, und die laufende Serie
+function ns.Daily()
+    local day, list = dayNumber(), {}
+    for _, g in ipairs(ns.games) do if ns.DAILY[g.id] then list[#list + 1] = g end end
+    local def = list[(day * 7) % #list + 1]      -- 7 ist teilerfremd zu 24: die Spiele wechseln quer durch die Liste
+    local d = ns.DB.daily
+    local streak = (d.last == day or d.last == day - 1) and tonumber(d.streak) or 0
+    return def, ns.DAILY[def.id], d.last == day, streak
+end
+
+function ns.DailyGoalText(def, goal)
+    if goal == true then return L["win a round"] end
+    return ("%s: %s+"):format(def.scoreLabel or L["Points"], ns.FormatScore(def, goal))
+end
+
+local function dailyCheck(def, score)
+    local today, goal, done = ns.Daily()
+    if done or def ~= today or (goal ~= true and score < goal) then return end
+    local d, day = ns.DB.daily, dayNumber()
+    d.streak = d.last == day - 1 and (tonumber(d.streak) or 0) + 1 or 1
+    d.last = day
+    ns.PlaySound("record")
+    ns.Print((L["Daily task done: %s! Streak: %d"]):format(def.name, d.streak))
+end
+
 function ns.SubmitScore(def, mode, score)
     score = validScore(def, score)
     if not score then return nil end
+    dailyCheck(def, score)
     local rank, personal = insertScore(def, ns.GetScores(def, mode), score, MAX_SCORES)
     ns.Log("I", "rekord", "%s%s: %s (rank %s)", def.name, mode and (" " .. mode) or "", tostring(score), tostring(rank))
     return rank, personal

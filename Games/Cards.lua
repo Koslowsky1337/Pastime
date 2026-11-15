@@ -264,6 +264,44 @@ function Gamble:Play()
     self:Deal(amount)
 end
 
+-- Jackpot: ein Topf für alle Glücksspiele. Ein Hundertstel jedes Einsatzes fließt hinein;
+-- jedes Spiel hat ein seltenes Ereignis (rund eines in 1.000 bis 3.500 Runden), bei dem er fällt.
+local JACKPOT_START = 1000
+function Gamble.Feed(amount)
+    ns.DB.jackpot = math.max(JACKPOT_START, (tonumber(ns.DB.jackpot) or JACKPOT_START) + amount * 0.01)
+end
+
+-- Der Jackpot fällt: sofort aufs Gold, der Topf beginnt von vorn. Die Anzeige oben links meldet
+-- den Gewinn, bis wieder gesetzt wird.
+function Gamble:Jackpot()
+    local pot = math.floor(tonumber(ns.DB.jackpot) or JACKPOT_START)
+    ns.DB.jackpot = JACKPOT_START
+    self.gold = self.gold + pot
+    self.peak = math.max(self.peak, self.gold)
+    self.score = self.peak
+    self.jackWon = pot
+    self:Save()
+    self.host:Sound("record")
+    ns.Log("I", "jackpot", "%s: %d", tostring(self.id or "blackjack"), pot)
+    return pot
+end
+
+-- how: wobei der Jackpot in diesem Spiel fällt (steht im Tooltip)
+function Gamble.JackpotText(g, board, how)
+    g.jackText = ns.FontString(board, "GameFontNormal", "LEFT")
+    g.jackText:SetPoint("TOPLEFT", 10, -8)
+    local hit = CreateFrame("Frame", nil, board)
+    hit:SetPoint("TOPLEFT", 6, -4)
+    hit:SetSize(130, 18)
+    hit:EnableMouse(true)
+    ns.SetTooltip(hit, L["Jackpot"], (L["One hundredth of every bet in the gold games goes into this pot. It falls on %s."]):format(how))
+end
+
+function Gamble.ShowJackpot(self)
+    self.jackText:SetText(self.jackWon and (L["|cff80ff80JACKPOT! +%d gold|r"]):format(self.jackWon)
+        or (L["Jackpot: |cffffffff%d|r"]):format(math.floor(tonumber(ns.DB.jackpot) or JACKPOT_START)))
+end
+
 function Gamble:Purse()
     local p = ns.DB.purses[self.id]
     if type(p) ~= "table" then p = {}; ns.DB.purses[self.id] = p end
@@ -287,7 +325,7 @@ function Gamble:OpenRun()
 end
 
 function Gamble:Betting()
-    self.state, self.bet = "bet", 0
+    self.state, self.bet, self.jackWon = "bet", 0, nil
     if self.Clear then self:Clear() end
     self.msg:SetText(L["Place your bet!"])
     self.sub:SetText((L["Best this run: %d gold"]):format(self.peak))
@@ -297,6 +335,7 @@ end
 function Gamble:Spend(amount)
     self.gold = self.gold - amount
     self.bet = self.bet + amount
+    Gamble.Feed(amount)
     self:Save()
 end
 
@@ -375,6 +414,7 @@ end
 function Gamble:BaseRender()
     self.goldText:SetText((L["Goblin gold: |cffffffff%d|r%s"]):format(self.gold or 0,
         (self.bet or 0) > 0 and (L["  ·  Bet: %d"]):format(self.bet) or ""))
+    Gamble.ShowJackpot(self)
     local betting = self.state == "bet"
     if self.STAKE then
         Gamble.StakeButtons(self, betting)
@@ -432,6 +472,7 @@ function Gamble.New(class, host, board, id, msgY)
     g.sub:SetWidth(380)
     g.goldText = ns.FontString(board, "GameFontNormal", "RIGHT")
     g.goldText:SetPoint("TOPRIGHT", -10, -8)
+    Gamble.JackpotText(g, board, class.JACKPOT)
     if class.STAKE then
         g.betButtons[1] = g:Button("", 64, 8, function() g:Stake(-1) end)
         g.betButtons[2] = g:Button("", 264, 78, function() g:Play() end)

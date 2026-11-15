@@ -13,6 +13,8 @@ local BLIND_HANDS = 5   -- nach so vielen Händen verdoppeln sich die Blinds
 local Game = setmetatable({}, { __index = ns.Gamble })
 Game.__index = Game
 
+Game.JACKPOT = L["a pot won with four of a kind or a straight flush"]
+
 -- tight: wie gut die Chancen sein müssen, um mitzugehen · aggr: wie gern er erhöht · bluff: Anteil der Bluffs
 Game.BOTS = {
     { name = L["Gnome"], tight = 0.6, aggr = 0.7, bluff = 0.02 },
@@ -182,6 +184,7 @@ end
 
 function Game:NewHand()
     if self.state ~= "between" and self.state ~= "bet" then return end
+    self.jackWon = nil
     local deck = Cards.Shuffle(Cards.NewDeck())
     self.holes, self.comm, self.folded, self.allin, self.says, self.reveal = {}, {}, {}, {}, {}, false
     self.c, self.r, self.acted, self.raises, self.street = { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, {}, 0, 1
@@ -315,6 +318,8 @@ function Game:Showdown()
         end
     end
     local wins, main = Game.Split(self.c, self.folded, score)
+    -- Jackpot: den Topf mit einem Vierling oder Straight Flush gewinnen (rund jede 1.100. Hand)
+    if cat1 and cat1 >= 8 and main[1] == 1 then self:Jackpot() end
     for s = 1, SEATS do self.stacks[s] = self.stacks[s] + wins[s] end
     local text
     if wins[1] > 0 and main[1] == 1 then

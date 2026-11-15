@@ -8,6 +8,8 @@ local CELL_W, CELL_H, X0, Y0 = 28, 30, 28, 34
 local Game = setmetatable({}, { __index = ns.Gamble })
 Game.__index = Game
 
+Game.JACKPOT = L["two hits in a row with a single number as your only bet"]
+
 local RED = {}
 for _, n in ipairs({ 1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36 }) do RED[n] = true end
 Game.RED = RED
@@ -131,6 +133,13 @@ function Game:Update(dt)
     n = self.final
     self.number, self.pos = n, SLOT[n]
     for spot, amount in pairs(self.bets) do win = win + Game.Payout(spot, n, amount) end
+    -- Jackpot: zweimal hintereinander getroffen, während nur eine einzige Zahl belegt war (1 zu 1.369)
+    local spot = next(self.bets)
+    self.solo = (spot == n and next(self.bets, spot) == nil) and (self.solo or 0) + 1 or 0
+    if self.solo >= 2 then
+        self.solo = 0
+        self:Jackpot()
+    end
     table.insert(self.history, 1, n)
     self.history[HISTORY + 1] = nil
     self:Pay(win, win > 0 and L["The ball is kind to you."] or L["The goblin rakes in the chips."], 2.2)
@@ -216,7 +225,7 @@ local function Create(host, board)
     -- Überschrift, keine Kästchen – sonst sehen sie aus wie Felder zum Setzen.
     g.hist, g.history = {}, {}
     local head = ns.FontString(board, "GameFontDisableSmall", "LEFT")
-    head:SetPoint("TOPLEFT", board, "TOPLEFT", 4, -(Y0 - 14))
+    head:SetPoint("TOPLEFT", board, "TOPLEFT", 4, -(Y0 - 11))      -- unter der Jackpot-Anzeige
     head:SetText(L["Last"])
     for i = 1, HISTORY do
         local fs = ns.FontString(board, i == 1 and "GameFontNormal" or "GameFontHighlightSmall", "CENTER")

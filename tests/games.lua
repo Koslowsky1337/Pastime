@@ -509,6 +509,25 @@ tick(2)
 check(over() and best("blackjack") == 2000, "Blackjack: pleite – Höchststand 2000 gewertet")
 check(PastimeDB.blackjack.gold == 100 and PastimeDB.blackjack.peak == 100, "Blackjack: neuer Lauf mit 100 Gold")
 check(ns.overlay.text.text:find(ns.gamesById.blackjack.scoreLabel, 1, true), "Blackjack: Spielende zeigt den höchsten Goldstand")
+PastimeDB.scores.blackjack = nil
+g = start("blackjack")
+g.gold, g.peak, g.bet, g.state, g.t = 0, 100, 10, "result", 0.1
+tick(0.3)
+check(over() and best("blackjack") == nil, "Blackjack: pleite mit Höchststand 100 wird nicht gewertet")
+-- Jackpot: ein Hundertstel jedes Einsatzes fließt in den Topf; Pik-Ass und Pik-Bube holen ihn
+PastimeDB.jackpot = 1000
+PastimeDB.blackjack.gold, PastimeDB.blackjack.peak = 400, 400
+g = start("blackjack")
+check(g.jackText.text:find("1000", 1, true), "Blackjack: der Jackpot steht oben links")
+g.deck = { { rank = 2, suit = 1 }, { rank = 3, suit = 1 }, { rank = 4, suit = 1 }, { rank = 5, suit = 1 }, { rank = 6, suit = 1 }, { rank = 7, suit = 1 },
+    { rank = 8, suit = 1 }, { rank = 9, suit = 1 }, { rank = 2, suit = 2 }, { rank = 3, suit = 2 }, { rank = 4, suit = 2 }, { rank = 5, suit = 2 },
+    { rank = 6, suit = 2 }, { rank = 7, suit = 2 }, { rank = 9, suit = 2 }, { rank = 8, suit = 2 }, { rank = 11, suit = 3 }, { rank = 1, suit = 3 } }
+key("SPACE")
+check(g.jackWon == 1000 and PastimeDB.jackpot == 1000 and g.gold == 400 - 10 + 1000 + 25 and g.jackText.text:find("JACKPOT", 1, true),
+    "Blackjack: Pik-Ass und Pik-Bube holen den Jackpot (dazu der Blackjack 3:2), Gold " .. g.gold)
+tick(3)
+check(g.state == "bet" and g.jackWon == nil and g.jackText.text:find("1000", 1, true), "Blackjack: danach zeigt die Anzeige wieder den Topf")
+PastimeDB.blackjack.gold, PastimeDB.blackjack.peak = 100, 100
 -- Goblin bleibt bei weicher 17 stehen, 18 gegen 17 gewinnt
 g = start("blackjack")
 g.gold, g.bet, g.state, g.t = 90, 10, "dealer", 0
@@ -943,13 +962,16 @@ g:Plan()
 check(g.tease[3] and g.tease[5] and g.stops[5] > 0.9 + 4 * 0.45 + 3, "Automat: vor den Walzen 3 bis 5 dauert es länger, wenn die Münzen passen")
 tick(1.5)
 check(g.state == "spin" and g.hot and g.cells[1][1].glow:IsShown(), "Automat: die passenden Felder leuchten, während die nächste Walze läuft")
+local jp = math.floor(PastimeDB.jackpot)
 tick(6)
-check(g.state == "result" and g.gold == 100 - 10 + 10 * 200 / 5, "Automat: fünf Münzen in der oberen Reihe zahlen 200-fach auf die Linie, Gold " .. g.gold)
+check(g.state == "result" and g.gold == 100 - 10 + 10 * 200 / 5 + jp, "Automat: fünf Münzen in der oberen Reihe zahlen 200-fach auf die Linie, Gold " .. g.gold)
+check(g.jackWon == jp and PastimeDB.jackpot == 1000 and g.jackText.text:find("JACKPOT", 1, true), "Automat: fünf Münzen auf einer Linie holen den Jackpot")
+g.gold = 100; g:Save()
 local dull = { { 1, 2, 3 }, { 2, 3, 1 }, { 3, 1, 2 }, { 1, 2, 3 }, { 2, 3, 1 } }
 check(g.Tease(dull, 3) == nil and g.Tease({ { 1, 2, 3 }, { 1, 3, 1 }, { 4, 1, 2 } }, 3) == nil and g.Tease({ { 5, 2, 3 }, { 5, 3, 1 }, { 4, 1, 2 } }, 3) ~= nil,
     "Automat: Spannung vor Walze 3 nur bei wertvollen Symbolen")
 tick(3.5)
-check(g.state == "bet", "Automat: danach wieder setzen")
+check(g.state == "bet" and g.jackWon == nil, "Automat: danach wieder setzen")
 -- Freispiele: drei Runen irgendwo, die Drehungen laufen von selbst und kosten nichts
 local gold = g.gold
 key("SPACE")
@@ -987,8 +1009,12 @@ key("1")
 check(g:Wager() == 100, "Automat: 1 senkt den Einsatz")
 key("SPACE")
 check(g.state == "spin" and g.bet == 100 and g.gold == 200, "Automat: Leertaste dreht zum eingestellten Einsatz")
+local fed = PastimeDB.jackpot
 g.final = dull; g:Plan(); tick(8)
 check(g.state == "bet" and g:Wager() == 100, "Automat: der Einsatz bleibt für die nächste Drehung stehen")
+g:Play()
+check(math.abs(PastimeDB.jackpot - fed - 1) < 0.001, "Jackpot: ein Hundertstel des Einsatzes (100) fließt in den Topf")
+g.final = dull; g:Plan(); tick(8)
 g.gold = 60; g:Render()
 check(g:Wager() == 50, "Automat: reicht das Gold nicht, gilt die höchste bezahlbare Stufe")
 key("A")
@@ -1020,6 +1046,16 @@ kp = g.Keep(C("2H 7H 9H JH KD"))
 check(kp[1] and kp[4] and not kp[5], "Goblin-Poker: der Goblin behält vier Karten einer Farbe")
 key("SPACE")
 check(g.state == "hold" and #g.hand == 5 and #g.goblin == 5, "Goblin-Poker: je fünf Karten nach dem Grundeinsatz")
+do
+    local jp, gold = math.floor(PastimeDB.jackpot), g.gold
+    g.hand = C("9H 9D 9S 9C 2H"); g.hold = { true, true, true, true, true }
+    g:Swap()
+    check(g.jackWon == nil and g.gold == gold, "Goblin-Poker: ein Vierling aus Neunen holt den Jackpot nicht")
+    g.state = "hold"; g.hand = C("KH KD KS KC 2H"); g.hold = { true, true, true, true, true }
+    g:Swap()
+    check(g.jackWon == jp and g.gold == gold + jp and g.state == "decide", "Goblin-Poker: ein Vierling aus Königen holt den Jackpot")
+    g.jackWon = nil; g.gold = gold; g.state = "hold"
+end
 check(not g.goblinCards[1].face:IsShown(), "Goblin-Poker: die Karten des Goblins liegen verdeckt")
 g.hand = C("JH JD 3S 2C 9H")
 key("1"); key("2")
@@ -1054,7 +1090,16 @@ g.card = { rank = 8, suit = 1 }
 g.pot = 100
 g.deck = C("2H 3H 4H 5H 6H 7H 9H 10H JH QH KH AH")      -- gezogen wird vom Ende: Ass
 key("1")
-check(g.streak == 1 and g.pot == 196, "Höher oder tiefer: Treffer vervielfacht den Topf, Topf " .. g.pot)
+check(g.streak == 1 and g.pot == 196 and g.jackWon == nil, "Höher oder tiefer: Treffer vervielfacht den Topf, Topf " .. g.pot)
+do
+    local jp, gold = math.floor(PastimeDB.jackpot), g.gold
+    g.card = { rank = 8, suit = 1 }
+    g.pot = 6000      -- Einsatz 10: mit dem Treffer über dem 1000-Fachen
+    g.deck = C("2H 3H 4H 5H 6H 7H 9H 10H JH QH KH AH")
+    key("1")
+    check(g.jackWon == jp and g.gold == gold + jp and g.state == "guess", "Höher oder tiefer: der Topf erreicht das 1000-Fache – Jackpot, die Runde läuft weiter")
+    g.gold, g.pot, g.jackWon = gold, 196, nil
+end
 key("3")
 check(g.state == "result" and g.gold == 90 + 196, "Höher oder tiefer: Topf genommen, Gold " .. g.gold)
 PastimeDB.purses.higherlower = { gold = 100, peak = 100 }
@@ -1108,6 +1153,17 @@ g.final = 0
 tick(5)
 g = start("roulette")
 check(g.last and g.last.red == 10 and g.last[17] == 10, "Roulette: die letzten Einsätze überstehen das Schließen")
+do
+    local jp
+    click(17); key("SPACE"); g.final = 17; tick(5)
+    check(g.solo == 1 and g.jackWon == nil, "Roulette: ein Treffer mit einer einzigen Zahl zählt als erster von zweien")
+    tick(3); click(17); click("red"); key("SPACE"); g.final = 17; tick(5)
+    check(g.solo == 0 and g.jackWon == nil, "Roulette: mit weiteren Chips auf dem Tisch zählt der Treffer nicht")
+    tick(3); click(17); key("SPACE"); g.final = 17; tick(5)
+    tick(3); click(17); jp = math.floor(PastimeDB.jackpot + 0.1); key("SPACE"); g.final = 17; tick(5)
+    check(g.jackWon == jp and PastimeDB.jackpot == 1000, "Roulette: zweimal hintereinander allein auf der gefallenen Zahl – Jackpot")
+    tick(3)
+end
 g.last = { red = 5000 }
 key("SPACE")
 check(g.state == "bet" and g.last == nil and g.spinBtn.text == ns.L["Spin (Space)"], "Roulette: reicht das Gold nicht, werden die alten Einsätze vergessen")
@@ -1187,8 +1243,46 @@ math.randomseed(7); local e1 = g:Equity(2)
 g.holes[1] = C("AH AD")
 math.randomseed(7); local e2x = g:Equity(2)
 check(e1 == e2x, "Hold'em: die Einschätzung eines Gegners hängt nicht von deinen Karten ab")
+do
+    local jp, gold = math.floor(PastimeDB.jackpot), g.gold
+    for s = 1, 4 do g.folded[s] = nil end
+    g.holes = { C("AH AD"), C("4H 6D"), C("5H 7D"), C("8H JD") }
+    g.comm = C("AS AC 2H 3D 9S")
+    g.c = { 10, 10, 10, 10 }
+    g:Showdown()
+    check(g.jackWon == jp and g.gold == gold + jp, "Hold'em: der Topf mit einem Vierling gewonnen – Jackpot als Gold")
+end
 PastimeDB.purses.holdem = nil
 ns.ShowLauncher()
+
+-- Tagesaufgabe: ein Spiel mit Ziel, Serie über aufeinanderfolgende Tage
+PastimeDB.daily = {}
+local dd, goal, done, streak = ns.Daily()
+check(dd and ns.DAILY[dd.id] == goal and not done and streak == 0, "Tagesaufgabe: es gibt ein Spiel des Tages mit Ziel")
+for _, def in ipairs(ns.games) do check(ns.DAILY[def.id] ~= nil, "Tagesaufgabe: " .. def.id .. " hat ein Ziel") end
+ns.UpdateUI()
+check(ns.launcher.daily.text.text:find(dd.name, 1, true), "Tagesaufgabe: steht in der Fußzeile der Spielauswahl: " .. tostring(ns.launcher.daily.text.text))
+local other = ns.games[1] == dd and ns.games[2] or ns.games[1]
+ns.SubmitScore(other, ns.DefaultMode(other), 999999)
+if goal ~= true then ns.SubmitScore(dd, ns.DefaultMode(dd), goal - 1) end
+check(not select(3, ns.Daily()), "Tagesaufgabe: ein anderes Spiel oder zu wenig Punkte erledigt sie nicht")
+ns.SubmitScore(dd, ns.DefaultMode(dd), goal == true and 50 or goal)
+dd, goal, done, streak = ns.Daily()
+check(done and streak == 1, "Tagesaufgabe: Ziel erreicht – erledigt, Serie 1")
+ns.SubmitScore(dd, ns.DefaultMode(dd), goal == true and 50 or goal)
+check(select(4, ns.Daily()) == 1, "Tagesaufgabe: zählt nur einmal am Tag")
+ns.UpdateUI()
+check(ns.launcher.daily.text.text == (ns.L["Daily task done · streak: %d"]):format(1), "Tagesaufgabe: die Fußzeile meldet erledigt")
+PastimeDB.daily.last = PastimeDB.daily.last - 1      -- gestern erledigt
+check(not select(3, ns.Daily()) and select(4, ns.Daily()) == 1, "Tagesaufgabe: am nächsten Tag offen, die Serie steht noch")
+ns.SubmitScore(dd, ns.DefaultMode(dd), goal == true and 50 or goal)
+check(select(4, ns.Daily()) == 2, "Tagesaufgabe: an zwei Tagen in Folge – Serie 2")
+PastimeDB.daily.last = PastimeDB.daily.last - 2      -- ein Tag ausgelassen
+check(select(4, ns.Daily()) == 0, "Tagesaufgabe: ein ausgelassener Tag beendet die Serie")
+ns.launcher.daily.scripts.OnClick(ns.launcher.daily)
+check(ns.run and ns.run.def == dd, "Tagesaufgabe: ein Klick startet das Spiel des Tages")
+ns.ShowLauncher()
+PastimeDB.daily = {}
 
 local errs = {}
 for _, e2 in ipairs(PastimeDB.log) do if e2.l == "E" then table.insert(errs, e2.c .. ": " .. e2.m) end end

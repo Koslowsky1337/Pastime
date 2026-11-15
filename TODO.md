@@ -6,7 +6,8 @@ Stand: `v1.1.0` ist veröffentlicht (15.11.), 1.2 ist in Arbeit. Die Prüflisten
 ## 1. Von Hand (GitHub)
 - [x] GitHub-Releases: entstehen automatisch bei jedem Tag (`.github/workflows/release.yml`, mit Zip); v1.0.0, v1.0.1 und v1.1.0 sind nachgeholt
 - [x] Beschreibung auf „24 mini-games“ geändert, neues Social-Preview-Bild hochgeladen (15.11.)
-- [ ] CurseForge-Galerie: Screenshots noch einmal auf Englisch (`/pastime fotos`), danach zuschneiden
+- [x] Englische Screenshots zugeschnitten (15.11., Ordner `Screenshots\Pastime-Galerie`)
+- [ ] Die acht englischen Bilder in die CurseForge-Galerie laden
 - [x] Screenshots für die CurseForge-Galerie (15.11., mit `/pastime fotos`)
 
 ## 2. Version 1.1 (als `v1.1.0` veröffentlicht am 15.11.) und danach
@@ -24,8 +25,10 @@ Stand: `v1.1.0` ist veröffentlicht (15.11.), 1.2 ist in Arbeit. Die Prüflisten
 - [x] Tavernen-Hold'em: die laufende Hand übersteht das Schließen des Fensters
 - [x] Glücksspiele: Pleite ohne je über 100 Gold wird nicht gewertet, alte 100er-Einträge entfernt
 - [ ] **Im Spiel prüfen (für 1.2):** Runengold beim Scatter; Auto-Spin zählt 20 herunter und stoppt bei Freispielen; Roulette-Knopf „Nochmal“; Hold'em mitten in der Hand schließen und wieder öffnen; die 100er-Einträge sind aus den Rekorden weg
-- [ ] Jackpot über die Goblin-Spiele (Regeln noch festlegen)
-- [ ] Tagesaufgabe: ein Spiel pro Tag mit Ziel (Regeln noch festlegen)
+- [x] Jackpot über alle sechs Goldspiele: 1 % jedes Einsatzes, je Spiel ein seltener Auslöser (rund 1 zu 1.000 bis 3.400), Tooltip erklärt ihn
+- [x] Tagesaufgabe: ein Spiel pro Tag mit Ziel in der Fußzeile der Spielauswahl, Klick startet, Serie über aufeinanderfolgende Tage
+- [ ] **Im Spiel prüfen (für 1.2):** Jackpot-Anzeige oben links in allen sechs Goldspielen samt Tooltip; Tagesaufgabe rechts in der Fußzeile, Klick startet das Spiel, Chat-Meldung beim Erreichen
+- [ ] Tagesziele nach ein paar Tagen Spielen nachjustieren (`ns.DAILY` in `Core.lua`; Werte sind geschätzt)
 
 ## 3. Später
 - [x] Arbeitsordner heißt jetzt `Pastime` (15.11.)

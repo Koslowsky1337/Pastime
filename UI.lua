@@ -577,9 +577,22 @@ local function CreateLauncher(parent)
     d.play:SetPoint("BOTTOMRIGHT", -16, 14)
 
     -- Fußzeile: Status + Einstellungen
+    -- rechts die Tagesaufgabe: ein Klick startet das Spiel
+    v.daily = CreateFrame("Button", nil, v)
+    v.daily:SetSize(420, 14)
+    v.daily:SetPoint("BOTTOMRIGHT", -22, 43)
+    v.daily.text = ns.FontString(v.daily, "GameFontNormalSmall", "RIGHT")
+    v.daily.text:SetAllPoints()
+    v.daily.text:SetWordWrap(false)
+    v.daily:SetScript("OnClick", ns.Wrap("tagesaufgabe", function()
+        ns.PlaySound("click")
+        ns.StartGame((ns.Daily()))
+    end))
+    ns.SetTooltip(v.daily, L["Daily task"], L["Every day one game with a goal. Click to play it. Finish it on consecutive days to build a streak."])
     v.status = ns.FontString(v, "GameFontNormalSmall")
     v.status:SetPoint("BOTTOMLEFT", 22, 44)
-    v.status:SetPoint("RIGHT", -22, 0)
+    v.status:SetPoint("RIGHT", v.daily, "LEFT", -12, 0)
+    v.status:SetWordWrap(false)
     v.checks = {}
     local SETTINGS = {
         { "autoOpen", L["Open when travelling"], L["Opens the game collection when you take off from a flight master and when your zeppelin or boat departs. If you didn't play, it closes again when you arrive."] },
@@ -692,6 +705,10 @@ function ns.UpdateLauncher()
         v.status:SetTextColor(0.75, 0.75, 0.75)
     end
     for _, c in ipairs(v.checks) do c:SetChecked(ns.DB.settings[c.key] and true or false) end
+    local daily, goal, done, streak = ns.Daily()
+    v.daily.text:SetText(done and (L["Daily task done · streak: %d"]):format(streak)
+        or (L["Daily task: %s – %s"]):format(daily.name, ns.DailyGoalText(daily, goal)) .. (streak > 0 and (L[" · streak: %d"]):format(streak) or ""))
+    v.daily.text:SetTextColor(done and 0.5 or 1, done and 1 or 0.82, done and 0.5 or 0)
 end
 
 ---------------------------------------------------------------------------

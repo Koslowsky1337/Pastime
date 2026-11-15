@@ -26,6 +26,7 @@ Game.SYMBOLS = {
 }
 local WILD, SCATTER = 6, 7
 Game.STAKE = true
+Game.JACKPOT = L["five rubies or coins on one line"]
 Game.PLAY = L["Spin for %d gold (Space)"]
 Game.FREE = { 5, 8, 12 }
 Game.RUNE_PAY = { 1, 5, 20 }
@@ -241,6 +242,17 @@ function Game:Update(dt)
         self.auto = false
         for k in pairs(runes) do cells[k] = true end
     end
+    -- Jackpot: fünf Rubine oder Münzen auf einer Linie (rund jede 3.400. Drehung)
+    local jack = false
+    for _, line in ipairs(Game.LINES) do
+        local all = true
+        for c = 1, COLS do
+            local s = self.final[c][line[c]]
+            all = all and (s == WILD or s == WILD - 1)
+        end
+        jack = jack or all
+    end
+    if jack then self:Jackpot() end
     self.won = cells
     local text = award and (L["%d free spins!"]):format(award)
         or (sum > 0 and L["Winning line!"] or (self.isFree and (L["Free spins left: %d"]):format(self.free) or L["No luck this time."]))

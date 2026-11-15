@@ -9,6 +9,7 @@ local CW, CH, STEP = 68, 95, 78
 local Game = setmetatable({}, { __index = ns.Gamble })
 Game.__index = Game
 Game.STAKE = true
+Game.JACKPOT = L["a straight flush, or four jacks, queens, kings or aces"]
 
 -- So tauscht der Goblin: Paare und Besseres behalten, sonst vier Karten einer Farbe,
 -- sonst Bube bis Ass. Kein Blick in deine Karten.
@@ -62,6 +63,10 @@ function Game:Swap()
     end
     self.hold = {}
     self.state = "decide"
+    -- Jackpot: Straight Flush, oder ein Vierling aus Buben, Damen, Königen oder Assen (rund 1 zu 1.400)
+    local cat, cnt = Cards.Eval(self.hand), {}
+    for _, c in ipairs(self.hand) do cnt[c.rank] = (cnt[c.rank] or 0) + 1 end
+    if cat == 9 or (cat == 8 and math.max(cnt[1] or 0, cnt[11] or 0, cnt[12] or 0, cnt[13] or 0) == 4) then self:Jackpot() end
     self.msg:SetText(Cards.HANDS[(Cards.Eval(self.hand))])
     self.sub:SetText(L["Raise against the goblin, or fold and lose your ante?"])
     self.host:Sound("click")

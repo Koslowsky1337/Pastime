@@ -9,6 +9,7 @@ local CW, CH = 100, 140
 local Game = setmetatable({}, { __index = ns.Gamble })
 Game.__index = Game
 Game.STAKE = true
+Game.JACKPOT = L["a pot of 1,000 times your bet"]
 
 local function value(card) return card.rank == 1 and 14 or card.rank end
 
@@ -36,7 +37,7 @@ function Game:Start()
 end
 
 function Game:Deal(amount)
-    self.card, self.pot, self.streak = self:Draw(), amount, 0
+    self.card, self.pot, self.streak, self.stake0 = self:Draw(), amount, 0, amount
     self.state = "guess"
     self.msg:SetText(L["Higher or lower?"])
     self.sub:SetText("")
@@ -54,6 +55,8 @@ function Game:Guess(up)
         self.pot = math.floor(self.pot * f)
         self.streak = self.streak + 1
         self.host:Sound("point")
+        -- Jackpot: der Topf erreicht das 1000-Fache des Einsatzes (höchstens einmal in 1.000 Runden, wie man auch spielt)
+        if self.pot >= 1000 * self.stake0 and not self.jackWon then self:Jackpot() end
         self.msg:SetText((L["Right! Pot: %d"]):format(self.pot))
         self.sub:SetText(L["Keep going or take the pot?"])
         self:Render()

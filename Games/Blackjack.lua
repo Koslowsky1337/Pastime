@@ -13,7 +13,7 @@ local Game = {}
 Game.__index = Game
 
 -- Fester Einsatz wie in den anderen Glücksspielen (ns.Gamble): einstellen, dann geben lassen
-Game.Ladder, Game.Wager, Game.Stake = ns.Gamble.Ladder, ns.Gamble.Wager, ns.Gamble.Stake
+Game.Ladder, Game.Wager, Game.Stake, Game.Jackpot = ns.Gamble.Ladder, ns.Gamble.Wager, ns.Gamble.Stake, ns.Gamble.Jackpot
 function Game:Purse() return ns.DB.blackjack end
 
 function Game.Total(hand)
@@ -50,7 +50,7 @@ function Game:Start()
     self.peak = math.max(tonumber(b.peak) or 0, self.gold)
     self.score = self.peak
     self.player, self.dealer = {}, {}
-    self.state, self.bet = "bet", 0
+    self.state, self.bet, self.jackWon = "bet", 0, nil
     self.msg:SetText(L["Place your bet!"])
     self.sub:SetText((L["Best this run: %d gold"]):format(self.peak))
     self:Render()
@@ -61,9 +61,13 @@ function Game:Play()
     if self.state ~= "bet" or amount > self.gold then return end
     self.bet = amount
     self.gold = self.gold - amount
+    ns.Gamble.Feed(amount)
     self:Save()
     self.player = { self:Draw(), self:Draw() }
     self.dealer = { self:Draw(), self:Draw() }
+    -- Jackpot: Pik-Ass und Pik-Bube auf der Hand (1 zu 1.326)
+    local a, b = self.player[1], self.player[2]
+    if a.suit == 3 and b.suit == 3 and a.rank + b.rank == 12 and a.rank * b.rank == 11 then self:Jackpot() end
     self.hole = true
     self.host:Sound("click")
     if isBlackjack(self.player) or isBlackjack(self.dealer) then
@@ -91,6 +95,7 @@ end
 function Game:Double()
     if self.state ~= "play" or #self.player ~= 2 or self.gold < self.bet then return end
     self.gold = self.gold - self.bet
+    ns.Gamble.Feed(self.bet)
     self.bet = self.bet * 2
     self:Save()
     table.insert(self.player, self:Draw())
@@ -167,10 +172,11 @@ function Game:NextHand()
         local peak = self.peak
         local b = ns.DB.blackjack
         b.gold, b.peak = START_GOLD, START_GOLD
-        return self.host:Over({ score = peak, title = L["Broke!"],
+        -- nie über dem Startgold: nichts zu werten
+        return self.host:Over({ score = peak, submit = peak > START_GOLD, title = L["Broke!"],
             text = L["The goblin took your last coin."] .. "\n" .. (L["You start again with %d gold."]):format(START_GOLD) })
     end
-    self.state = "bet"
+    self.state, self.jackWon = "bet", nil
     self.player, self.dealer, self.bet = {}, {}, 0
     self.msg:SetText(L["Place your bet!"])
     self.sub:SetText((L["Best this run: %d gold"]):format(self.peak))
@@ -225,6 +231,7 @@ function Game:Render()
     self.dealerTotal:SetText(dt)
     self.playerTotal:SetText(#self.player > 0 and tostring(Game.Total(self.player)) or "")
     self.goldText:SetText((L["Goblin gold: |cffffffff%d|r%s"]):format(self.gold or 0, (self.bet or 0) > 0 and (L["  ·  Bet: %d"]):format(self.bet) or ""))
+    ns.Gamble.ShowJackpot(self)
     local betting = self.state == "bet"
     ns.Gamble.StakeButtons(self, betting)
     local playing = self.state == "play"
@@ -277,6 +284,7 @@ local function Create(host, board)
     g.sub:SetWidth(380)
     g.goldText = ns.FontString(board, "GameFontNormal", "RIGHT")
     g.goldText:SetPoint("TOPRIGHT", -10, -8)
+    ns.Gamble.JackpotText(g, board, L["the ace and the jack of spades as your first two cards"])
     local function btn(text, w, x, fn)
         local b = ns.CreateButton(board, text, w, function() if host:IsRunning() then ns.Safe("blackjack", fn) end end)
         b:SetHeight(26)
