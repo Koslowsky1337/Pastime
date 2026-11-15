@@ -312,16 +312,24 @@ function ns.SelfTest()
     add(failed == 0, "client calls that failed so far: " .. failed)
 
     -- Addon-Nachrichten: eine an sich selbst und zurück
-    local C, echo, listener = ns.Comm, nil, nil
+    -- Gilde und Gruppe schicken dem Absender die eigene Nachricht zurück; ob das auch für eine
+    -- Nachricht an sich selbst gilt, hängt vom Client ab und ist deshalb nur ein Hinweis.
+    local C, echo, listener, sent = ns.Comm, {}, nil, {}
     add(C.registered == true, "addon message prefix registered")
     if C.registered and C_ChatInfo and C_ChatInfo.SendAddonMessage then
         listener = CreateFrame("Frame")
         listener:RegisterEvent("CHAT_MSG_ADDON")
         listener:SetScript("OnEvent", function(_, _, prefix, text, channel, sender)
-            if prefix == C.PREFIX and text == "PT1^HELLO^0^0" then echo = ("via %s from %s"):format(tostring(channel), tostring(sender)) end
+            if prefix == C.PREFIX and text == "PT1^HELLO^0^0" then echo[tostring(channel)] = tostring(sender) end
         end)
-        local ok, res = ns.Try("SelfTest:SendAddonMessage", C_ChatInfo.SendAddonMessage, C.PREFIX, "PT1^HELLO^0^0", "WHISPER", UnitName("player"))
-        add(ok and (res == true or res == 0), "addon message to yourself sent, result " .. tostring(res))
+        local function send(channel, target)
+            local ok, res = ns.Try("SelfTest:SendAddonMessage", C_ChatInfo.SendAddonMessage, C.PREFIX, "PT1^HELLO^0^0", channel, target)
+            add(ok and (res == true or res == 0), ("addon message sent to %s, result %s"):format(channel, tostring(res)))
+            sent[#sent + 1] = channel
+        end
+        send("WHISPER", UnitName("player"))
+        if IsInGuild and IsInGuild() then send("GUILD") end
+        if IsInRaid and IsInRaid() then send("RAID") elseif IsInGroup and IsInGroup() then send("PARTY") end
     end
     add(nil, ("in guild %s · in group %s · in raid %s · peers heard %d"):format(tostring(IsInGuild and IsInGuild()), tostring(IsInGroup and IsInGroup()),
         tostring(IsInRaid and IsInRaid()), (function() local n = 0; for _ in pairs(C.peers or {}) do n = n + 1 end; return n end)()))
@@ -337,16 +345,26 @@ function ns.SelfTest()
             local ok, will = false, nil
             if id then ok, will = pcall(PlaySound, id, "SFX") end
             add(id ~= nil and ok and will and true or false, ("sound %s (kit %s) plays: %s"):format(kind, tostring(id), tostring(will)))
+            ns.Print(("|cffbbbbbb%d/%d · %s|r"):format(i, #kinds, kind))      -- damit man sieht, welcher Klang gerade läuft
         end))
     end
     C_Timer.After(#kinds * 0.5 + 2, ns.Wrap("selbsttest", function()
         if listener then
             listener:UnregisterEvent("CHAT_MSG_ADDON")
-            add(echo ~= nil, "addon message came back " .. (echo or "– nothing received within the time"))
+            for _, channel in ipairs(sent) do
+                local back = echo[channel]
+                if channel == "WHISPER" then
+                    add(back and true or nil, "addon message to yourself " .. (back and ("came back from " .. back)
+                        or "did not come back (some clients never deliver these; it takes a second player to test)"))
+                else
+                    add(back ~= nil, ("addon message via %s %s"):format(channel, back and ("came back from " .. back) or "did not come back"))
+                end
+            end
         end
         table.insert(out, 1, ("Pastime self-test: %d problem(s)"):format(bad))
         ns.selfTest = nil
         ns.Log(bad > 0 and "W" or "I", "selbsttest", "%d problem(s)", bad)
+        ns.Print((L["Self-test finished: %d problem(s). Copy the text from the window with Ctrl+C."]):format(bad))
         ns.ShowCopy(L["Pastime self-test"], ns.Anonymize(table.concat(out, "\n")))
     end))
 end
