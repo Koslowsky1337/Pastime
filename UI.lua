@@ -860,7 +860,7 @@ end
 ---------------------------------------------------------------------------
 -- Reiserekorde (Strecken mit Platz 1–3 je Spiel)
 ---------------------------------------------------------------------------
-local MEDAL = { "996f00", "6e6e6e", "8a4b1c" }
+local MEDAL = { "6b4a00", "3a3a3a", "6a3410" }      -- dunkel genug für das Pergament
 
 local function RouteItems()
     local groups = {}

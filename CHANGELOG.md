@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0
+
+- Route records: the place numbers in front of each score were hard to read on the parchment; they are darker now.
+
 ## 1.0.1
 
 - Route names showed an empty box instead of the arrow between the two places; they now read "Orgrimmar » Sun Rock".
