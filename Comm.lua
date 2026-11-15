@@ -27,6 +27,11 @@ ns.Comm = Comm
 Comm.ENABLED = false                 -- wird mit dem Mehrspieler-Update eingeschaltet
 Comm.VERSION_CHECK = true            -- HELLO senden und auswerten (unabhängig vom Mehrspieler)
 Comm.MP = 0                          -- Mehrspieler-Stufe, die diese Fassung beherrscht (0 = keiner)
+-- Eigene Nachrichten kommen aus Gilde und Gruppe zurück. Der Absendername ist dabei nicht immer
+-- UnitName("player") (WoW Forever kennt Vor- und Nachnamen), deshalb trägt jede Meldung eine
+-- zufällige Sitzungsmarke: kommt sie zurück, ist der Absender man selbst.
+Comm.tag = math.random(1, 999999)
+Comm.selfNames = {}                  -- [Absendername] = true: unter diesem Namen sendet man selbst
 Comm.PREFIX = "PastimeMiniGames"     -- 16 Zeichen (Höchstlänge)
 Comm.PROTO = "PT1"                   -- Protokollversion
 Comm.SEP = "^"
@@ -54,7 +59,7 @@ local SESSION = word(12)
 
 -- Nachrichtentypen: Feldliste in fester Reihenfolge
 Comm.TYPES = {
-    HELLO  = { int(0, 999999), int(0, 99) },                    -- Addon-Version (10300 = 1.3.0, 0 = Betastand), Mehrspieler-Stufe
+    HELLO  = { int(0, 999999), int(0, 99), int(1, 999999) },    -- Addon-Version (10300 = 1.3.0, 0 = Betastand), Mehrspieler-Stufe, Sitzungsmarke
     PING   = { int(1, 999999) },                                -- Verbindungstest: Kennzahl
     PONG   = { int(1, 999999) },                                -- Antwort mit derselben Kennzahl, direkt an den Fragenden
     INVITE = { SESSION, word(16), int(0, 2147483647), int(1, 600) },  -- Sitzung, Spiel-ID, Startwert, Sekunden
@@ -181,7 +186,7 @@ function Comm.Accept(prefix, text, channel, sender)
     if not CHANNELS[channel] then return nil, "channel" end
     if type(sender) ~= "string" or sender == "" then return nil, "sender" end
     sender = Ambiguate and Ambiguate(sender, "none") or sender
-    if sender == ns.playerName then return nil, "self" end
+    if sender == ns.playerName or Comm.selfNames[sender] then return nil, "self" end
     if isIgnored(sender) then return nil, "ignored" end
     if not allowFrom(sender) then return nil, "rate" end
     local kind, fields = Comm.Decode(text)
@@ -280,7 +285,7 @@ local function hello(channel)
     local mine = Comm.VersionNumber(ns.VERSION)
     if not Comm.registered or not (mine or Comm.MP > 0) then return end
     lastHello[channel] = GetTime()
-    Comm.Send("HELLO", channel, nil, mine or 0, Comm.MP)
+    Comm.Send("HELLO", channel, nil, mine or 0, Comm.MP, Comm.tag)
 end
 
 -- group = nur an die Gruppe (beim Beitritt)
@@ -295,6 +300,7 @@ Comm.peers = {}
 local REPLY_GAP = 600      -- so lange nach einer Meldung im selben Kanal wird nicht noch einmal gemeldet
 
 Comm.handlers.HELLO = function(sender, fields, channel)
+    if fields[3] == Comm.tag then Comm.selfNames[sender] = true; return end      -- die eigene Meldung
     local mine, theirs = Comm.VersionNumber(ns.VERSION), fields[1]
     Comm.peers[sender] = { v = theirs, mp = fields[2], t = GetTime(), channel = channel }
     if not mine or theirs == 0 then return end
@@ -313,6 +319,7 @@ end
 -- (Name = Kanal, über den die Antwort kam). Geantwortet wird jedem Fragenden höchstens alle 20 Sekunden.
 local ponged = {}
 Comm.handlers.PING = function(sender, fields)
+    if Comm.ping and fields[1] == Comm.ping.nonce then Comm.selfNames[sender] = true; return end      -- die eigene Frage
     if GetTime() - (ponged[sender] or -20) < 20 then return end
     ponged[sender] = GetTime()
     Comm.Send("PONG", "WHISPER", sender, fields[1])
@@ -374,5 +381,5 @@ end
 function Comm._Reset()
     wipe(perSender); total = nil; wipe(queue); lastSend = 0
     Comm.session = nil; wipe(Comm.invites)
-    wipe(lastHello); wipe(Comm.peers); wipe(ponged); Comm.noticed = nil; Comm.grouped = nil; Comm.ping = nil
+    wipe(lastHello); wipe(Comm.peers); wipe(ponged); wipe(Comm.selfNames); Comm.noticed = nil; Comm.grouped = nil; Comm.ping = nil
 end
