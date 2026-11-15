@@ -31,7 +31,8 @@ local SLOT = {}
 for i, n in ipairs(WHEEL) do SLOT[n] = i - 1 end
 Game.WHEEL = WHEEL
 local SPIN_TIME = 4.5
-local WHEEL_X, WHEEL_Y, WHEEL_R, BALL_R = 82, 268, 50, 39
+local WHEEL_X, WHEEL_Y, WHEEL_R, BALL_R = 90, 272, 55, 43
+local ROUND = "Interface\\CharacterFrame\\TempPortraitAlphaMask"      -- weiße Kreisscheibe, wird eingefärbt
 
 -- Auszahlung eines Chips auf spot, wenn n fällt (0: verloren)
 function Game.Payout(spot, n, amount)
@@ -45,7 +46,7 @@ function Game:Clear()
 end
 
 function Game:Start()
-    self.chip, self.last, self.pos = 1, nil, 0
+    self.chip, self.last, self.pos, self.number = 1, nil, 0, nil
     self:OpenRun()
 end
 
@@ -170,21 +171,31 @@ local function Create(host, board)
     g:Clear()
     g.cells, g.chip, g.pos = {}, 1, 0
     -- Kessel links: 37 Fächer im Ring (die Null oben), die gefallene Zahl in der Mitte, Meldungen rechts daneben
+    local function disc(sub, size, r, gr, b)
+        local t = board:CreateTexture(nil, "BORDER", nil, sub)
+        t:SetTexture(ROUND)
+        t:SetVertexColor(r, gr, b)
+        t:SetSize(size, size)
+        return t
+    end
+    -- Holzrand, Fächerring, Laufbahn der Kugel, Nabe
+    for sub, d in ipairs({ { 130, 0.42, 0.24, 0.09 }, { 122, 0.72, 0.58, 0.25 }, { 98, 0.16, 0.09, 0.04 }, { 72, 0.3, 0.17, 0.07 } }) do
+        local t = disc(sub - 3, d[1], d[2], d[3], d[4])
+        t:SetPoint("CENTER", board, "TOPLEFT", WHEEL_X, -WHEEL_Y)
+    end
     for i, n in ipairs(WHEEL) do
         local a = (i - 1) / 37 * 2 * math.pi
         local red = RED[n]
-        local pocket = ns.Box(board, "BORDER", n == 0 and 0.1 or (red and 0.75 or 0.02), n == 0 and 0.7 or (red and 0.1 or 0.02), red and 0.08 or (n == 0 and 0.2 or 0.02), 1)
-        pocket:SetSize(7, 7)
+        local pocket = disc(2, 10, n == 0 and 0.1 or (red and 0.8 or 0.03), n == 0 and 0.7 or (red and 0.1 or 0.03), red and 0.08 or (n == 0 and 0.2 or 0.03))
         pocket:SetPoint("CENTER", board, "TOPLEFT", WHEEL_X + math.sin(a) * WHEEL_R, -(WHEEL_Y - math.cos(a) * WHEEL_R))
     end
-    g.ball = ns.Box(board, "ARTWORK", 1, 1, 1, 1)
-    g.ball:SetSize(6, 6)
+    g.ball = disc(4, 8, 1, 1, 1)
     g.ball:Hide()
     g.numText = ns.FontString(board, "GameFontNormalHuge", "CENTER")
     g.numText:SetPoint("CENTER", board, "TOPLEFT", WHEEL_X, -WHEEL_Y)
     g.msg:ClearAllPoints()
-    g.msg:SetPoint("CENTER", board, "TOPLEFT", 275, -244)
-    g.sub:SetWidth(250)
+    g.msg:SetPoint("CENTER", board, "TOPLEFT", 288, -246)
+    g.sub:SetWidth(230)
     local function cell(spot, x, y, w, h, r, gr, b, text)
         local btn = CreateFrame("Button", nil, board)
         btn:SetSize(w - 2, h - 2)
