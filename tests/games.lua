@@ -880,11 +880,24 @@ while true do
     if i == 0 then break end
     idx[i] = idx[i] + 1
 end
-check(rtp > 0.94 and rtp < 0.99, ("Automat: Auszahlungsquote %.1f %%"):format(rtp * 100))
+-- Freispiele: jedes der 15 Felder zeigt unabhängig mit q eine Rune; F = erwartete Freispiele je Drehung,
+-- und weil Freispiele selbst wieder welche bringen können, zahlt eine Drehung im Schnitt rtp / (1 - F)
+local q, F, trigger = g.SYMBOLS[nSym].w / wsum, 0, 0
+local function comb(n, k) local c = 1; for i = 1, k do c = c * (n - k + i) / i end; return c end
+for k = 3, 15 do
+    local pk = comb(15, k) * q ^ k * (1 - q) ^ (15 - k)
+    trigger = trigger + pk
+    F = F + pk * g.FREE[math.min(k, 5) - 2]
+end
+rtp = rtp / (1 - F)
+check(rtp > 0.94 and rtp < 0.99, ("Automat: Auszahlungsquote mit Freispielen %.1f %%"):format(rtp * 100))
+check(trigger > 1 / 40 and trigger < 1 / 20, ("Automat: Freispiele bei jeder %.0f. Drehung"):format(1 / trigger))
 check(minPay > #g.LINES, "Automat: schon der kleinste Treffer zahlt mehr als den Einsatz (" .. minPay .. " > " .. #g.LINES .. ")")
 check(1 - (1 - lineHit) ^ 5 > 0.4, ("Automat: rund %.0f %% der Drehungen gewinnen"):format((1 - (1 - lineHit) ^ 5) * 100))
-check(g.LinePay({ 1, 1, 1, 2, 3 }) == 6 and g.LinePay({ 1, 6, 1, 1, 3 }) == 8 and g.LinePay({ 6, 6, 2, 2, 2 }) == 20
-    and g.LinePay({ 2, 1, 1, 1, 1 }) == 0 and g.LinePay({ 6, 6, 6, 6, 6 }) == 250, "Automat: Linien zählen von links, die Münze ist Joker")
+check(g.LinePay({ 1, 1, 1, 2, 3 }) == 6 and g.LinePay({ 1, 6, 1, 1, 3 }) == 8 and g.LinePay({ 6, 6, 2, 2, 2 }) == 16
+    and g.LinePay({ 2, 1, 1, 1, 1 }) == 0 and g.LinePay({ 6, 6, 6, 6, 6 }) == 200, "Automat: Linien zählen von links, die Münze ist Joker")
+check(g.LinePay({ 6, 6, 6, 7, 1 }) == 12 and g.LinePay({ 1, 1, 7, 1, 1 }) == 0 and g.LinePay({ 7, 7, 7, 7, 7 }) == 0,
+    "Automat: die Rune unterbricht jede Linie und zahlt selbst nichts")
 local sum, cells = g.Evaluate({ { 1, 2, 3 }, { 1, 2, 4 }, { 1, 3, 5 }, { 2, 2, 2 }, { 3, 3, 3 } })
 check(sum == 6 and cells[11] and cells[21] and cells[31] and not cells[41], "Automat: obere Reihe mit drei Fischen gewinnt, die Felder leuchten")
 key("1")
@@ -895,12 +908,35 @@ check(g.tease[3] and g.tease[5] and g.stops[5] > 0.9 + 4 * 0.45 + 3, "Automat: v
 tick(1.5)
 check(g.state == "spin" and g.hot and g.cells[1][1].glow:IsShown(), "Automat: die passenden Felder leuchten, während die nächste Walze läuft")
 tick(6)
-check(g.state == "result" and g.gold == 100 - 10 + 10 * 250 / 5, "Automat: fünf Münzen in der oberen Reihe zahlen 250-fach auf die Linie, Gold " .. g.gold)
+check(g.state == "result" and g.gold == 100 - 10 + 10 * 200 / 5, "Automat: fünf Münzen in der oberen Reihe zahlen 200-fach auf die Linie, Gold " .. g.gold)
 local dull = { { 1, 2, 3 }, { 2, 3, 1 }, { 3, 1, 2 }, { 1, 2, 3 }, { 2, 3, 1 } }
 check(g.Tease(dull, 3) == nil and g.Tease({ { 1, 2, 3 }, { 1, 3, 1 }, { 4, 1, 2 } }, 3) == nil and g.Tease({ { 5, 2, 3 }, { 5, 3, 1 }, { 4, 1, 2 } }, 3) ~= nil,
     "Automat: Spannung vor Walze 3 nur bei wertvollen Symbolen")
 tick(3.5)
 check(g.state == "bet", "Automat: danach wieder setzen")
+-- Freispiele: drei Runen irgendwo, die Drehungen laufen von selbst und kosten nichts
+local gold = g.gold
+key("1")
+g.final = { { 7, 1, 2 }, { 2, 7, 3 }, { 3, 1, 7 }, { 1, 2, 3 }, { 2, 3, 1 } }
+g:Plan()
+check(g.tease[3] and g.tease[3][11] and g.tease[3][22], "Automat: zwei Runen machen die dritte Walze spannend")
+tick(8)
+check(g.state == "result" and g.free == 5 and g.gold == gold - 10 and g.cells[3][3].glow:IsShown() and PastimeDB.purses.slots.free == 5,
+    "Automat: drei Runen geben fünf Freispiele, gespeichert")
+tick(3)
+check(g.state == "spin" and g.free == 4 and g.bet == 0 and g.gold == gold - 10, "Automat: das Freispiel dreht von selbst und kostet nichts")
+g.final = { { 1, 2, 3 }, { 1, 3, 1 }, { 1, 1, 2 }, { 2, 2, 3 }, { 3, 3, 1 } }
+g:Plan()
+tick(3)      -- die Walzen liefen schon 2,4 s
+check(g.state == "result" and g.gold == gold - 10 + 10 * 6 / 5, "Automat: Freispiel zahlt zum auslösenden Einsatz, Gold " .. g.gold)
+g = start("slots")
+check(g.state == "result" and g.free == 4 and g.stake == 10, "Automat: Freispiele überstehen das Schließen")
+g.free = 1
+tick(2)
+g.final = { { 1, 2, 3 }, { 2, 3, 1 }, { 3, 1, 2 }, { 1, 2, 3 }, { 2, 3, 1 } }
+g:Plan()
+tick(8)
+check(g.state == "bet" and g.free == 0 and PastimeDB.purses.slots.free == nil, "Automat: nach dem letzten Freispiel wieder setzen")
 
 -- Goblin-Poker: halten, tauschen, erhöhen oder passen, Vergleich mit dem Goblin
 g = start("drawpoker")

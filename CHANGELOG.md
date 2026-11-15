@@ -2,6 +2,7 @@
 
 ## 1.1.0
 
+- Goblin Slots: new rune symbol. Three, four or five runes anywhere on the reels give 5, 8 or 12 free spins at the same bet; free spins can win more free spins and survive closing the window. The pay table was lowered slightly to make room for them.
 - Route records: the place numbers in front of each score were hard to read on the parchment; they are darker now.
 
 ## 1.0.1

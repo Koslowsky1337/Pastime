@@ -11,7 +11,8 @@ Stand: `v1.0.1` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 ## 2. Version 1.1 (Tag erst auf Ansage)
 - [x] Reiserekorde: Platzziffern auf dem Pergament dunkler (waren kaum lesbar)
 - [x] `/pastime fotos`: wertet nichts, zeigt Beispiel-Rekorde, Kodo mitten im Sprung
-- [ ] Goblin-Automat: Freispiele und Scatter-Symbole
+- [x] Goblin-Automat: Freispiele und Scatter-Symbol (Rune; 3/4/5 Runen = 5/8/12 Freispiele, Quote rund 96 %)
+- [ ] **Im Spiel prüfen:** Rune wird angezeigt (kein grünes Kästchen); Freispiele drehen von selbst; fühlt sich „jede 31. Drehung“ richtig an?
 - [ ] Goblin-Roulette: Animation wie bei einem echten Kessel
 - [ ] Tavernen-Hold'em: wer mitten in einer Hand geht, bekommt den Stand vor der Hand zurück – bei Bedarf den Einsatz der Hand abziehen
 
