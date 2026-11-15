@@ -10,14 +10,15 @@ ns.eventFrame.scripts.OnEvent(ns.eventFrame, "PLAYER_LOGIN")
 
 check(C.ENABLED == false and not C.registered, "multiplayer is off; without the chat API nothing is registered")
 check(#C.PREFIX <= 16, "prefix fits 16 characters")
-check(C.Send("INVITE", "WHISPER", "Thrall", "s1", "snake", 1, 60) == false, "no multiplayer message is sent while disabled")
+check(C.Send("INVITE", "WHISPER", "Thrall", "s1") == false, "no multiplayer message is sent while disabled")
 
 -- Kodieren / Dekodieren
-local m = C.Encode("INVITE", "s1", "snake", 12345, 120)
-check(m == "PT1^INVITE^s1^snake^12345^120", "encode invite: " .. tostring(m))
+local m = C.Encode("START", "s1", "snake", 12345, 1, 2, 0)
+check(m == "PT1^START^s1^snake^12345^1^2^0", "encode start: " .. tostring(m))
 local kind, f = C.Decode(m)
-check(kind == "INVITE" and f[2] == "snake" and f[3] == 12345, "decode invite")
-check(C.Encode("INVITE", "s1", "sn|ake", 1, 1) == nil, "no escape codes in fields")
+check(kind == "START" and f[2] == "snake" and f[3] == 12345, "decode start")
+check(C.Encode("START", "s1", "sn|ake", 1, 1, 1, 0) == nil, "no escape codes in fields")
+check(C.Decode("PT1^REPLAY^s1^1^4:3:-2:7") == "REPLAY" and C.Decode("PT1^REPLAY^s1^1^4:x:2") == nil, "move lists hold numbers only")
 check(C.Encode("MOVE", "s1", 1) == nil, "wrong field count refused")
 check(C.Encode("EVIL", "x") == nil, "unknown type refused")
 
@@ -50,29 +51,6 @@ check(C.Accept(C.PREFIX, hello, "WHISPER", "Spammer") ~= nil, "bucket refills ov
 local many = 0
 for i = 1, 60 do if C.Accept(C.PREFIX, hello, "PARTY", "P" .. i) then many = many + 1 end end
 check(many < 40, "global limit holds against many senders: " .. many)
-
--- Einladungen und Sitzung
-C._Reset()
-local inv = C.Encode("INVITE", "abc", "snake", 7, 60)
-check(C.Accept(C.PREFIX, inv, "WHISPER", "Thrall") == "INVITE" and C.invites.Thrall, "invite stored, waits for the player")
-check(C.Accept(C.PREFIX, C.Encode("INVITE", "abc", "doesnotexist", 7, 60), "WHISPER", "Jaina") == nil, "unknown game refused")
-COMBAT = true
-check(C.Accept(C.PREFIX, C.Encode("INVITE", "x1", "snake", 1, 60), "WHISPER", "Rexxar") == nil, "no invites in combat")
-COMBAT = false
-for i = 1, 5 do C.Accept(C.PREFIX, C.Encode("INVITE", "i" .. i, "snake", 1, 60), "WHISPER", "Inv" .. i) end
-local open = 0
-for _ in pairs(C.invites) do open = open + 1 end
-check(open <= 3, "at most 3 open invites, are " .. open)
-NOW = NOW + 61
-check(C.Accept(C.PREFIX, C.Encode("INVITE", "late", "snake", 1, 60), "WHISPER", "Late") == "INVITE", "expired invites free up space")
-
-C._Reset()
-C.session = { id = "s9", partner = "Thrall", seq = 0 }
-check(C.Accept(C.PREFIX, C.Encode("MOVE", "s9", 1, 5), "WHISPER", "Jaina") == nil, "moves from strangers dropped")
-check(C.Accept(C.PREFIX, C.Encode("MOVE", "zz", 1, 5), "WHISPER", "Thrall") == nil, "wrong session id dropped")
-check(C.Accept(C.PREFIX, C.Encode("MOVE", "s9", 1, 5), "WHISPER", "Thrall") == "MOVE", "partner move accepted")
-check(C.Accept(C.PREFIX, C.Encode("MOVE", "s9", 1, 5), "WHISPER", "Thrall") == nil, "replayed move dropped")
-check(C.Accept(C.PREFIX, C.Encode("INVITE", "q", "snake", 1, 60), "WHISPER", "Garrosh") == nil, "no invites during a session")
 
 -- Versionsabgleich: nur die Versionsnummer geht an Gilde und Gruppe; wer älter ist, bekommt einen Hinweis
 C._Reset()
@@ -139,15 +117,16 @@ check(#SENT == before and C.selfNames["Thokk von Orgrimmar"], "our own ping comi
 local logged = false
 for _, e in ipairs(PastimeDB.log) do if e.c == "comm" and tostring(e.m):find("answer received via WHISPER", 1, true) then logged = true end end
 check(PastimeDB.directPeer == true and logged, "a direct answer is logged and remembered as confirmation")
-check(C.Send("INVITE", "WHISPER", "Thrall", "s1", "snake", 1, 60) == false, "multiplayer messages stay switched off")
+check(C.Send("INVITE", "WHISPER", "Thrall", "s1") == false, "multiplayer messages stay switched off")
 ns.Print = realPrint
 C_ChatInfo = nil
 C._Reset()
-C.session = { id = "s9", partner = "Thrall", seq = 2 }
 
 -- Handler-Fehler bleiben eingefangen
-C.handlers.MOVE = function() error("boom") end
-C.OnMessage(C.PREFIX, C.Encode("MOVE", "s9", 3, 1), "WHISPER", "Thrall")
+local realPing = C.handlers.PING
+C.handlers.PING = function() error("boom") end
+C.OnMessage(C.PREFIX, C.Encode("PING", 1), "GUILD", "Thrall")
+C.handlers.PING = realPing
 check(#ERRORS_FORWARDED >= 1, "handler error caught and logged")
 
 print(("Comm tests: %d ok, %d failed"):format(passes, fails))

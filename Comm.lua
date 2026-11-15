@@ -26,7 +26,6 @@ ns.Comm = Comm
 
 Comm.ENABLED = false                 -- wird mit dem Mehrspieler-Update eingeschaltet
 Comm.VERSION_CHECK = true            -- HELLO senden und auswerten (unabhängig vom Mehrspieler)
-Comm.MP = 0                          -- Mehrspieler-Stufe, die diese Fassung beherrscht (0 = keiner)
 -- Eigene Nachrichten kommen aus Gilde und Gruppe zurück. Der Absendername ist dabei nicht immer
 -- UnitName("player") (WoW Forever kennt Vor- und Nachnamen), deshalb trägt jede Meldung eine
 -- zufällige Sitzungsmarke: kommt sie zurück, ist der Absender man selbst.
@@ -56,19 +55,30 @@ local function word(maxLen)
     end
 end
 local SESSION = word(12)
+-- Liste ganzer Zahlen, mit „:“ getrennt
+local function list(maxLen)
+    return function(s)
+        if type(s) ~= "string" or #s == 0 or #s > maxLen or not s:match("^[%d:%-]+$") then return nil end
+        return s
+    end
+end
 
 -- Nachrichtentypen: Feldliste in fester Reihenfolge
 Comm.TYPES = {
     HELLO  = { int(0, 999999), int(0, 99), int(1, 999999) },    -- Addon-Version (10300 = 1.3.0, 0 = Betastand), Mehrspieler-Stufe, Sitzungsmarke
     PING   = { int(1, 999999) },                                -- Verbindungstest: Kennzahl
     PONG   = { int(1, 999999) },                                -- Antwort mit derselben Kennzahl, direkt an den Fragenden
-    INVITE = { SESSION, word(16), int(0, 2147483647), int(1, 600) },  -- Sitzung, Spiel-ID, Startwert, Sekunden
-    ACCEPT = { SESSION },
+    INVITE = { SESSION },                                       -- Anfrage
+    ACCEPT = { SESSION, int(0, 500) },                          -- angenommen; Züge der angehaltenen Partie mit diesem Spieler (0 = keine)
     DECLINE = { SESSION },
-    ROLL   = { SESSION, int(1, 100) },
+    -- Spiel, Startwert, Platz (1/2), der beginnt, Platz des Absenders, Züge, die als Mitschrift folgen (0 = neue Partie)
+    START  = { SESSION, word(16), int(1, 2147483647), int(1, 2), int(1, 2), int(0, 500) },
     MOVE   = { SESSION, int(1, 100000), int(-100000, 100000) }, -- Sitzung, laufende Nr., Zug
-    RESULT = { SESSION, int(0, 100000000) },
-    BYE    = { SESSION },
+    REPLAY = { SESSION, int(1, 100000), list(200) },            -- Mitschrift: ab Zug Nr., Züge mit „:“ getrennt
+    RESUME = { SESSION },                                       -- „schick du die Mitschrift“
+    RESULT = { SESSION, int(0, 2) },                            -- aus Sicht des Absenders: 0 verloren, 1 unentschieden, 2 gewonnen
+    PAUSE  = { SESSION },                                       -- angehalten, zählt nicht
+    BYE    = { SESSION },                                       -- aufgegeben oder abgebrochen
 }
 
 -- Farbcodes, Links, Texturen und Steuerzeichen aus fremden Texten entfernen
@@ -163,21 +173,9 @@ local function isIgnored(name)
     return false
 end
 
----------------------------------------------------------------------------
--- Sitzungen und Einladungen
----------------------------------------------------------------------------
-Comm.session = nil       -- { id, partner, game, seed, seq }
-Comm.invites = {}        -- [sender] = { id, game, seed, sec, t }
-local INVITE_TTL, MAX_INVITES = 60, 3
-Comm.handlers = {}       -- [kind] = function(sender, fields) – vom Spiel gesetzt
-
-local function cleanInvites()
-    local now, n = GetTime(), 0
-    for who, inv in pairs(Comm.invites) do
-        if now - inv.t > INVITE_TTL then Comm.invites[who] = nil else n = n + 1 end
-    end
-    return n
-end
+-- Was mit einer Nachricht geschieht: [Typ] = function(Absender, Felder, Kanal). Der Mehrspieler
+-- (Multiplayer.lua) trägt seine ein und setzt Comm.Gate, das prüft, ob eine Nachricht zur Lage passt.
+Comm.handlers = {}
 
 -- Prüft eine eingehende Nachricht vollständig. Rückgabe: kind, fields, sender oder nil, Grund
 function Comm.Accept(prefix, text, channel, sender)
@@ -192,21 +190,9 @@ function Comm.Accept(prefix, text, channel, sender)
     local kind, fields = Comm.Decode(text)
     if not kind then return nil, fields end
 
-    local s = Comm.session
-    if kind == "INVITE" then
-        if InCombatLockdown and InCombatLockdown() then return nil, "combat" end
-        if s then return nil, "busy" end
-        if not Comm.invites[sender] and cleanInvites() >= MAX_INVITES then return nil, "too many invites" end
-        if not ns.gamesById[fields[2]] then return nil, "unknown game" end
-        Comm.invites[sender] = { id = fields[1], game = fields[2], seed = fields[3], sec = fields[4], t = GetTime() }
-    elseif kind == "ACCEPT" or kind == "DECLINE" then
-        if not (s and s.pending and s.partner == sender and s.id == fields[1]) then return nil, "no invite" end
-    elseif kind ~= "HELLO" and kind ~= "PING" and kind ~= "PONG" then
-        if not (s and s.partner == sender and s.id == fields[1]) then return nil, "not in session" end
-        if kind == "MOVE" then
-            if fields[2] <= (s.seq or 0) then return nil, "old move" end
-            s.seq = fields[2]
-        end
+    if Comm.Gate then
+        local ok, why = Comm.Gate(kind, fields, sender, channel)
+        if not ok then return nil, why end
     end
     return kind, fields, sender
 end
@@ -283,9 +269,10 @@ end
 local lastHello = {}      -- [Kanal] = Zeitpunkt der letzten Meldung
 local function hello(channel)
     local mine = Comm.VersionNumber(ns.VERSION)
-    if not Comm.registered or not (mine or Comm.MP > 0) then return end
+    local level = Comm.MPLevel and Comm.MPLevel(channel) or 0      -- 0, solange der Mehrspieler aus ist oder man hier nicht gesehen werden will
+    if not Comm.registered or not (mine or level > 0) then return end
     lastHello[channel] = GetTime()
-    Comm.Send("HELLO", channel, nil, mine or 0, Comm.MP, Comm.tag)
+    Comm.Send("HELLO", channel, nil, mine or 0, level, Comm.tag)
 end
 
 -- group = nur an die Gruppe (beim Beitritt)
@@ -302,7 +289,13 @@ local REPLY_GAP = 600      -- so lange nach einer Meldung im selben Kanal wird n
 Comm.handlers.HELLO = function(sender, fields, channel)
     if fields[3] == Comm.tag then Comm.selfNames[sender] = true; return end      -- die eigene Meldung
     local mine, theirs = Comm.VersionNumber(ns.VERSION), fields[1]
+    local known = Comm.peers[sender]
     Comm.peers[sender] = { v = theirs, mp = fields[2], t = GetTime(), channel = channel }
+    -- ein neuer Mitspieler: einmal zurückmelden, damit auch er mich sieht
+    if fields[2] > 0 and not known and channel ~= "WHISPER" and Comm.MPLevel and Comm.MPLevel(channel) > 0
+        and GetTime() - (lastHello[channel] or -60) >= 60 then
+        hello(channel)
+    end
     if not mine or theirs == 0 then return end
     if theirs > mine then
         ns.DB.newest = math.max(tonumber(ns.DB.newest) or 0, theirs)      -- auch beim nächsten Einloggen erinnern
@@ -380,6 +373,6 @@ end
 -- Nur zum Testen: Zustand zurücksetzen
 function Comm._Reset()
     wipe(perSender); total = nil; wipe(queue); lastSend = 0
-    Comm.session = nil; wipe(Comm.invites)
+    if ns.MP then ns.MP._Reset() end
     wipe(lastHello); wipe(Comm.peers); wipe(ponged); wipe(Comm.selfNames); Comm.noticed = nil; Comm.grouped = nil; Comm.ping = nil
 end

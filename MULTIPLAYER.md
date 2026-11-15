@@ -1,6 +1,6 @@
 # Pastime 2.0 – Mehrspieler (Definition)
 
-Stand: zweiter Entwurf vom 15.11., noch nicht gebaut. Diese Datei legt fest, was gebaut wird, bevor Code entsteht.
+Stand: bestätigt am 15.11. Die Sitzungslogik (`Multiplayer.lua`) ist gebaut und getestet, die Oberfläche noch nicht.
 (Sie kommt nicht ins Addon-Zip: `.pkgmeta` lässt `*.md` weg.)
 
 ## 1. Grundsätze
@@ -34,8 +34,9 @@ Wer einen Kreis abschaltet, erscheint dort bei niemandem und sieht dort auch nie
 | `START` | an den Mitspieler | Sitzungsnummer, Spiel, Startwert | Der Einladende hat ein Spiel gewählt |
 | `MOVE` | an den Mitspieler | Sitzungsnummer, laufende Nummer, Zug | Jeder Zug |
 | `RESULT` | an den Mitspieler | Sitzungsnummer, Ergebnis aus eigener Sicht | Spielende, zur Gegenprobe |
-| `BYE` | an den Mitspieler | Sitzungsnummer | Aufgeben |
-| `RESUME` / `SYNC` | an den Mitspieler | Sitzungsnummer, bisherige Züge | Wiederaufnahme nach einer Unterbrechung |
+| `PAUSE` | an den Mitspieler | Sitzungsnummer | Anhalten (Fenster zu, zehn Minuten ohne Zug) |
+| `BYE` | an den Mitspieler | Sitzungsnummer | Aufgeben oder Abbruch vor Spielbeginn |
+| `RESUME` / `REPLAY` | an den Mitspieler | Sitzungsnummer, bisherige Züge | Wiederaufnahme nach einer Unterbrechung |
 | `STATS` | an den Mitspieler | eigene Bilanz je Spiel | Einmal nach `ACCEPT` |
 
 „An den Mitspieler“ heißt: als unsichtbare Addon-Nachricht direkt an ihn. Das ist kein Flüstern im Chat; weder er noch sonst jemand sieht eine Zeile.
@@ -63,6 +64,12 @@ Name und Stufe der beiden Spieler wären als Passwort ungeeignet, weil jeder sie
 
 Fristen: 60 Sekunden für die Antwort auf eine Anfrage, 120 Sekunden für die Spielwahl. Für einzelne Züge gibt es keine harte Frist, siehe Unterbrechungen.
 
+**Wer beginnt:** Bei der ersten Partie entscheidet der Zufall, bei einer Revanche im selben Spiel beginnt der Verlierer.
+
+**Läuft gerade ein Einzelspiel,** wenn man eine Anfrage annimmt, wird es geparkt und nach der Mehrspieler-Partie fortgesetzt. Ist es dasselbe Spiel wie die Mehrspieler-Partie, wird es abgebrochen und nicht gewertet; das Anfrage-Fenster sagt das vorher.
+
+**Namen:** Spieler senden hier unter Vor- und Nachnamen. Der Mehrspieler arbeitet durchgehend mit dem Absendernamen, wie der Client ihn liefert.
+
 ## 5. Unterbrechungen und Wiederaufnahme
 
 - **Jede laufende Partie wird mitgeschrieben:** Spiel, Startwert, alle Züge, Gegner, Uhrzeit.
@@ -82,7 +89,7 @@ Vorschlag für 2.0, in der Reihenfolge, in der sie gebaut werden:
 
 | Stufe | Spiel | Gibt es schon? | So läuft das Duell |
 |---|---|---|---|
-| Beta 1 | Vier gewinnt | ja | abwechselnd Steine, gesendet wird die Spalte |
+| Beta 1 | Vier gewinnt | ja | abwechselnd Steine, gesendet wird die Spalte. Kreise in Beta 1: Gruppe und Gilde; Freunde ab Beta 2 |
 | Beta 2 | Tavernenwürfel | ja | abwechselnd würfeln und eintragen, höhere Summe gewinnt |
 | Beta 2 | Runenpaare-Duell | ja | ein gemeinsames Feld, abwechselnd zwei Karten; wer ein Paar findet, darf noch einmal |
 | Beta 3 | Edelsteincode-Duell | ja | jeder legt dem anderen einen Code; wer ihn in weniger Versuchen knackt, gewinnt |
@@ -118,6 +125,7 @@ Der Update-Hinweis aus 1.3 bleibt davon unabhängig.
 
 ## 9. Test und Veröffentlichung
 
+- Bis 2.0 ist der Mehrspieler abgeschaltet und wird für Tests mit `/pastime mp` freigeschaltet (bei beiden Spielern).
 - Tags `v2.0.0-beta1`, `-beta2` … gehen als Vorabversionen an GitHub und CurseForge.
 - Betastände melden die Versionsnummer 0 und fordern niemanden zum Aktualisieren auf, zeigen sich aber gegenseitig als Mitspieler.
 - Getestet wird mit einem zweiten Spieler. Prüfliste je Beta:

@@ -15,6 +15,7 @@ Locales\Locales.lua
 Locales\deDE.lua
 Core.lua
 Comm.lua
+Multiplayer.lua
 Transport.lua
 Widgets.lua
 UI.lua

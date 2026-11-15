@@ -224,12 +224,15 @@ end
 -- Speicher (PastimeDB, für alle Charaktere)
 ---------------------------------------------------------------------------
 local DEFAULTS = {
-    settings = { autoOpen = true, landAlarm = true, hideInCombat = true, sound = true },
+    settings = { autoOpen = true, landAlarm = true, hideInCombat = true, sound = true,
+        mp = true, mpParty = true, mpFriends = true, mpGuild = false },      -- Mehrspieler: Hauptschalter und wo man gesehen wird
     scores = {}, stats = {}, routes = {}, minimap = {}, collapsed = {}, modes = {},
     frame = false, lastGame = false, debug = false, log = {}, logSession = 0,
     blackjack = { gold = 1000, peak = 1000 },   -- Goblin-Gold bleibt zwischen Partien erhalten
     purses = {},                              -- dasselbe für die übrigen Glücksspiele: purses[id] = { gold, peak }
     jackpot = 10000,                          -- gemeinsamer Topf aller Glücksspiele (ns.Gamble)
+    mp = { stats = {}, paused = {} },         -- Mehrspieler: Bilanz je Gegner und Spiel, angehaltene Partien
+    mpBeta = false,                           -- Mehrspieler für Betatests freigeschaltet (/pastime mp)
     newest = 0,                               -- höchste Pastime-Version, die ein anderer Spieler gemeldet hat (Comm)
     daily = {},                               -- Tagesaufgabe: { last = Tag der letzten erledigten, streak = Serie }
 }
@@ -805,7 +808,11 @@ ev:SetScript("OnEvent", ns.Wrap("event", function(_, event, ...)
         if ns.CreateMinimapButton then ns.CreateMinimapButton() end
         if ns.CreateSettings then ns.Safe("options", ns.CreateSettings) end
         if ns.StartTransportWatch then ns.StartTransportWatch() end
-        if ns.Comm then ns.Safe("comm", ns.Comm.StartVersionCheck) end
+        if ns.Comm then
+            ns.Comm.ENABLED = ns.DB.mpBeta and true or false      -- bis 2.0 nur für Betatests
+            ns.Safe("comm", ns.Comm.StartVersionCheck)
+            if ns.MP then C_Timer.NewTicker(1, ns.Wrap("mp-takt", ns.MP.Tick)) end
+        end
         if ns.UpdateDebugPanel then ns.UpdateDebugPanel() end
         EnsureTicker()
         for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_CONTROL_LOST", "PLAYER_CONTROL_GAINED",
@@ -960,6 +967,14 @@ function ns.HandleSlash(msg)
         if ns.PhotoTour then ns.PhotoTour() end
     elseif cmd == "diag" or cmd == "report" or cmd == "bericht" then
         ns.ShowReport()
+    elseif cmd == "mp" then
+        -- Mehrspieler für Betatests ein- und ausschalten
+        ns.DB.mpBeta = not ns.DB.mpBeta
+        ns.Comm.ENABLED = ns.DB.mpBeta
+        if not ns.DB.mpBeta and ns.MP.session then ns.MP.Pause() end
+        ns.Print(ns.DB.mpBeta and L["Multiplayer beta |cff80ff80on|r."] or L["Multiplayer beta |cffff6060off|r."])
+        ns.Comm.Announce()
+        if ns.UpdateUI then ns.UpdateUI() end
     elseif cmd == "debug" and (arg == "test" or arg == "testlauf" or arg == "selftest" or arg == "selbsttest") then
         if ns.SelfTest then ns.SelfTest() end
     elseif cmd == "debug" then

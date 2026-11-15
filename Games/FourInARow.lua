@@ -293,6 +293,24 @@ local function Create(host, board)
     return g
 end
 
+-- Regelwerk für den Mehrspieler: Platz 1 und 2 werfen abwechselnd, gesendet wird die Spalte
+ns.MP.Register("fourinarow", {
+    New = function()
+        local b = {}
+        for c = 1, COLS do b[c] = {}; for r = 1, ROWS do b[c][r] = 0 end end
+        return { b = b, n = 0 }
+    end,
+    Legal = function(st, _, c)
+        return type(c) == "number" and c == math.floor(c) and c >= 1 and c <= COLS and st.b[c][ROWS] == 0
+    end,
+    Apply = function(st, seat, c)
+        local r = AI.Drop(st.b, c, seat)
+        st.n, st.last = st.n + 1, { c, r }
+        if AI.Wins(st.b, c, r, seat) then return seat end
+        if st.n == COLS * ROWS then return 0 end
+    end,
+})
+
 ns.RegisterGame({
     id = "fourinarow",
     name = L["Four in a Row"],
