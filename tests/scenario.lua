@@ -633,6 +633,18 @@ check(ns.selfFrame.step.text == (ns.L["Done: %d problem(s)"]):format(tonumber(st
 ns.selfFrame:Hide()
 ns.copyFrame:Hide()
 
+-- Das Fenster schließen bricht den Selbsttest ab; danach lässt er sich neu starten
+SlashCmdList.PASTIME("debug test")
+ns.selfFrame:Hide()
+check(ns.selfTest == nil, "Selbsttest: Fenster zu bricht ihn ab")
+ns.copyFrame:Hide()
+RunTimers()
+check(not ns.copyFrame.shown, "Selbsttest: abgebrochen öffnet sich kein Ergebnis")
+SlashCmdList.PASTIME("debug test")
+check(ns.selfTest ~= nil, "Selbsttest: lässt sich danach neu starten")
+RunTimers()
+ns.selfFrame:Hide(); ns.copyFrame:Hide()
+
 -- Reiter „Einstellungen“: dieselben Schalter wie im Addon-Menü
 ns.ShowFrame("settings")
 local sv = ns.settingsView

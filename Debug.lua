@@ -351,6 +351,12 @@ function ns.SelfTest()
     for _, def in ipairs(ns.games) do paths[#paths + 1] = def.icon end
     for _, path in ipairs(ns.SELFTEST_TEXTURES or {}) do paths[#paths + 1] = path end
     local win = SelfTestFrame(paths)
+    -- Das Fenster schließen bricht den Test ab
+    win:SetScript("OnHide", function()
+        if ns.selfTest ~= out then return end
+        out.cancelled, ns.selfTest = true, nil
+        ns.Print(L["Self-test cancelled."])
+    end)
     win.step:SetText(L["Checking the client …"])
     win.desc:SetText(L["Below are all symbol pictures. Empty or green squares would be missing pictures."])
     local missing = 0
@@ -395,6 +401,7 @@ function ns.SelfTest()
         if IsInGuild and IsInGuild() then ask("GUILD") end
         if IsInRaid and IsInRaid() then ask("RAID") elseif IsInGroup and IsInGroup() then ask("PARTY") end
         C_Timer.After(SOUND_GAP * 0.5, ns.Wrap("selbsttest", function()
+            if out.cancelled then return end
             local me = echo.GUILD or echo.RAID or echo.PARTY
             local short = UnitName("player")
             add(nil, ("own sender name: %s; same as UnitName: %s; contains a space: %s; contains a dash: %s"):format(me and "known from the echo" or "unknown (no guild or group)",
@@ -457,6 +464,7 @@ function ns.SelfTest()
     table.sort(kinds)
     for i, kind in ipairs(kinds) do
         C_Timer.After((i - 1) * SOUND_GAP + 1, ns.Wrap("selbsttest", function()
+            if out.cancelled then return end
             local id = ns.SOUNDS[kind]
             if type(id) ~= "number" then id = SOUNDKIT and SOUNDKIT[id] end
             local ok, will = false, nil
@@ -469,6 +477,8 @@ function ns.SelfTest()
         end))
     end
     C_Timer.After(#kinds * SOUND_GAP + 1, ns.Wrap("selbsttest", function()
+        if listener then listener:UnregisterEvent("CHAT_MSG_ADDON") end
+        if out.cancelled then return end
         if listener then
             listener:UnregisterEvent("CHAT_MSG_ADDON")
             for _, channel in ipairs(channels) do
