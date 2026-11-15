@@ -23,7 +23,7 @@ check(C.Encode("EVIL", "x") == nil, "unknown type refused")
 
 -- Bösartige oder kaputte Eingaben
 local bad = {
-    "", "PT1", "PT2^HELLO^100", "PT1^HELLO", "PT1^HELLO^abc", "PT1^HELLO^100^1", "PT1^RUN^os.exit()",
+    "", "PT1", "PT2^HELLO^100", "PT1^HELLO", "PT1^HELLO^abc", "PT1^HELLO^100^1^1", "PT1^HELLO^100^abc", "PT1^RUN^os.exit()",
     "PT1^HELLO^9999999", "PT1^MOVE^s1^0^1", "PT1^INVITE^s1^snake^1^9999", "PT1^INVITE^s1^|cffff0000x^1^1",
     "PT1^RESULT^s1^-5", "PT1^HELLO^1e9", ("PT1^HELLO^" .. string.rep("1", 300)), "PT1^HELLO^10\n0",
     "PT1^ROLL^s1^0", "PT1^ROLL^s1^101", "PT1^INVITE^s1^snake^0x10^5",
@@ -36,7 +36,7 @@ check(not C.Sanitize("a\0b\tc"):find("%c"), "sanitize removes control characters
 
 -- Kanal, Absender, Mengenbremse
 C._Reset()
-local hello = C.Encode("HELLO", 100)
+local hello = C.Encode("HELLO", 100, 0)
 check(C.Accept("OtherAddon", hello, "WHISPER", "Thrall") == nil, "foreign prefix")
 check(C.Accept(C.PREFIX, hello, "CHANNEL", "Thrall") == nil, "public channels ignored")
 check(C.Accept(C.PREFIX, hello, "WHISPER", "Thokk") == nil, "own messages ignored")
@@ -91,23 +91,29 @@ C.Enable()
 ns.VERSION = "dev"
 C.Announce(); flush()
 check(#SENT == 0, "a development copy announces nothing")
-C.OnMessage(C.PREFIX, C.Encode("HELLO", 20000), "GUILD", "Thrall")
-check(#CHAT == 0, "and is not told to update")
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 20000, 0), "GUILD", "Thrall")
+check(#CHAT == 0 and C.peers.Thrall and C.peers.Thrall.v == 20000, "and is not told to update, but knows who has Pastime")
 ns.VERSION = "v1.3.0"
 C.Announce(); flush()
-check(#SENT == 1 and SENT[1][1] == C.PREFIX and SENT[1][2] == "PT1^HELLO^10300" and SENT[1][3] == "GUILD", "the version goes to the guild, nothing else")
+check(#SENT == 1 and SENT[1][1] == C.PREFIX and SENT[1][2] == "PT1^HELLO^10300^0" and SENT[1][3] == "GUILD" and SENT[1][4] == nil, "the version goes to the guild, nothing else")
 IsInGroup = function() return true end
 C.Announce(true); flush()
 check(#SENT == 2 and SENT[2][3] == "PARTY", "on joining a group it goes to the group only")
-C.OnMessage(C.PREFIX, C.Encode("HELLO", 10300), "GUILD", "Jaina"); flush()
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 10300, 0), "GUILD", "Jaina"); flush()
 check(#CHAT == 0 and #SENT == 2, "same version: no notice, no reply")
-C.OnMessage(C.PREFIX, C.Encode("HELLO", 10200), "GUILD", "Rexxar"); flush()
-C.OnMessage(C.PREFIX, C.Encode("HELLO", 10200), "GUILD", "Rexxar"); flush()
-check(#CHAT == 0 and #SENT == 3 and SENT[3][3] == "WHISPER" and SENT[3][4] == "Rexxar" and SENT[3][2] == "PT1^HELLO^10300",
-    "an older copy gets our version once, as a whisper")
-C.OnMessage(C.PREFIX, C.Encode("HELLO", 10400), "PARTY", "Thrall")
-C.OnMessage(C.PREFIX, C.Encode("HELLO", 10500), "PARTY", "Garrosh")
-check(#CHAT == 1 and CHAT[1]:find("1.4.0", 1, true) and CHAT[1]:find("1.3.0", 1, true) and PastimeDB.newest == 10500,
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 10200, 0), "GUILD", "Rexxar"); flush()
+check(#SENT == 2, "an older copy right after our own announcement: nothing more is sent")
+NOW = NOW + 601
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 10200, 0), "GUILD", "Rexxar"); flush()
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 10200, 0), "GUILD", "Rexxar"); flush()
+check(#CHAT == 0 and #SENT == 3 and SENT[3][3] == "GUILD" and SENT[3][4] == nil and SENT[3][2] == "PT1^HELLO^10300^0",
+    "later an older copy makes us repeat our version once in the same channel, never as a whisper")
+local whispers = 0
+for _, m in ipairs(SENT) do if m[3] == "WHISPER" then whispers = whispers + 1 end end
+check(whispers == 0, "no message ever goes from player to player")
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 10400, 0), "PARTY", "Thrall")
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 10500, 1), "PARTY", "Garrosh")
+check(#CHAT == 1 and CHAT[1]:find("1.4.0", 1, true) and CHAT[1]:find("1.3.0", 1, true) and PastimeDB.newest == 10500 and C.peers.Garrosh.mp == 1,
     "a newer version is announced once per session and remembered: " .. tostring(CHAT[1]))
 ns.Print = realPrint
 C_ChatInfo = nil

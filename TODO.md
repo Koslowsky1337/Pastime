@@ -35,5 +35,12 @@ Stand: `v1.2.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 - [ ] **Im Spiel prüfen (für 1.3):** Fanfare beim Runen-Treffer hörbar? Ziehen des Bonussymbols (nur mittlere Walze, dann nur das Symbol); Auffüllen Feld für Feld; zweites Symbol nach Verlängerung; Hochzählen; Spielregeln mit Gewinnplan passen ins Fenster 📸
 - [ ] Tagesziele nach ein paar Tagen Spielen nachjustieren (`ns.DAILY` in `Core.lua`; Werte sind geschätzt)
 
-## 3. Später
+## 3. Version 2.0: Mehrspieler
+- [ ] Definition in `MULTIPLAYER.md` durchgehen und bestätigen (offene Punkte dort)
+- [ ] Beta 1: Reiter „Mehrspieler“, Anfrage und Annehmen, Spielwahl, Vier gewinnt, Bilanz
+- [ ] Beta 2: Wettrennen (Runenpaare, Edelsteincode, Wortraten, Minenfeld)
+- [ ] Beta 3: Tavernenwürfel zu zweit
+- [ ] Jede Beta mit einem zweiten Spieler nach der Prüfliste in `MULTIPLAYER.md` testen
+
+## 4. Später
 - [x] Arbeitsordner heißt jetzt `Pastime` (15.11.)

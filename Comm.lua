@@ -1,8 +1,8 @@
 -- Pastime: Grundlage für den Mehrspieler (noch abgeschaltet) und Versionsabgleich
 --
 -- Das Einzige, was Pastime heute sendet, ist die eigene Versionsnummer (Nachricht HELLO) an Gilde
--- und Gruppe – unsichtbar, als Addon-Nachricht. Wer eine höhere Nummer empfängt, bekommt einmal
--- einen Hinweis auf das Update. Siehe „Versionsabgleich“ weiter unten.
+-- und Gruppe – unsichtbar, als Addon-Nachricht, nie von Spieler zu Spieler. Wer eine höhere Nummer
+-- empfängt, bekommt einmal einen Hinweis auf das Update. Siehe „Versionsabgleich“ weiter unten.
 --
 -- Addon-Nachrichten sind für Spieler unsichtbar. Pastime erkennt seine eigenen
 -- an der Kennung PREFIX und am Protokoll-Kopf PROTO. Alles, was ankommt, gilt
@@ -23,6 +23,7 @@ ns.Comm = Comm
 
 Comm.ENABLED = false                 -- wird mit dem Mehrspieler-Update eingeschaltet
 Comm.VERSION_CHECK = true            -- HELLO senden und auswerten (unabhängig vom Mehrspieler)
+Comm.MP = 0                          -- Mehrspieler-Stufe, die diese Fassung beherrscht (0 = keiner)
 Comm.PREFIX = "PastimeMiniGames"     -- 16 Zeichen (Höchstlänge)
 Comm.PROTO = "PT1"                   -- Protokollversion
 Comm.SEP = "^"
@@ -50,7 +51,7 @@ local SESSION = word(12)
 
 -- Nachrichtentypen: Feldliste in fester Reihenfolge
 Comm.TYPES = {
-    HELLO  = { int(1, 999999) },                                -- Addon-Version (10300 = 1.3.0)
+    HELLO  = { int(0, 999999), int(0, 99) },                    -- Addon-Version (10300 = 1.3.0, 0 = Betastand), Mehrspieler-Stufe
     INVITE = { SESSION, word(16), int(0, 2147483647), int(1, 600) },  -- Sitzung, Spiel-ID, Startwert, Sekunden
     ACCEPT = { SESSION },
     DECLINE = { SESSION },
@@ -207,7 +208,7 @@ function Comm.OnMessage(prefix, text, channel, sender)
         return
     end
     local h = Comm.handlers[kind]
-    if h then ns.Safe("comm-" .. kind, h, who, fields) end
+    if h then ns.Safe("comm-" .. kind, h, who, fields, channel) end
 end
 
 ---------------------------------------------------------------------------
@@ -265,26 +266,38 @@ local function notice(newer, mine)
         Comm.VersionText(newer), Comm.VersionText(mine)))
 end
 
--- Eigene Version an Gilde und Gruppe; group = nur an die Gruppe (beim Beitritt)
-function Comm.Announce(group)
+-- Eigene Version (0 = Entwicklungs- oder Betastand) und Mehrspieler-Stufe an einen Kanal.
+-- Es gibt keine Nachricht von Spieler zu Spieler: gemeldet wird immer nur in Gilde, Gruppe
+-- oder Schlachtzug.
+local lastHello = {}      -- [Kanal] = Zeitpunkt der letzten Meldung
+local function hello(channel)
     local mine = Comm.VersionNumber(ns.VERSION)
-    if not (mine and Comm.registered) then return end
-    if not group and IsInGuild and IsInGuild() then Comm.Send("HELLO", "GUILD", nil, mine) end
-    if IsInRaid and IsInRaid() then Comm.Send("HELLO", "RAID", nil, mine)
-    elseif IsInGroup and IsInGroup() then Comm.Send("HELLO", "PARTY", nil, mine) end
+    if not Comm.registered or not (mine or Comm.MP > 0) then return end
+    lastHello[channel] = GetTime()
+    Comm.Send("HELLO", channel, nil, mine or 0, Comm.MP)
 end
 
-local answered = {}      -- wem in dieser Sitzung schon geantwortet wurde
-Comm.handlers.HELLO = function(sender, fields)
+-- group = nur an die Gruppe (beim Beitritt)
+function Comm.Announce(group)
+    if not group and IsInGuild and IsInGuild() then hello("GUILD") end
+    if IsInRaid and IsInRaid() then hello("RAID")
+    elseif IsInGroup and IsInGroup() then hello("PARTY") end
+end
+
+-- Wer Pastime hat: [Name] = { v = Version, mp = Mehrspieler-Stufe, t = zuletzt gehört, channel }
+Comm.peers = {}
+local REPLY_GAP = 600      -- so lange nach einer Meldung im selben Kanal wird nicht noch einmal gemeldet
+
+Comm.handlers.HELLO = function(sender, fields, channel)
     local mine, theirs = Comm.VersionNumber(ns.VERSION), fields[1]
-    if not mine then return end
+    Comm.peers[sender] = { v = theirs, mp = fields[2], t = GetTime(), channel = channel }
+    if not mine or theirs == 0 then return end
     if theirs > mine then
         ns.DB.newest = math.max(tonumber(ns.DB.newest) or 0, theirs)      -- auch beim nächsten Einloggen erinnern
         notice(theirs, mine)
-    elseif theirs < mine and not answered[sender] then
-        -- der andere ist älter: einmal antworten, damit er es erfährt
-        answered[sender] = true
-        Comm.Send("HELLO", "WHISPER", sender, mine)
+    elseif theirs < mine and channel ~= "WHISPER" and GetTime() - (lastHello[channel] or -REPLY_GAP) >= REPLY_GAP then
+        -- der andere ist älter: die eigene Version noch einmal im selben Kanal melden, damit er es erfährt
+        hello(channel)
     end
 end
 
@@ -323,5 +336,5 @@ end
 function Comm._Reset()
     wipe(perSender); total = nil; wipe(queue); lastSend = 0
     Comm.session = nil; wipe(Comm.invites)
-    wipe(answered); Comm.noticed = nil; Comm.grouped = nil
+    wipe(lastHello); wipe(Comm.peers); Comm.noticed = nil; Comm.grouped = nil
 end

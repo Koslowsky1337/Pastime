@@ -15,7 +15,7 @@ Pastime is a collection of 24 small games in a classic-style window. It notices 
 - **Classic look and quiet sounds:** parchment, dialog frames and tabs in the style of the original interface. Game sounds play softly on the sound-effects channel.
 - **Horde and Alliance:** the window wears your faction's colours, and some games change with it. Alliance characters fly a gryphon in **Gryphon Flight**, ride a ram in **Ram Dash** and ring the bells of **Bell Echo**.
 - **English and German** client support.
-- **Lightweight and private:** no libraries needed. Your scores are stored in your own SavedVariables. The only thing Pastime ever sends is its own version number, invisibly, to your guild and group, so it can tell you once when someone there has a newer version.
+- **Lightweight and private:** no libraries needed. Your scores are stored in your own SavedVariables. The only thing Pastime ever sends is its own version number: invisibly, to your guild and group channel, never to a single player and never into a chat window. That lets it tell you once when someone there has a newer version.
 
 ## The games
 
