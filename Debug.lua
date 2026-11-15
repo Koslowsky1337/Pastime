@@ -364,7 +364,7 @@ function ns.SelfTest()
     add(type(db.purses) == "table" and type(db.scores) == "table" and type(db.daily) == "table", "saved data has its tables")
     add(nil, ("jackpot %s · start gold raised %s · newest version seen %s · log entries %d"):format(tostring(db.jackpot),
         tostring(db.gold1000), tostring(db.newest), #db.log))
-    add(nil, ("direct messages confirmed earlier: by another player %s · to yourself %s"):format(tostring(db.directOK == true), tostring(db.directSelf == true)))
+    add(nil, ("direct messages confirmed earlier: by another player %s · to yourself %s"):format(tostring(db.directPeer == true), tostring(db.directSelf == true)))
     local daily, goal, done, streak = ns.Daily()
     add(daily ~= nil, ("daily task: %s, goal %s, done %s, streak %s"):format(daily and daily.id or "?", tostring(goal), tostring(done), tostring(streak)))
 

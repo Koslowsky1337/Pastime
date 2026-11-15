@@ -1,6 +1,6 @@
 # Pastime – ToDo
 
-Stand: `v1.2.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erledigt und stehen in der Git-Historie.
+Stand: `v1.3.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erledigt und stehen in der Git-Historie.
 (Diese Datei kommt nicht ins Addon-Zip: `.pkgmeta` lässt `TODO.md` weg.)
 
 ## 1. Von Hand (GitHub)
@@ -34,12 +34,14 @@ Stand: `v1.2.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 - [x] Update-Hinweis: Versionsnummer unsichtbar an Gilde und Gruppe, Chat-Zeile bei neuerer Version (nur volle Versionen)
 - [x] Reiter „Einstellungen“ im Fenster (dieselben Schalter wie im Addon-Menü)
 - [x] Selbsttest `/pastime debug test` (Schnittstellen, Klänge, Texturen, Addon-Nachricht an sich selbst), mehr Sprüche im Automaten
-- [ ] **Im Spiel prüfen (für 1.3):** Fanfare beim Runen-Treffer hörbar? Ziehen des Bonussymbols (nur mittlere Walze, dann nur das Symbol); Auffüllen Feld für Feld; zweites Symbol nach Verlängerung; Hochzählen; Spielregeln mit Gewinnplan passen ins Fenster 📸
+- [x] Im Spiel geprüft (15.11., Selbsttest ohne Befund): Klänge samt Fanfare, Texturen, Addon-Nachrichten über die Gilde und direkt an sich selbst
+- [ ] Totem-Echo: eigene Töne statt der vier geliehenen Oberflächenklänge (Kandidaten mit dem Selbsttest prüfen)
+- [ ] **Im Spiel prüfen (nach 1.3):** Fanfare beim Runen-Treffer hörbar? Ziehen des Bonussymbols (nur mittlere Walze, dann nur das Symbol); Auffüllen Feld für Feld; zweites Symbol nach Verlängerung; Hochzählen; Spielregeln mit Gewinnplan passen ins Fenster 📸
 - [ ] Tagesziele nach ein paar Tagen Spielen nachjustieren (`ns.DAILY` in `Core.lua`; Werte sind geschätzt)
 
 ## 3. Version 2.0: Mehrspieler
 - [ ] Definition in `MULTIPLAYER.md` durchgehen und bestätigen (offene Punkte dort)
-- [ ] Verbindungstest aus 1.3 auswerten: Sobald ein `/pastime debug test` mit einem zweiten 1.3-Nutzer „answered … directly“ zeigt (steht auch im Protokoll und als `directOK`), `PING`/`PONG`/`Comm.Ping` wieder entfernen und README anpassen
+- [ ] Verbindungstest aus 1.3 auswerten: Sobald ein `/pastime debug test` mit einem zweiten 1.3-Nutzer „answered … directly“ zeigt (steht auch im Protokoll und als `directPeer`), `PING`/`PONG`/`Comm.Ping` wieder entfernen und README anpassen
 - [ ] Beta 1: Reiter „Mehrspieler“, Anfrage und Annehmen, Spielwahl, Vier gewinnt, Bilanz
 - [ ] Beta 2: Tavernenwürfel und Runenpaare-Duell
 - [ ] Beta 3: Edelsteincode-Duell und Blackjack-Duell

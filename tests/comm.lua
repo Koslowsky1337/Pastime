@@ -138,7 +138,7 @@ C.OnMessage(C.PREFIX, C.Encode("PING", ping.nonce), "GUILD", "Thokk von Orgrimma
 check(#SENT == before and C.selfNames["Thokk von Orgrimmar"], "our own ping coming back is not answered")
 local logged = false
 for _, e in ipairs(PastimeDB.log) do if e.c == "comm" and tostring(e.m):find("answer received via WHISPER", 1, true) then logged = true end end
-check(PastimeDB.directOK == true and logged, "a direct answer is logged and remembered as confirmation")
+check(PastimeDB.directPeer == true and logged, "a direct answer is logged and remembered as confirmation")
 check(C.Send("INVITE", "WHISPER", "Thrall", "s1", "snake", 1, 60) == false, "multiplayer messages stay switched off")
 ns.Print = realPrint
 C_ChatInfo = nil

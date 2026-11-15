@@ -277,6 +277,7 @@ local function InitDB()
     PastimeDB = fill(type(PastimeDB) == "table" and PastimeDB or {}, DEFAULTS)
     ns.DB = PastimeDB
     ns.DB.gold1000 = true
+    ns.DB.directOK = nil      -- aus einem Testlauf, in dem Pastime sich noch selbst geantwortet hat
     ns.DB.jackpot = math.max(10000, tonumber(ns.DB.jackpot) or 0)
     local st = ns.DB.stats
     st.total, st.flight, st.games = st.total or 0, st.flight or 0, st.games or {}
