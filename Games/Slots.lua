@@ -34,6 +34,7 @@ Game.PLAY = L["Spin for %d gold (Space)"]
 Game.FREE = { 4, 7, 10 }
 Game.RUNE_PAY = { 1, 5, 20 }
 local AUTO_SPINS = 20
+local PICK_TIME, PICK_REEL = 2.5, 3      -- so lange dreht die mittlere Walze, bis das Bonussymbol feststeht
 -- Gewinnlinien: Reihe je Walze (drei Reihen, zwei Diagonalen)
 Game.LINES = { { 1, 1, 1, 1, 1 }, { 2, 2, 2, 2, 2 }, { 3, 3, 3, 3, 3 }, { 1, 2, 3, 2, 1 }, { 3, 2, 1, 2, 3 } }
 local STRIP = {}
@@ -149,11 +150,7 @@ function Game:Start()
     self.free, self.stake, self.special = tonumber(p.free) or 0, tonumber(p.stake) or 0, tonumber(p.special)
     self:OpenRun()
     if self.free > 0 and self.stake > 0 then
-        -- Freispiele von vorhin: gleich weiterdrehen
-        self.state, self.t = "result", 1.5
-        self.msg:SetText("")
-        self.sub:SetText((L["Free spins left: %d"]):format(self.free))
-        self:Render()
+        self:Await()      -- Freispiele von vorhin
     else
         self.free, self.special = 0, nil
     end
@@ -166,12 +163,38 @@ function Game:Save()
 end
 
 -- Freispiele gehen vor: sie drehen zum Einsatz, der sie ausgelöst hat, und kosten nichts
+-- Freispiele stehen an und warten auf den Spieler: zuerst zieht er das Bonussymbol (Leertaste),
+-- dann dreht jede Leertaste ein Freispiel – oder er schaltet dafür Auto-Spin ein.
+function Game:Await()
+    self.bet = 0
+    self:Clear()
+    if self.special then
+        self.state = "free"
+        self.msg:SetText("")
+        self.sub:SetText((L["Free spins left: %d – Space spins, A: auto"]):format(self.free))
+    else
+        self.state = "pick"
+        self.msg:SetText((L["%d free spins!"]):format(self.free))
+        self.sub:SetText(L["Space: draw your bonus symbol"])
+    end
+    self:Render()
+end
+
 function Game:Next()
-    if self.state ~= "result" then return end
-    if (self.free or 0) <= 0 then
+    if self.state == "pick" then
+        -- nur die mittlere Walze dreht, die anderen sind ausgeblendet
+        self.state, self.pickT, self.flick = "picking", PICK_TIME, 0
+        self.sub:SetText("")
+        self.host:Sound("click")
+        return self:Render()
+    end
+    if self.state == "result" then
+        if (self.free or 0) > 0 then return self:Await() end
         self.special = nil      -- Freispiele vorbei: das Bonussymbol gilt nicht mehr
+        if self.isFree then self.auto = false end
         return ns.Gamble.Next(self)
     end
+    if self.state ~= "free" then return end
     self.free = self.free - 1
     self.bet = 0
     self:Save()
@@ -205,6 +228,7 @@ end
 
 -- Auto-Spin: AUTO_SPINS Drehungen von selbst. Er hört auf, wenn Freispiele fallen, wenn er
 -- abgeschaltet wird oder das Gold ausgeht – danach muss der Spieler ihn selbst wieder starten.
+-- Während der Freispiele eingeschaltet, dreht er sie durch und endet mit ihnen.
 function Game:ToggleAuto()
     if self.state == "over" then return end
     self.auto, self.autoT, self.autoLeft = not self.auto, nil, AUTO_SPINS
@@ -213,10 +237,29 @@ function Game:ToggleAuto()
 end
 
 function Game:Update(dt)
-    if self.auto and self.state == "bet" then
+    if self.state == "picking" then
+        self.pickT, self.flick = self.pickT - dt, self.flick + dt
+        local col = self.grid[PICK_REEL]
+        if self.pickT <= 0 then
+            self.special = math.random(WILD - 1)
+            self.grid[PICK_REEL] = { col[1], self.special, col[3] }
+            self.state, self.won, self.blinkOn = "free", { [PICK_REEL * 10 + 2] = true }, true
+            self:Save()
+            self.host:Sound("big")
+            self.msg:SetText(L["Bonus symbol"])
+            self.sub:SetText((L["Free spins left: %d – Space spins, A: auto"]):format(self.free))
+        elseif self.flick >= 0.09 then
+            self.flick = 0
+            self.grid[PICK_REEL] = { math.random(WILD - 1), math.random(WILD - 1), math.random(WILD - 1) }
+            self.host:Sound("click")
+        end
+        return self:Render()
+    end
+    if self.auto and (self.state == "bet" or self.state == "free") then
         self.autoT = (self.autoT or 0.4) - dt
         if self.autoT <= 0 then
             self.autoT = nil
+            if self.state == "free" then return self:Next() end
             self.autoLeft = self.autoLeft - 1
             if self.autoLeft <= 0 then self.auto = false end
             self:Play()
@@ -270,8 +313,8 @@ function Game:Update(dt)
     local award, runes, bonus = Game.Scatter(self.final)
     if award then
         self.free = (self.free or 0) + award
-        self.auto = false
-        self.special = self.special or math.random(WILD - 1)      -- weitere Freispiele behalten das Symbol
+        if not self.isFree then self.auto = false end      -- neue Freispiele: der Spieler ist dran
+        self.host:Sound("fanfare")
         for k in pairs(runes) do cells[k] = true end
     end
     -- Jackpot: fünf Rubine oder Münzen auf einer Linie (rund jede 3.400. Drehung)
@@ -297,19 +340,28 @@ function Game:Key(k, down)
         if down then self:ToggleAuto() end
         return true
     end
+    if (self.state == "pick" or self.state == "free") and (k == "SPACE" or k == "ENTER") then
+        if down then self:Next() end
+        return true
+    end
     return self:BaseKey(k, down)
 end
 
 function Game:Render()
+    local picking = self.state == "pick" or self.state == "picking"
     for c = 1, COLS do
         for r = 1, ROWS do
             local cell = self.cells[c][r]
+            local show = not picking or c == PICK_REEL
+            cell.icon:SetShown(show)
+            cell.back:SetShown(show)
             ns.SetIcon(cell.icon, Game.SYMBOLS[self.grid[c][r]].icon)
             local key = c * 10 + r
-            cell.glow:SetShown((self.won[key] == true and self.blinkOn ~= false) or (self.hot ~= nil and self.hot[key] == true))
+            cell.glow:SetShown(show and ((self.won[key] == true and self.blinkOn ~= false) or (self.hot ~= nil and self.hot[key] == true)))
         end
     end
     self:BaseRender()
+    self.nextBtn:SetShown(self.state == "result" or self.state == "pick" or self.state == "free")
     self.bonus:SetShown(self.special ~= nil)
     if self.special then ns.SetIcon(self.bonus.icon, Game.SYMBOLS[self.special].icon) end
     self.autoBtn:SetText(self.auto and (L["Auto-spin: %d left (A)"]):format(self.autoLeft) or (L["Auto-spin: %d× (A)"]):format(AUTO_SPINS))
@@ -334,7 +386,7 @@ local function Create(host, board)
     local bonusLabel = ns.FontString(g.bonus, "GameFontNormalSmall", "RIGHT")
     bonusLabel:SetPoint("RIGHT", g.bonus, "LEFT", -4, 0)
     bonusLabel:SetText(L["Bonus:"])
-    ns.SetTooltip(g.bonus, L["Bonus symbol"], L["Picked when the free spins start. If it lands on three or more reels during a free spin, it fills those reels and pays for that many of a kind – gaps do not matter. Five reels fill the whole screen."])
+    ns.SetTooltip(g.bonus, L["Bonus symbol"], L["You draw it when the free spins start. If it lands on three or more reels during a free spin, it fills those reels and pays for that many of a kind – gaps do not matter. Five reels fill the whole screen."])
     g.bonus:Hide()
     local x0 = (W - COLS * CELL - (COLS - 1) * GAPX) / 2
     for c = 1, COLS do
@@ -352,7 +404,7 @@ local function Create(host, board)
             local icon = board:CreateTexture(nil, "ARTWORK")
             icon:SetSize(CELL - 6, CELL - 6)
             icon:SetPoint("CENTER", back, "CENTER")
-            g.cells[c][r] = { icon = icon, glow = glow }
+            g.cells[c][r] = { icon = icon, glow = glow, back = back }
         end
     end
     -- Gewinnplan: Symbol und darunter die Auszahlung für 3 · 4 · 5 gleiche

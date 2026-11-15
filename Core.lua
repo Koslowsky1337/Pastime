@@ -206,6 +206,7 @@ local SOUND = {
     record = "IG_QUEST_LIST_COMPLETE", flag = "U_CHAT_SCROLL_BUTTON", alarm = "READY_CHECK",
     t1 = "U_CHAT_SCROLL_BUTTON", t2 = "IG_ABILITY_PAGE_TURN", t3 = "IG_SPELLBOOK_CLOSE", t4 = "IG_MAINMENU_OPTION_CHECKBOX_ON",
     bad = "IG_QUEST_LOG_ABANDON_QUEST",
+    fanfare = 888,      -- Stufenaufstieg: der einzige längere Klang (Freispiele im Automaten); Zahl = Soundkit-ID
 }
 local lastSound = {}
 
@@ -214,7 +215,7 @@ function ns.PlaySound(kind)
     local now = GetTime()
     if lastSound[kind] and now - lastSound[kind] < 0.12 then return end   -- kein Dauerfeuer
     lastSound[kind] = now
-    local id = SOUNDKIT and SOUNDKIT[SOUND[kind] or ""]
+    local id = type(SOUND[kind]) == "number" and SOUND[kind] or (SOUNDKIT and SOUNDKIT[SOUND[kind] or ""])
     if id and PlaySound then ns.Try("PlaySound", PlaySound, id, kind == "alarm" and "Master" or "SFX") end
 end
 

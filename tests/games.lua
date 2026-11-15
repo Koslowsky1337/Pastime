@@ -988,21 +988,32 @@ check(g.tease[3] and g.tease[3][11] and g.tease[3][22], "Automat: zwei Runen mac
 tick(8)
 check(g.state == "result" and g.free == 4 and g.gold == gold and g.cells[3][3].glow:IsShown() and PastimeDB.purses.slots.free == 4,
     "Automat: drei Runen geben vier Freispiele und zahlen den Einsatz zurück, gespeichert")
-check(g.special and g.special >= 1 and g.special <= 5 and g.bonus:IsShown() and PastimeDB.purses.slots.special == g.special,
-    "Automat: mit den Freispielen wird ein Bonussymbol gewählt und angezeigt")
-g.special = 5      -- Rubin: kommt in den nächsten Bildern nicht vor
+local function spun() for _ = 1, 200 do if g.state == "result" then return end; tick(0.1) end end
 tick(3)
-check(g.state == "spin" and g.free == 3 and g.bet == 0 and g.gold == gold, "Automat: das Freispiel dreht von selbst und kostet nichts")
+check(g.state == "pick" and g.special == nil and not g.cells[1][1].icon:IsShown() and g.cells[3][2].icon:IsShown() and g.nextBtn:IsShown(),
+    "Automat: vor den Freispielen wird das Bonussymbol gezogen – nur die mittlere Walze ist zu sehen")
+tick(5)
+check(g.state == "pick", "Automat: das Ziehen wartet auf den Spieler")
+key("SPACE")
+check(g.state == "picking", "Automat: Leertaste dreht die mittlere Walze")
+tick(3)
+check(g.state == "free" and g.special and g.special >= 1 and g.special <= 5 and g.grid[3][2] == g.special and g.bonus:IsShown()
+    and PastimeDB.purses.slots.special == g.special and g.cells[1][1].icon:IsShown() and g.cells[3][2].glow:IsShown(),
+    "Automat: das Bonussymbol steht fest, wird angezeigt und gespeichert")
+g.special = 5      -- Rubin: kommt in den nächsten Bildern nicht vor
+tick(5)
+check(g.state == "free" and g.free == 4, "Automat: Freispiele drehen nicht von selbst")
+key("SPACE")
+check(g.state == "spin" and g.free == 3 and g.bet == 0 and g.gold == gold, "Automat: Leertaste dreht ein Freispiel, es kostet nichts")
 g.final = { { 1, 2, 3 }, { 1, 3, 1 }, { 1, 1, 2 }, { 2, 2, 3 }, { 3, 3, 1 } }
 g:Plan()
-tick(3)      -- die Walzen liefen schon 2,4 s
+spun()
 check(g.state == "result" and g.gold == gold + 10 * 6 / 5, "Automat: Freispiel zahlt zum auslösenden Einsatz, Gold " .. g.gold)
 g = start("slots")
-check(g.state == "result" and g.free == 3 and g.stake == 10 and g.special == 5, "Automat: Freispiele und Bonussymbol überstehen das Schließen")
+check(g.state == "free" and g.free == 3 and g.stake == 10 and g.special == 5, "Automat: Freispiele und Bonussymbol überstehen das Schließen")
 -- Bonussymbol Fisch auf den Walzen 1, 2, 4 und 5 (mit Lücke): die vier Walzen füllen sich, 3 Linieneinsätze dazu
-local function spun() for _ = 1, 200 do if g.state == "result" then return end; tick(0.1) end end
 g.special = 1
-tick(2)
+key("SPACE")
 g.final = { { 1, 2, 3 }, { 2, 1, 4 }, { 4, 2, 3 }, { 3, 4, 1 }, { 2, 3, 1 } }
 g:Plan()
 local before = g.gold
@@ -1010,18 +1021,21 @@ spun()
 check(g.gold == before + math.floor(10 * 3 / 5) and g.grid[1][3] == 1 and g.grid[4][1] == 1 and g.grid[3][1] == 4 and g.cells[5][2].glow:IsShown()
     and g.sub.text == (ns.L["Bonus symbol on %d reels!"]):format(4), "Automat: das Bonussymbol füllt vier Walzen und zahlt, Gold " .. g.gold)
 tick(3)
+key("A")
+tick(0.6)
+check(g.state == "spin" and g.auto and g.free == 1, "Automat: Auto-Spin dreht auch die Freispiele")
 g.final = { { 1, 2, 3 }, { 2, 1, 4 }, { 1, 2, 3 }, { 3, 4, 1 }, { 2, 3, 1 } }
 g:Plan()
 before = g.gold
 spun()
 check(g.gold >= before + 10 * 15 / 5 and g.sub.text == ns.L["FULL SCREEN!"] and g.grid[3][2] == 1, "Automat: fünf Walzen – Vollbild")
 g.free, g.special = 1, 5
-tick(3)
+tick(3.2)
 g.final = { { 1, 2, 3 }, { 2, 3, 1 }, { 3, 1, 2 }, { 1, 2, 3 }, { 2, 3, 1 } }
 g:Plan()
 tick(8)
-check(g.state == "bet" and g.free == 0 and PastimeDB.purses.slots.free == nil and g.special == nil and not g.bonus:IsShown(),
-    "Automat: nach dem letzten Freispiel wieder setzen, das Bonussymbol ist weg")
+check(g.state == "bet" and g.free == 0 and PastimeDB.purses.slots.free == nil and g.special == nil and not g.bonus:IsShown() and not g.auto,
+    "Automat: nach dem letzten Freispiel wieder setzen, Bonussymbol und Auto-Spin sind weg")
 -- Fester Einsatz: einmal einstellen, dann nur noch drehen; Auto-Spin
 PastimeDB.purses.slots = { gold = 300, peak = 300 }
 g = start("slots")
