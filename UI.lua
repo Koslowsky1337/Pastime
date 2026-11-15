@@ -142,7 +142,7 @@ function ns.StartGame(def, mode)
     end
     ns.EndRun()
     mode = mode or ns.DefaultMode(def)
-    if mode then ns.DB.modes[def.id] = mode end
+    if mode and mode ~= "mp" then ns.DB.modes[def.id] = mode end      -- „mp“ ist keine Schwierigkeit
     ns.DB.lastGame = def.id
     ns.selected = def
     GetBoard(def)
@@ -167,7 +167,13 @@ end
 
 function ns.Restart()
     local run = ns.run
-    if run then ns.StartGame(run.def, run.mode) end
+    if not run then return end
+    if run.mode == "mp" then
+        -- im Mehrspieler: während der Partie aufgeben, danach Revanche
+        if ns.MP.session and ns.MP.session.state == "playing" then return ns.MP.GiveUp() end
+        return ns.MPRematch()
+    end
+    ns.StartGame(run.def, run.mode)
 end
 
 function ns.Pause(reason)
@@ -870,6 +876,7 @@ function ns.UpdateSidePanel()
     side.controls:SetText(def.controlsShort and (def.controlsShort .. "\n" .. pause) or pause)
     side.flight:SetText(ns.TripStatus() or "")
     side.pause:SetText(run.state == "paused" and L["Resume"] or L["Pause"])
+    side.restart:SetText(run.mode ~= "mp" and L["Restart"] or ((ns.MP.session and ns.MP.session.state == "playing") and L["Give up"] or L["Rematch"]))
     side.pause:SetEnabled(run.state ~= "over")
     side.rules:SetEnabled(run.state == "running" or (run.state == "paused" and ns.overlay.kind == "pause"))
 end
@@ -1125,7 +1132,8 @@ local function CreateSettingsView(parent)
         text:SetText(tip)
         text:SetTextColor(0.75, 0.75, 0.75)
         v.checks[#v.checks + 1] = c
-        y = y - 58
+        y = y - 50
+        return c, text
     end
     for _, o in ipairs(ns.OPTIONS or {}) do
         local key = o.key
@@ -1139,6 +1147,18 @@ local function CreateSettingsView(parent)
             ns.DB.minimap.hidden = not on
             if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end
         end)
+    -- Mehrspieler: nur zu sehen, solange er freigeschaltet ist
+    v.mpRows = {}
+    local function mpRow(key, label, tip)
+        local c, text = row(label, tip,
+            function() return ns.DB.settings[key] and true or false end,
+            function(on) ns.DB.settings[key] = on; ns.Comm.Announce() end)
+        v.mpRows[#v.mpRows + 1] = c
+        v.mpRows[#v.mpRows + 1] = text
+    end
+    mpRow("mp", L["Multiplayer"], L["Other players with Pastime can ask you for a game. Off: nobody sees you and you see nobody."])
+    mpRow("mpParty", L["Visible to your group"], L["Players in your party or raid see you in their multiplayer list."])
+    mpRow("mpGuild", L["Visible to your guild"], L["Guild members see you in their multiplayer list."])
     v.report = ns.CreateButton(box, L["Create bug report"], 200, function() ns.ShowReport() end)
     v.report:SetPoint("BOTTOMLEFT", 14, 14)
     ns.SetTooltip(v.report, L["Create bug report"], L["Opens a report with the recent log to copy into a GitHub issue. Character names are replaced."])
@@ -1152,9 +1172,252 @@ function ns.UpdateSettingsView()
     local v = ns.settingsView
     if not (v and v:IsShown()) then return end
     for _, c in ipairs(v.checks) do c:SetChecked(c.get()) end
+    for _, w in ipairs(v.mpRows) do w:SetShown(ns.Comm.ENABLED and true or false) end
 end
 
-local TABS = { { "spiele", L["Games"] }, { "records", L["Route records"] }, { "settings", L["Settings"] } }
+---------------------------------------------------------------------------
+-- Mehrspieler (Beta): Reiter mit Mitspielerliste und Stand der Sitzung, Anfrage-Fenster,
+-- Brett starten und ein laufendes Einzelspiel so lange parken
+---------------------------------------------------------------------------
+local MP_ROWS, MP_BUTTONS = 10, 6
+local MP_NOTES = {
+    declined = L["Your request was declined."],
+    ["no answer"] = L["No answer – the request expired."],
+    ["timed out"] = L["That took too long – the request expired."],
+    paused = L["The game is paused and does not count. Ask the same player again within ten minutes to continue it."],
+    ["partner paused"] = L["Your opponent paused the game. Ask them again within ten minutes to continue it."],
+    cancelled = L["The request was cancelled."],
+    mismatch = L["The paused game could not be restored."],
+    ["unknown game"] = L["Your opponent chose a game this version does not know."],
+    offline = L["That player is not online."],
+}
+
+local function CreateMPView(parent)
+    local v = CreateFrame("Frame", nil, parent)
+    v:SetAllPoints()
+    local list = ns.CreateInset(v)
+    list:SetPoint("TOPLEFT", 16, -30)
+    list:SetPoint("BOTTOMLEFT", 16, 16)
+    list:SetWidth(340)
+    local head = ns.FontString(list, "GameFontNormal", "LEFT")
+    head:SetPoint("TOPLEFT", 12, -10)
+    head:SetText(L["Players with Pastime"])
+    v.empty = ns.FontString(list, "GameFontDisable", "LEFT")
+    v.empty:SetPoint("TOPLEFT", 12, -36)
+    v.empty:SetWidth(312)
+    v.empty:SetText(L["Nobody here yet. Players appear when they are in your group or guild, have Pastime and have multiplayer switched on."])
+    v.rows = {}
+    for i = 1, MP_ROWS do
+        local row = CreateFrame("Frame", nil, list)
+        row:SetSize(316, 24)
+        row:SetPoint("TOPLEFT", 10, -32 - (i - 1) * 27)
+        row.name = ns.FontString(row, "GameFontHighlight", "LEFT")
+        row.name:SetPoint("LEFT", 2, 0)
+        row.name:SetWidth(128)
+        row.name:SetWordWrap(false)
+        row.rec = ns.FontString(row, "GameFontDisableSmall", "LEFT")
+        row.rec:SetPoint("LEFT", 134, 0)
+        row.rec:SetWidth(88)
+        row.rec:SetWordWrap(false)
+        row.btn = ns.CreateButton(row, L["Ask"], 90, function(self)
+            ns.PlaySound("click")
+            ns.MP.Invite(self.who)
+        end)
+        row.btn:SetPoint("RIGHT", 0, 0)
+        v.rows[i] = row
+    end
+    local d = ns.CreateInset(v)
+    d:SetPoint("TOPLEFT", list, "TOPRIGHT", 6, 0)
+    d:SetPoint("BOTTOMRIGHT", -16, 16)
+    v.title = ns.FontString(d, "GameFontNormalLarge", "CENTER")
+    v.title:SetPoint("TOP", 0, -22)
+    v.title:SetWidth(300)
+    v.text = ns.FontString(d, "GameFontHighlight", "CENTER")
+    v.text:SetPoint("TOP", v.title, "BOTTOM", 0, -12)
+    v.text:SetWidth(300)
+    v.buttons = {}
+    for i = 1, MP_BUTTONS do
+        local b = ns.CreateButton(d, "", 230, function(self)
+            ns.PlaySound("click")
+            if self.fn then self.fn() end
+        end)
+        b:SetHeight(24)
+        b:SetPoint("TOP", 0, -150 - (i - 1) * 30)
+        v.buttons[i] = b
+    end
+    return v
+end
+
+-- Revanche: dieselbe Paarung noch einmal anfragen
+function ns.MPRematch()
+    local MP = ns.MP
+    local partner = MP.session and MP.session.partner or (ns.run and ns.run.game.mp and ns.run.game.mp.partner)
+    if ns.run and ns.run.mode == "mp" then
+        if ns.run.state ~= "over" then ns.EndRun() end
+        ns.run = nil
+        ns.HideOverlay()
+    end
+    MP.Pause()
+    if partner then MP.Invite(partner) end
+    ns.ShowView("mp")
+end
+
+function ns.UpdateMPView()
+    local v = ns.mpView
+    if not (v and v:IsShown()) then return end
+    local MP = ns.MP
+    local s = MP.session
+    local players = MP.Players()
+    v.empty:SetShown(#players == 0)
+    for i, row in ipairs(v.rows) do
+        local p = players[i]
+        row:SetShown(p ~= nil)
+        if p then
+            row.name:SetText(p.name)
+            local w, l, d = MP.Record(p.name)
+            row.rec:SetText(w + l + d > 0 and (L["%d won · %d lost"]):format(w, l) or "")
+            row.btn.who = p.name
+            row.btn:SetEnabled(s == nil)
+        end
+    end
+    local title, text, buttons = L["Multiplayer"], "", {}
+    local function add(label, fn) buttons[#buttons + 1] = { label, fn } end
+    if not s then
+        text = MP_NOTES[MP.note or ""] or L["Pick a player on the left and ask them for a game. They have to accept first."]
+    else
+        title = s.partner
+        if s.state == "asking" then
+            text = L["Waiting for an answer …"]
+            add(L["Cancel"], MP.Pause)
+        elseif s.state == "choosing" then
+            text = L["Accepted! Choose a game:"]
+            local p = MP.Paused(s.partner)
+            if (p and #p.moves > 0) or (s.theirs or 0) > 0 then add(L["Continue the paused game"], MP.Resume) end
+            for _, id in ipairs(MP.order) do add(ns.gamesById[id].name, function() MP.Choose(id) end) end
+            add(L["Cancel"], MP.Pause)
+        elseif s.state == "waiting" then
+            text = L["Your opponent is choosing a game …"]
+            add(L["Cancel"], MP.Pause)
+        elseif s.state == "resumeWait" then
+            text = L["Fetching the paused game …"]
+            add(L["Cancel"], MP.Pause)
+        elseif s.state == "playing" then
+            text = L["The game is running."]
+            add(L["Show the board"], ns.MPShowBoard)
+            add(L["Give up"], MP.GiveUp)
+        else
+            text = s.result == 2 and L["You won."] or (s.result == 0 and L["You lost."] or L["Draw."])
+            add(L["Rematch"], ns.MPRematch)
+            add(L["Done"], MP.Pause)
+        end
+    end
+    v.title:SetText(title)
+    v.text:SetText(text)
+    for i, b in ipairs(v.buttons) do
+        local spec = buttons[i]
+        b:SetShown(spec ~= nil)
+        if spec then b:SetText(spec[1]); b.fn = spec[2] end
+    end
+end
+
+-- Kleines Fenster für eine Anfrage: erscheint auch, wenn das Pastime-Fenster zu ist
+local function InvitePopup()
+    local MP = ns.MP
+    local who, t
+    for name, inv in pairs(MP.invites) do
+        if not t or inv.t < t then who, t = name, inv.t end
+    end
+    local f = ns.inviteFrame
+    if not who or not MP.On() or MP.session then
+        if f then f:Hide() end
+        return
+    end
+    if not f then
+        f = CreateFrame("Frame", "PastimeInviteFrame", UIParent, "BackdropTemplate")
+        f:SetBackdrop(BACKDROP_DIALOG_32_32 or ns.TOOLTIP_BACKDROP)
+        ns.TintDialog(f)
+        f:SetSize(340, 150)
+        f:SetPoint("TOP", 0, -160)
+        f:SetFrameStrata("DIALOG")
+        f:EnableMouse(true)
+        f.title = ns.FontString(f, "GameFontNormal", "CENTER")
+        f.title:SetPoint("TOP", 0, -18)
+        f.title:SetText("Pastime")
+        f.text = ns.FontString(f, "GameFontHighlight", "CENTER")
+        f.text:SetPoint("TOP", 0, -42)
+        f.text:SetWidth(300)
+        f.yes = ns.CreateButton(f, L["Accept"], 130, function() ns.PlaySound("click"); ns.MP.Answer(f.who, true) end)
+        f.yes:SetPoint("BOTTOMRIGHT", f, "BOTTOM", -4, 18)
+        f.no = ns.CreateButton(f, L["Decline"], 130, function() ns.PlaySound("click"); ns.MP.Answer(f.who, false) end)
+        f.no:SetPoint("BOTTOMLEFT", f, "BOTTOM", 4, 18)
+        ns.inviteFrame = f
+    end
+    f.who = who
+    local busy = ns.run and ns.run.state ~= "over" and ns.run.mode ~= "mp"
+    f.text:SetText((L["%s wants to play with you."]):format(who) .. (busy and ("\n\n" .. L["Your current game waits until you are done."]) or ""))
+    f:Show()
+end
+
+-- Das Brett der laufenden Partie zeigen. Ein Einzelspiel, das gerade läuft, wird geparkt
+-- und nach der Partie fortgesetzt – außer es ist dasselbe Spiel, dann bricht StartGame es ab.
+-- shortcut: ein geparktes Spiel wird bei der Ankunft nicht gewertet; wenn das stört, die Ankunft auch auf ns.parked anwenden
+function ns.MPShowBoard()
+    local s = ns.MP.session
+    if not (s and s.state == "playing") then return end
+    if ns.run and ns.run.mode == "mp" and ns.run.game.mp == s then return ns.ShowView("game") end
+    if InCombatLockdown() then return end      -- nach dem Kampf holt MPSync es nach
+    local def, run = ns.gamesById[s.game], ns.run
+    if run and run.state ~= "over" and run.mode ~= "mp" and run.def ~= def then
+        if run.state == "running" then ns.Pause() end
+        ns.HideOverlay()
+        ns.parked, ns.run = run, nil
+    end
+    ns.StartGame(def, "mp")
+end
+
+-- Das geparkte Einzelspiel wieder hervorholen: es steht pausiert da
+function ns.Unpark()
+    local run = ns.parked
+    ns.parked = nil
+    if not run then return end
+    for _, d in ipairs(ns.games) do
+        if d._board then d._board:SetShown(d == run.def) end
+    end
+    ns.run, ns.selected = run, run.def
+    run.state = "running"
+    ns.ShowView("game")
+    ns.Pause()
+end
+
+-- Reiter „Mehrspieler“ gibt es nur, solange der Mehrspieler freigeschaltet ist
+local function LayoutTabs()
+    local prev
+    for _, tab in ipairs(ns.frame.tabs) do
+        local show = tab.key ~= "mp" or (ns.Comm.ENABLED and true or false)
+        tab:SetShown(show)
+        if show then
+            tab:ClearAllPoints()
+            if prev then tab:SetPoint("LEFT", prev, "RIGHT", 4, 0) else tab:SetPoint("BOTTOMLEFT", 12, -30) end
+            prev = tab
+        end
+    end
+end
+
+-- Nach jeder Änderung der Sitzung: Brett starten oder nachziehen, Anfrage zeigen, Reiter anpassen
+function ns.MPSync()
+    local s = ns.MP.session
+    if s and s.state == "playing" and not (ns.run and ns.run.mode == "mp" and ns.run.game.mp == s) then ns.MPShowBoard() end
+    if ns.run and ns.run.mode == "mp" and ns.run.game.Sync then ns.run.game:Sync() end
+    InvitePopup()
+    if ns.frame then
+        LayoutTabs()
+        if ns.view == "mp" and not ns.Comm.ENABLED then return ns.ShowView("launcher") end
+        ns.UpdateMPView()
+    end
+end
+ns.MP.onChange = ns.MPSync
+
+local TABS = { { "spiele", L["Games"] }, { "records", L["Route records"] }, { "mp", L["Multiplayer"] }, { "settings", L["Settings"] } }
 
 function ns.CreateMainFrame()
     if ns.frame then return ns.frame end
@@ -1202,6 +1465,8 @@ function ns.CreateMainFrame()
     ns.records:Hide()
     ns.settingsView = CreateSettingsView(f)
     ns.settingsView:Hide()
+    ns.mpView = CreateMPView(f)
+    ns.mpView:Hide()
 
     -- Reiter unten (wie im Charakterfenster)
     f.tabs = {}
@@ -1214,7 +1479,7 @@ function ns.CreateMainFrame()
         if PanelTemplates_TabResize then ns.Try("PanelTemplates_TabResize", PanelTemplates_TabResize, tab, 0) end
         tab:SetScript("OnClick", ns.Wrap("reiter", function(self)
             ns.PlaySound("click")
-            if self.key == "records" or self.key == "settings" then
+            if self.key == "records" or self.key == "settings" or self.key == "mp" then
                 ns.ShowView(self.key)
             else
                 ns.ShowView((ns.run and ns.run.state ~= "over") and "game" or "launcher")
@@ -1250,6 +1515,7 @@ function ns.ShowView(which)
     ns.gameView:SetShown(which == "game")
     ns.records:SetShown(which == "records")
     ns.settingsView:SetShown(which == "settings")
+    ns.mpView:SetShown(which == "mp")
     ns.view = which
     for _, tab in ipairs(ns.frame.tabs) do
         local active = tab.key == which or (tab.key == "spiele" and (which == "launcher" or which == "game"))
@@ -1261,16 +1527,22 @@ function ns.ShowView(which)
 end
 
 function ns.ShowLauncher()
-    if ns.run and ns.run.state ~= "over" then ns.EndRun() end
+    local wasMP = ns.run and ns.run.mode == "mp"
+    if ns.run and ns.run.state ~= "over" then ns.EndRun() end      -- eine laufende Mehrspieler-Partie hält dabei an
     ns.run = nil
     ns.HideOverlay()
+    if wasMP then
+        if ns.MP.session and ns.MP.session.state == "over" then ns.MP.Pause() end      -- die fertige Sitzung ist damit zu Ende
+        if ns.parked then return ns.Unpark() end
+        return ns.ShowView("mp")
+    end
     ns.ShowView("launcher")
 end
 
 function ns.ShowFrame(view)
     local f = ns.CreateMainFrame()
     local unfinished = ns.run and ns.run.state ~= "over"
-    if view == "records" or view == "settings" then
+    if view == "records" or view == "settings" or view == "mp" then
         ns.ShowView(view)
     else
         ns.ShowView(unfinished and "game" or "launcher")
@@ -1289,6 +1561,7 @@ function ns.UpdateUI()
     ns.Safe("seitenleiste", ns.UpdateSidePanel)
     ns.Safe("reiserekorde", ns.UpdateRecords)
     ns.Safe("einstellungen", ns.UpdateSettingsView)
+    ns.Safe("mehrspieler", ns.MPSync)
     ns.UpdateKeyboard()
 end
 

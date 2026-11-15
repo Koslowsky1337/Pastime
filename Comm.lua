@@ -213,7 +213,7 @@ function Comm.Send(kind, channel, target, ...)
     if not (Comm.ENABLED or (kind == "HELLO" and Comm.VERSION_CHECK)) then return false end      -- HELLO geht auch ohne Mehrspieler
     local msg, err = Comm.Encode(kind, ...)
     if not msg then ns.Log("W", "comm", "not sent: %s", tostring(err)); return false end
-    if #queue >= 20 then return false end
+    if #queue >= 20 then ns.Log("W", "comm", "send queue full, %s dropped", tostring(kind)); return false end
     queue[#queue + 1] = { msg = msg, channel = channel, target = target, tries = 0 }
     return true
 end
@@ -223,6 +223,7 @@ function Comm.Flush()
     if not item or GetTime() - lastSend < SEND_GAP then return end
     if not (C_ChatInfo and C_ChatInfo.SendAddonMessage) then wipe(queue); return end
     lastSend = GetTime()
+    if item.channel == "WHISPER" then Comm.lastDirect = { target = item.target, t = GetTime() } end
     local ok, res = ns.Try("C_ChatInfo.SendAddonMessage", C_ChatInfo.SendAddonMessage, Comm.PREFIX, item.msg, item.channel, item.target)
     local code = ok and (type(res) == "number" and res or (res == true and RESULT_OK)) or -1
     if code == RESULT_THROTTLE or code == RESULT_CHANNEL_THROTTLE then
@@ -313,11 +314,22 @@ function Comm.StartVersionCheck()
     end))
 end
 
+-- Geht eine direkte Nachricht an jemanden, der offline ist, schreibt der Client selbst die gelbe Zeile
+-- „Kein Spieler mit dem Namen …“ in den Chat. Für die eigenen Nachrichten wird sie ausgeblendet.
+function Comm.FilterOffline(_, _, text)
+    local d = Comm.lastDirect
+    if not (d and GetTime() - d.t < 5 and type(ERR_CHAT_PLAYER_NOT_FOUND_S) == "string" and type(text) == "string") then return false end
+    if text ~= ERR_CHAT_PLAYER_NOT_FOUND_S:format(d.target) then return false end
+    if Comm.onOffline then ns.Safe("comm-offline", Comm.onOffline, d.target) end
+    return true
+end
+
 function Comm.Enable()
     if Comm.registered then return end
     if not (C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix) then return end
     C_ChatInfo.RegisterAddonMessagePrefix(Comm.PREFIX)
     Comm.registered = true
+    if ChatFrame_AddMessageEventFilter then ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", Comm.FilterOffline) end
     local f = CreateFrame("Frame")
     f:RegisterEvent("CHAT_MSG_ADDON")
     f:RegisterEvent("GROUP_ROSTER_UPDATE")

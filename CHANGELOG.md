@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.0-beta1
+
+Multiplayer, first test version. It is switched off until both players type `/pastime mp`.
+
+- New tab “Multiplayer”: it lists players in your group (and, if you switch it on, your guild) who have Pastime with multiplayer on, with your record against them.
+- Ask a player for a game. They get a small window to accept or decline; then you choose the game.
+- First game: Four in a Row against another player. Only legal moves go through. The first game starts at random, in a rematch the loser begins.
+- Closing the board, reloading or ten idle minutes pause a game without counting it. Ask the same player again within ten minutes to continue where you stopped. Giving up counts as a loss.
+- A single-player game that is running when you accept waits and comes back afterwards.
+- Settings: multiplayer on or off, and whether your group and your guild see you.
+- Everything travels as invisible addon messages; nothing appears in chat.
+
 ## 1.3.0
 
 - New: a “Settings” tab at the bottom of the window with the same switches as the addon options, each with its explanation, plus the bug report button.

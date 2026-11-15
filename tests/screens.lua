@@ -139,6 +139,21 @@ scan("Reiserekorde")
 ns.ShowFrame("settings")
 scan("Einstellungen")
 
+-- 7. Mehrspieler (freigeschaltet): Reiter mit Liste und Spielwahl, Einstellungen mit den drei Schaltern
+SlashCmdList.PASTIME("mp")
+ns.Comm.peers["Jaina Prachtmeer"] = { v = 0, mp = 1, t = GetTime(), channel = "PARTY" }
+ns.Comm.peers["Thrall"] = { v = 0, mp = 1, t = GetTime(), channel = "PARTY" }
+PastimeDB.mp.stats["Jaina Prachtmeer"] = { fourinarow = { w = 12, l = 7, d = 1 } }
+ns.ShowFrame("mp")
+scan("Mehrspieler")
+ns.MP.session = { id = "s1", partner = "Jaina Prachtmeer", role = "host", state = "choosing", theirs = 3, t = GetTime() }
+ns.UpdateUI()
+scan("Mehrspieler Spielwahl")
+ns.MP.session = nil
+ns.ShowFrame("settings")
+scan("Einstellungen mit Mehrspieler")
+SlashCmdList.PASTIME("mp")
+
 for _, f in ipairs(found) do print("FEHLER: " .. f) end
 
 -- Gegenprobe: ein zu langer Knopftext muss auffallen, sonst ist der Prüfer blind

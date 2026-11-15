@@ -22,6 +22,7 @@ local function last() flush(); return SENT[#SENT] or {} end
 local function sent(text) flush(); for _, m in ipairs(SENT) do if m.msg == text then return m end end end
 local function from(who, kind, ...) C.OnMessage(C.PREFIX, C.Encode(kind, ...), "WHISPER", who) end
 local JAINA = "Jaina Prachtmeer"      -- Namen haben hier Vor- und Nachnamen
+local function best(key) local l = PastimeDB.scores[key]; return l and l[1] and l[1].s end
 
 -- Ausgeschaltet: nichts geht hinaus, nichts wird angenommen
 check(not MP.On() and MP.Invite(JAINA) == false and MP.session == nil, "Mehrspieler ist ohne Freischaltung aus")
@@ -232,6 +233,108 @@ check(#MP.Players() == 2, "mit eingeschalteter Gilde erscheinen auch Gildenmitgl
 PastimeDB.settings.mp = false
 check(#MP.Players() == 0 and MP.Invite(JAINA) == false, "Hauptschalter aus: niemand zu sehen, keine Anfragen")
 PastimeDB.settings.mp, PastimeDB.settings.mpGuild = true, false
+
+-- Oberfläche: Reiter „Mehrspieler“, Anfrage-Fenster, Brett, geparktes Einzelspiel -------------------
+local function click(b) b.scripts.OnClick(b) end
+MP._Reset(); PastimeDB.mp.paused = {}; PastimeDB.mp.stats = {}
+ns.ShowFrame("mp")
+local v = ns.mpView
+check(v:IsShown() and ns.frame.tabs[3]:IsShown() and ns.frame.tabs[3].key == "mp", "freigeschaltet gibt es den Reiter „Mehrspieler“")
+check(v.rows[1]:IsShown() and v.rows[1].name.text == JAINA and not v.rows[2]:IsShown() and not v.empty:IsShown(), "die Liste zeigt die Mitspielerin aus der Gruppe")
+check(v.title.text == ns.L["Multiplayer"] and not v.buttons[1]:IsShown(), "ohne Sitzung steht dort die Anleitung")
+click(v.rows[1].btn)
+check(MP.session and MP.session.state == "asking" and v.title.text == JAINA and v.text.text == ns.L["Waiting for an answer …"]
+    and v.buttons[1].text == ns.L["Cancel"] and not v.rows[1].btn:IsEnabled(), "Anfragen: der Reiter zeigt, dass auf die Antwort gewartet wird")
+sid = MP.session.id
+from(JAINA, "ACCEPT", sid, 0)
+check(v.text.text == ns.L["Accepted! Choose a game:"] and v.buttons[1].text == ns.gamesById.fourinarow.name and v.buttons[2].text == ns.L["Cancel"],
+    "angenommen: die Mehrspieler-Spiele stehen zur Wahl")
+MP.last = nil
+math.randomseed(11)
+click(v.buttons[1])
+local g = ns.run and ns.run.game
+s = MP.session
+check(ns.run and ns.run.mode == "mp" and ns.run.def.id == "fourinarow" and ns.gameView:IsShown() and g.mp == s and PastimeDB.modes.fourinarow ~= "mp",
+    "Spiel gewählt: das Brett öffnet sich im Mehrspieler-Modus")
+if s.turn ~= s.me then from(JAINA, "MOVE", sid, 1, 7) end
+check(g.state == "player" and g.status.text == ns.L["Your turn."], "am Zug: das Brett sagt es")
+g:Play(4)
+local row = s.board.last[2]
+check(g.state == "wait" and g.cells[4][row].disc:IsShown() and g.status.text == (ns.L["Waiting for %s …"]):format(JAINA), "mein Stein liegt, jetzt ist sie dran")
+g:Play(4)
+check(#s.moves == (s.first == 1 and 1 or 2), "solange sie dran ist, wirft mein Klick nichts")
+from(JAINA, "MOVE", sid, #s.moves + 1, 5)
+check(g.state == "player" and g.cells[5][1].disc:IsShown(), "ihr Stein erscheint auf dem Brett")
+check(ns.gameView.side.restart.text == ns.L["Give up"], "während der Partie heißt der Knopf „Aufgeben“")
+ns.Restart()
+check(s.state == "over" and s.result == 0 and ns.run.state == "over" and ns.overlay.title.text == ns.L["Defeat"] and ns.overlay.text.text:find(ns.L["You gave up."], 1, true),
+    "Aufgeben beendet die Partie als Niederlage")
+check(best("fourinarow") == nil, "Mehrspieler-Partien kommen nicht in die Bestenliste")
+ns.Restart()
+check(MP.session and MP.session.state == "asking" and MP.session.partner == JAINA and v:IsShown() and ns.run == nil, "danach führt derselbe Knopf zur Revanche")
+click(v.buttons[1])
+check(MP.session == nil and v.text.text == ns.L["Pick a player on the left and ask them for a game. They have to accept first."], "Abbrechen beendet die Anfrage")
+
+-- Anfrage-Fenster und Parken: ich spiele gerade Windnatter und werde eingeladen
+ns.StartGame(ns.gamesById.snake)
+from(JAINA, "INVITE", "p1")
+local pop = ns.inviteFrame
+check(pop and pop.shown and pop.text.text:find(JAINA, 1, true) and pop.text.text:find(ns.L["Your current game waits until you are done."], 1, true),
+    "Anfrage-Fenster erscheint und sagt, dass das laufende Spiel wartet")
+click(pop.yes)
+check(not pop.shown and MP.session.state == "waiting" and ns.run.def.id == "snake", "angenommen: bis das Spiel gewählt ist, läuft die Windnatter weiter")
+from(JAINA, "START", "p1", "fourinarow", 9, 2, 1, 0)
+check(ns.run.mode == "mp" and ns.parked and ns.parked.def.id == "snake" and ns.parked.state == "paused", "die Partie beginnt, die Windnatter ist geparkt")
+ns.run.game:Play(3)
+from(JAINA, "BYE", "p1")
+check(ns.run.state == "over" and ns.overlay.text.text:find(ns.L["Your opponent gave up."], 1, true), "gibt sie auf, steht das im Ergebnis")
+ns.ShowLauncher()
+check(MP.session == nil and ns.parked == nil and ns.run and ns.run.def.id == "snake" and ns.run.state == "paused" and ns.gameView:IsShown(),
+    "zurück: die Windnatter steht pausiert wieder da")
+ns.ShowLauncher()
+-- Ablehnen über das Fenster; eine verfallene Anfrage verschwindet
+flush()
+from(JAINA, "INVITE", "p2")
+click(ns.inviteFrame.no)
+check(not ns.inviteFrame.shown and MP.session == nil and last().msg == "PT1^DECLINE^p2", "Ablehnen über das Fenster")
+from(JAINA, "INVITE", "p3")
+NOW = NOW + 61; MP.Tick()
+check(not ns.inviteFrame.shown, "eine verfallene Anfrage schließt ihr Fenster")
+-- Dasselbe Spiel läuft allein: es wird abgebrochen, nicht geparkt
+ns.StartGame(ns.gamesById.fourinarow, "leicht")
+from(JAINA, "INVITE", "p4"); click(ns.inviteFrame.yes)
+from(JAINA, "START", "p4", "fourinarow", 9, 1, 1, 0)
+check(ns.run.mode == "mp" and ns.parked == nil, "läuft dasselbe Spiel allein, wird es abgebrochen statt geparkt")
+-- Das Brett verlassen hält die Partie an; der Mitspieler bekommt Bescheid
+SENT = {}
+ns.ShowLauncher()
+check(MP.session == nil and MP.note == "paused" and sent("PT1^PAUSE^p4") and v:IsShown() and v.text.text:find("zehn Minuten", 1, true) ~= nil == (ns.LOCALE == "deDE"),
+    "Zur Auswahl: die Partie hält an und kann fortgesetzt werden")
+-- Unterbrechung durch den Mitspieler, während das Brett offen ist
+from(JAINA, "INVITE", "p5"); click(ns.inviteFrame.yes)
+from(JAINA, "START", "p5", "fourinarow", 9, 1, 1, 0)
+from(JAINA, "PAUSE", "p5")
+check(ns.run.state == "over" and ns.overlay.title.text == ns.L["Interrupted"], "hält sie an, sagt das Brett „Unterbrochen“")
+ns.ShowLauncher()
+-- Offline: die gelbe Systemzeile wird für eigene Nachrichten geschluckt
+flush()
+MP.Invite(JAINA); NOW = NOW + 1; C.Flush()
+ERR_CHAT_PLAYER_NOT_FOUND_S = "Kein Spieler mit dem Namen '%s' ist online."
+check(C.FilterOffline(nil, nil, "Etwas anderes") == false and MP.session ~= nil, "andere Systemzeilen bleiben stehen")
+check(C.FilterOffline(nil, nil, ERR_CHAT_PLAYER_NOT_FOUND_S:format(JAINA)) == true and MP.session == nil and MP.note == "offline",
+    "ist die Mitspielerin offline, verschwindet die Systemzeile und die Anfrage endet")
+-- Einstellungen: die Mehrspieler-Schalter
+ns.ShowFrame("settings")
+local sv = ns.settingsView
+check(sv.checks[6]:IsShown() and sv.checks[8]:GetChecked() == false and sv.checks[7]:GetChecked() == true, "Einstellungen: Mehrspieler-Schalter sichtbar, Gruppe an, Gilde aus")
+sv.checks[6]:SetChecked(false); click(sv.checks[6])
+check(PastimeDB.settings.mp == false and #MP.Players() == 0, "Hauptschalter aus: niemand mehr zu sehen")
+sv.checks[6]:SetChecked(true); click(sv.checks[6])
+-- Freischaltung zurücknehmen: der Reiter verschwindet
+ns.ShowFrame("mp")
+SlashCmdList.PASTIME("mp")
+check(not MP.On() and not ns.frame.tabs[3]:IsShown() and not v:IsShown() and ns.launcher:IsShown(), "/pastime mp noch einmal: Mehrspieler aus, der Reiter ist weg")
+SlashCmdList.PASTIME("mp")
 
 local errs = {}
 for _, e in ipairs(PastimeDB.log) do if e.l == "E" then table.insert(errs, e.c .. ": " .. e.m) end end

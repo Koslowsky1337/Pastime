@@ -635,7 +635,9 @@ ns.copyFrame:Hide()
 -- Reiter „Einstellungen“: dieselben Schalter wie im Addon-Menü
 ns.ShowFrame("settings")
 local sv = ns.settingsView
-check(sv:IsShown() and not ns.launcher:IsShown() and #sv.checks == 5, "Einstellungen: der Reiter zeigt fünf Schalter (" .. #sv.checks .. ")")
+check(sv:IsShown() and not ns.launcher:IsShown() and #sv.checks == 8 and sv.checks[5]:IsShown() and not sv.checks[6]:IsShown(),
+    "Einstellungen: der Reiter zeigt fünf Schalter; die drei für den Mehrspieler erst, wenn er freigeschaltet ist")
+check(not ns.frame.tabs[3]:IsShown() and ns.frame.tabs[3].key == "mp", "ohne Freischaltung gibt es keinen Reiter „Mehrspieler“")
 local was = PastimeDB.settings.sound
 check(sv.checks[4]:GetChecked() == was, "Einstellungen: der Haken zeigt den gespeicherten Wert")
 sv.checks[4]:SetChecked(not was)

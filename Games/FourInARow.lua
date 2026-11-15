@@ -132,6 +132,8 @@ Game.__index = Game
 Game.AI = AI
 
 function Game:Start(mode)
+    self.mp = mode == "mp" and ns.MP.session or nil      -- Mehrspieler: das Brett gehört der Sitzung
+    self.mpDone, self.wasMine = nil, nil
     self.mode = MODE_BY_ID[mode or ""] or MODES[1]
     self.b = {}
     for c = 1, COLS do self.b[c] = {}; for r = 1, ROWS do self.b[c][r] = 0 end end
@@ -141,11 +143,57 @@ function Game:Start(mode)
     self.ally = ns.IsAlliance()
     self.myIcon, self.foeIcon = self.ally and ICON_ALLY or ICON_HORDE, self.ally and ICON_HORDE or ICON_ALLY
     ns.SetIcon(self.indicator, self.myIcon)
+    if self.mp then
+        self.b = self.mp.board.b
+        return self:Sync()
+    end
     self.status:SetText(self.ally and L["You play the Alliance – drop your piece!"] or L["You play the Horde – drop your piece!"])
     self:Render()
 end
 
+-- Mehrspieler: Stand der Sitzung aufs Brett bringen (nach jedem Zug, bei Ende und Unterbrechung)
+function Game:Sync()
+    local s = self.mp
+    if not s or self.mpDone then return end
+    self.last = s.board and s.board.last
+    if ns.MP.session ~= s then
+        self.mpDone, self.state = true, "over"
+        self:Render()
+        return self.host:Over({ submit = false, title = L["Interrupted"],
+            text = L["The game is paused and does not count. Ask the same player again within ten minutes to continue it."] })
+    end
+    if s.state == "over" then
+        self.mpDone, self.state = true, "over"
+        local winner = s.result == 2 and s.me or (s.result == 0 and 3 - s.me or nil)
+        self.winLine = winner and self:FindLine(winner) or nil
+        self:Render()
+        local why = s.why == "gave up" and L["You gave up."] or (s.why == "partner gave up" and L["Your opponent gave up."] or nil)
+        return self.host:Over({ submit = false, won = s.result == 2,
+            title = s.result == 0 and L["Defeat"] or (s.result == 1 and L["Draw"] or nil),
+            text = why or (s.result == 2 and L["Four in a row – you win!"]
+                or (s.result == 0 and (L["%s has four in a row."]):format(s.partner) or L["The board is full – nobody won."])) })
+    end
+    local mine = s.turn == s.me and not s.replaying
+    self.state = mine and "player" or "wait"
+    self.status:SetText(mine and L["Your turn."] or (L["Waiting for %s …"]):format(s.partner))
+    if mine and self.wasMine == false then self.host:Sound("point") end
+    self.wasMine = mine
+    self:Render()
+end
+
+-- Das Brett wird verlassen: eine laufende Mehrspieler-Partie hält an
+function Game:Stop()
+    local s = self.mp
+    self.mpDone = true
+    if s and ns.MP.session == s and s.state == "playing" then ns.MP.Pause() end
+end
+
 function Game:Play(c)
+    if self.mp then
+        -- nur ein erlaubter Zug geht durch; sonst bleibt man einfach dran
+        if self.state == "player" and ns.MP.Move(c) then self.host:Sound("click") end
+        return
+    end
     if self.state ~= "player" or not c or self.b[c][ROWS] ~= 0 then return end
     local r = AI.Drop(self.b, c, 1)
     self.moves = self.moves + 1
@@ -191,7 +239,7 @@ function Game:Finish(who)
 end
 
 function Game:Update(dt)
-    if self.state == "ai" then
+    if self.state == "ai" and not self.mp then
         self.t = self.t - dt
         if self.t <= 0 then
             local c = AI.Best(self.b, self.mode)
@@ -230,12 +278,13 @@ end
 function Game:Render()
     local onLine = {}
     for _, cell in ipairs(self.winLine or {}) do onLine[cell[1] * 10 + cell[2]] = true end
+    local mine = self.mp and self.mp.me or 1      -- im Mehrspieler liegen Platznummern auf dem Brett
     for c = 1, COLS do
         for r = 1, ROWS do
             local cell = self.cells[c][r]
             local v = self.b[c][r]
             cell.disc:SetShown(v ~= 0)
-            if v ~= 0 then ns.SetIcon(cell.disc, v == 1 and self.myIcon or self.foeIcon) end
+            if v ~= 0 then ns.SetIcon(cell.disc, v == mine and self.myIcon or self.foeIcon) end
             cell.glow:SetShown(onLine[c * 10 + r] or (self.last and self.last[1] == c and self.last[2] == r) or false)
         end
     end
@@ -246,7 +295,7 @@ end
 
 function Game:Info()
     return {
-        { L["Opponent"], self.mode and self.mode.name or "–" },
+        { L["Opponent"], self.mp and self.mp.partner or (self.mode and self.mode.name or "–") },
         { L["Your moves"], tostring(self.moves or 0) },
     }
 end

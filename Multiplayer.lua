@@ -360,7 +360,9 @@ end
 -- Fristen (einmal je Sekunde)
 ---------------------------------------------------------------------------
 function MP.Tick()
-    openInvites()
+    local before = 0
+    for _ in pairs(MP.invites) do before = before + 1 end
+    if openInvites() ~= before then changed() end      -- eine verfallene Anfrage verschwindet auch aus der Anzeige
     local s = MP.session
     if not s then return end
     local idle = GetTime() - (s.t or 0)
@@ -404,6 +406,13 @@ function MP.Record(partner, game)
         if not game or id == game then w, l, d = w + (g.w or 0), l + (g.l or 0), d + (g.d or 0) end
     end
     return w, l, d
+end
+
+-- Der Mitspieler ist offline (der Client meldet es nach einer direkten Nachricht): eine laufende
+-- Partie hält an, alles andere ist vorbei
+function Comm.onOffline(target)
+    local s = MP.session
+    if s and s.partner == target and s.state ~= "over" then cancel(s.state == "playing" and "paused" or "offline") end
 end
 
 -- Nur zum Testen

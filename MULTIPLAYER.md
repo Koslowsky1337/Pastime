@@ -1,6 +1,6 @@
 # Pastime 2.0 – Mehrspieler (Definition)
 
-Stand: bestätigt am 15.11. Die Sitzungslogik (`Multiplayer.lua`) ist gebaut und getestet, die Oberfläche noch nicht.
+Stand: bestätigt am 15.11. Beta 1 ist gebaut und ohne Spiel getestet (`tests/mp.lua`); der Test zu zweit steht aus.
 (Sie kommt nicht ins Addon-Zip: `.pkgmeta` lässt `*.md` weg.)
 
 ## 1. Grundsätze
