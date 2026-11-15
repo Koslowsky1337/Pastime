@@ -277,7 +277,8 @@ function Comm.Announce(group)
     elseif IsInGroup and IsInGroup() then hello("PARTY") end
 end
 
--- Wer Pastime hat: [Name] = { v = Version, mp = Mehrspieler-Stufe, t = zuletzt gehört, channel }
+-- Wer Pastime hat: [Name] = { v = Version, mp = höchste Mehrspieler-Stufe, t = zuletzt gehört, channel,
+--   seen = { [Kanal] = { t, mp } } }
 Comm.peers = {}
 local REPLY_GAP = 600      -- so lange nach einer Meldung im selben Kanal wird nicht noch einmal gemeldet
 
@@ -285,7 +286,13 @@ Comm.handlers.HELLO = function(sender, fields, channel)
     if fields[3] == Comm.tag then Comm.selfNames[sender] = true; return end      -- die eigene Meldung
     local mine, theirs = Comm.VersionNumber(ns.VERSION), fields[1]
     local known = Comm.peers[sender]
-    Comm.peers[sender] = { v = theirs, mp = fields[2], t = GetTime(), channel = channel }
+    -- je Kanal merken, wann und mit welcher Stufe er sich gemeldet hat: in der Gilde kann jemand
+    -- unsichtbar sein, den man in der Gruppe sieht
+    local p = known or { seen = {} }
+    p.seen = p.seen or {}
+    p.seen[channel] = { t = GetTime(), mp = fields[2] }
+    p.v, p.t, p.channel, p.mp = theirs, GetTime(), channel, math.max(fields[2], known and known.mp or 0)
+    Comm.peers[sender] = p
     -- ein neuer Mitspieler: einmal zurückmelden, damit auch er mich sieht
     if fields[2] > 0 and not known and channel ~= "WHISPER" and Comm.MPLevel and Comm.MPLevel(channel) > 0
         and GetTime() - (lastHello[channel] or -60) >= 60 then

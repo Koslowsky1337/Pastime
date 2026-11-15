@@ -1192,6 +1192,8 @@ local MP_NOTES = {
     offline = L["That player is not online."],
 }
 
+local MP_CIRCLES = { mpFriends = L["Friend"], mpParty = L["Group"], mpGuild = L["Guild"] }
+
 local function CreateMPView(parent)
     local v = CreateFrame("Frame", nil, parent)
     v:SetAllPoints()
@@ -1209,15 +1211,16 @@ local function CreateMPView(parent)
     v.rows = {}
     for i = 1, MP_ROWS do
         local row = CreateFrame("Frame", nil, list)
-        row:SetSize(316, 24)
-        row:SetPoint("TOPLEFT", 10, -32 - (i - 1) * 27)
+        -- zwei Zeilen: der Name, darunter woher man den Spieler kennt und die Bilanz gegen ihn
+        row:SetSize(316, 32)
+        row:SetPoint("TOPLEFT", 10, -34 - (i - 1) * 36)
         row.name = ns.FontString(row, "GameFontHighlight", "LEFT")
-        row.name:SetPoint("LEFT", 2, 0)
-        row.name:SetWidth(128)
+        row.name:SetPoint("TOPLEFT", 2, 0)
+        row.name:SetWidth(216)
         row.name:SetWordWrap(false)
         row.rec = ns.FontString(row, "GameFontDisableSmall", "LEFT")
-        row.rec:SetPoint("LEFT", 134, 0)
-        row.rec:SetWidth(88)
+        row.rec:SetPoint("TOPLEFT", 2, -16)
+        row.rec:SetWidth(216)
         row.rec:SetWordWrap(false)
         row.btn = ns.CreateButton(row, L["Ask"], 90, function(self)
             ns.PlaySound("click")
@@ -1275,7 +1278,8 @@ function ns.UpdateMPView()
         if p then
             row.name:SetText(p.name)
             local w, l, d = MP.Record(p.name)
-            row.rec:SetText(w + l + d > 0 and (L["%d won · %d lost"]):format(w, l) or "")
+            local from = MP_CIRCLES[p.circle] or ""
+            row.rec:SetText(from .. (w + l + d > 0 and (" · " .. (L["%d won · %d lost"]):format(w, l)) or ""))
             row.btn.who = p.name
             row.btn:SetEnabled(s == nil)
         end

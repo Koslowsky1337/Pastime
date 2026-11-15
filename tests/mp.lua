@@ -20,7 +20,8 @@ C.Enable()
 local function flush() for _ = 1, 40 do NOW = NOW + 0.6; C.Flush() end end
 local function last() flush(); return SENT[#SENT] or {} end
 local function sent(text) flush(); for _, m in ipairs(SENT) do if m.msg == text then return m end end end
-local function from(who, kind, ...) C.OnMessage(C.PREFIX, C.Encode(kind, ...), "WHISPER", who) end
+-- zwischen zwei Nachrichten vergeht im Spiel mindestens eine halbe Sekunde; ohne das griffe die Mengenbremse
+local function from(who, kind, ...) NOW = NOW + 1; C.OnMessage(C.PREFIX, C.Encode(kind, ...), "WHISPER", who) end
 local JAINA = "Jaina Prachtmeer"      -- Namen haben hier Vor- und Nachnamen
 local function best(key) local l = PastimeDB.scores[key]; return l and l[1] and l[1].s end
 
@@ -230,6 +231,15 @@ local players = MP.Players()
 check(#players == 1 and players[1].name == JAINA, "Mitspielerliste: nur wer Mehrspieler meldet und in einem eingeschalteten Kreis ist")
 PastimeDB.settings.mpGuild = true
 check(#MP.Players() == 2, "mit eingeschalteter Gilde erscheinen auch Gildenmitglieder")
+-- in mehreren Kreisen: der nähere zählt (Freunde vor Gruppe vor Gilde)
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 0, 1, 5), "GUILD", JAINA)
+local function circleOf(name) for _, p in ipairs(MP.Players()) do if p.name == name then return p.circle end end end
+check(circleOf(JAINA) == "mpParty" and circleOf("Rexxar") == "mpGuild", "in Gruppe und Gilde zugleich: gezeigt wird die Gruppe")
+C_FriendList = { GetNumFriends = function() return 1 end, GetFriendInfoByIndex = function() return { name = "Jaina" } end }
+check(circleOf(JAINA) == "mpFriends", "steht sie auf der Freundesliste, wird sie als Freundin gezeigt")
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 0, 0, 5), "GUILD", JAINA)
+check(circleOf(JAINA) ~= nil, "wer sich in der Gilde unsichtbar meldet, bleibt über die Gruppe zu sehen")
+C_FriendList = nil
 PastimeDB.settings.mp = false
 check(#MP.Players() == 0 and MP.Invite(JAINA) == false, "Hauptschalter aus: niemand zu sehen, keine Anfragen")
 PastimeDB.settings.mp, PastimeDB.settings.mpGuild = true, false
@@ -240,7 +250,8 @@ MP._Reset(); PastimeDB.mp.paused = {}; PastimeDB.mp.stats = {}
 ns.ShowFrame("mp")
 local v = ns.mpView
 check(v:IsShown() and ns.frame.tabs[3]:IsShown() and ns.frame.tabs[3].key == "mp", "freigeschaltet gibt es den Reiter „Mehrspieler“")
-check(v.rows[1]:IsShown() and v.rows[1].name.text == JAINA and not v.rows[2]:IsShown() and not v.empty:IsShown(), "die Liste zeigt die Mitspielerin aus der Gruppe")
+check(v.rows[1]:IsShown() and v.rows[1].name.text == JAINA and v.rows[1].rec.text == ns.L["Group"] and not v.rows[2]:IsShown() and not v.empty:IsShown(),
+    "die Liste zeigt die Mitspielerin und woher man sie kennt")
 check(v.title.text == ns.L["Multiplayer"] and not v.buttons[1]:IsShown(), "ohne Sitzung steht dort die Anleitung")
 click(v.rows[1].btn)
 check(MP.session and MP.session.state == "asking" and v.title.text == JAINA and v.text.text == ns.L["Waiting for an answer …"]

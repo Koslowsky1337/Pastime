@@ -381,6 +381,23 @@ end
 -- Wer zu sehen ist: Pastime-Nutzer mit Mehrspieler aus den eingeschalteten Kreisen
 ---------------------------------------------------------------------------
 local CIRCLE = { PARTY = "mpParty", RAID = "mpParty", GUILD = "mpGuild", WHISPER = "mpFriends" }
+-- Steht jemand in mehreren Kreisen, zählt der nähere: Freunde vor Gruppe vor Gilde
+local PRIORITY = { { "mpFriends", "WHISPER" }, { "mpParty", "PARTY", "RAID" }, { "mpGuild", "GUILD" } }
+
+-- Steht der Spieler auf der Freundesliste? (Der Kreis „Freunde“ selbst kommt mit Beta 2; bis dahin
+-- dient das nur der Kennzeichnung von Spielern, die man über Gruppe oder Gilde sieht.)
+local function isFriend(name)
+    local F = C_FriendList
+    if not (F and F.GetNumFriends and F.GetFriendInfoByIndex) then return false end
+    local ok, n = ns.Try("C_FriendList.GetNumFriends", F.GetNumFriends)
+    for i = 1, ok and tonumber(n) or 0 do
+        local ok2, info = ns.Try("C_FriendList.GetFriendInfoByIndex", F.GetFriendInfoByIndex, i)
+        local friend = ok2 and type(info) == "table" and info.name
+        -- die Freundesliste nennt womöglich nur den Vornamen, der Absender den vollen Namen
+        if type(friend) == "string" and friend ~= "" and (friend == name or name:sub(1, #friend + 1) == friend .. " ") then return true end
+    end
+    return false
+end
 
 -- Stufe, die HELLO in diesem Kanal meldet: 0, wenn man dort nicht gesehen werden will
 function Comm.MPLevel(channel)
@@ -391,8 +408,17 @@ function MP.Players()
     local list = {}
     if not MP.On() then return list end
     for name, p in pairs(Comm.peers) do
-        if (p.mp or 0) >= 1 and GetTime() - (p.t or 0) < 900 and ns.DB.settings[CIRCLE[p.channel] or ""] then
-            list[#list + 1] = { name = name, circle = CIRCLE[p.channel] }
+        local seen = p.seen or { [p.channel or ""] = { t = p.t, mp = p.mp } }
+        local circle
+        for _, c in ipairs(PRIORITY) do
+            for i = 2, #c do
+                local e = seen[c[i]]
+                if not circle and e and (e.mp or 0) >= 1 and GetTime() - (e.t or 0) < 900 and ns.DB.settings[c[1]] then circle = c[1] end
+            end
+        end
+        if circle then
+            -- über Gruppe oder Gilde gesehen, aber befreundet: als Freund kennzeichnen
+            list[#list + 1] = { name = name, circle = isFriend(name) and "mpFriends" or circle }
         end
     end
     table.sort(list, function(a, b) return a.name < b.name end)
