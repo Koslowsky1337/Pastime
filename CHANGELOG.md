@@ -2,6 +2,7 @@
 
 ## 1.3.0
 
+- New: update notice. Pastime quietly tells your guild and group which version you run (nothing else is sent, and nothing shows up in chat). If someone there has a newer release, you get one line in chat telling you to update.
 - Gold games: every run now starts with 1,000 gold instead of 100, and the jackpot starts at 10,000. Running purses and old records get the extra 900 gold once, so they stay comparable.
 - Goblin Slots: more small wins. From the murloc upwards two of a kind already pay a little, and three fish or bombs pay less than before. A good half of all spins now return something; small wins show honestly how much of your bet came back.
 - Goblin Slots, free spins reworked. The rune is now the wild symbol (the coin no longer is) and still the scatter: at most one per reel, three runes pay 2 times your bet and give 10 free spins, four pay 10 times and give 20.

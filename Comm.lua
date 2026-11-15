@@ -1,4 +1,8 @@
--- Pastime: Grundlage für den Mehrspieler (in 1.0 noch abgeschaltet)
+-- Pastime: Grundlage für den Mehrspieler (noch abgeschaltet) und Versionsabgleich
+--
+-- Das Einzige, was Pastime heute sendet, ist die eigene Versionsnummer (Nachricht HELLO) an Gilde
+-- und Gruppe – unsichtbar, als Addon-Nachricht. Wer eine höhere Nummer empfängt, bekommt einmal
+-- einen Hinweis auf das Update. Siehe „Versionsabgleich“ weiter unten.
 --
 -- Addon-Nachrichten sind für Spieler unsichtbar. Pastime erkennt seine eigenen
 -- an der Kennung PREFIX und am Protokoll-Kopf PROTO. Alles, was ankommt, gilt
@@ -12,11 +16,13 @@
 --     höchstens eine offene pro Absender; im Kampf wird nichts angenommen
 --   * Senden läuft gedrosselt über eine Warteschlange
 local ADDON, ns = ...
+local L = ns.L
 
 local Comm = {}
 ns.Comm = Comm
 
 Comm.ENABLED = false                 -- wird mit dem Mehrspieler-Update eingeschaltet
+Comm.VERSION_CHECK = true            -- HELLO senden und auswerten (unabhängig vom Mehrspieler)
 Comm.PREFIX = "PastimeMiniGames"     -- 16 Zeichen (Höchstlänge)
 Comm.PROTO = "PT1"                   -- Protokollversion
 Comm.SEP = "^"
@@ -44,7 +50,7 @@ local SESSION = word(12)
 
 -- Nachrichtentypen: Feldliste in fester Reihenfolge
 Comm.TYPES = {
-    HELLO  = { int(1, 9999) },                                  -- Addon-Version (z. B. 100 = 1.0.0)
+    HELLO  = { int(1, 999999) },                                -- Addon-Version (10300 = 1.3.0)
     INVITE = { SESSION, word(16), int(0, 2147483647), int(1, 600) },  -- Sitzung, Spiel-ID, Startwert, Sekunden
     ACCEPT = { SESSION },
     DECLINE = { SESSION },
@@ -212,7 +218,7 @@ local SEND_GAP = 0.5
 local RESULT_OK, RESULT_THROTTLE, RESULT_CHANNEL_THROTTLE = 0, 3, 8
 
 function Comm.Send(kind, channel, target, ...)
-    if not Comm.ENABLED then return false end
+    if not (Comm.ENABLED or (kind == "HELLO" and Comm.VERSION_CHECK)) then return false end
     local msg, err = Comm.Encode(kind, ...)
     if not msg then ns.Log("W", "comm", "not sent: %s", tostring(err)); return false end
     if #queue >= 20 then return false end
@@ -235,6 +241,66 @@ function Comm.Flush()
     table.remove(queue, 1)
 end
 
+---------------------------------------------------------------------------
+-- Versionsabgleich. Nur volle Versionen (v1.3.0) nehmen teil: Entwicklungs- und Betastände senden
+-- nichts und werden nicht zum Aktualisieren aufgefordert.
+---------------------------------------------------------------------------
+-- "v1.3.0" -> 10300; alles andere -> nil
+function Comm.VersionNumber(v)
+    local a, b, c = tostring(v):match("^v?(%d+)%.(%d+)%.(%d+)$")
+    a, b, c = tonumber(a), tonumber(b), tonumber(c)
+    if not a or a < 1 or a > 99 or b > 99 or c > 99 then return nil end
+    return a * 10000 + b * 100 + c
+end
+
+function Comm.VersionText(n)
+    return ("%d.%d.%d"):format(math.floor(n / 10000), math.floor(n / 100) % 100, n % 100)
+end
+
+-- Hinweis auf eine neuere Version: höchstens einmal je Sitzung
+local function notice(newer, mine)
+    if Comm.noticed then return end
+    Comm.noticed = true
+    ns.Print((L["A newer version of Pastime is available: %s (you have %s). Update it with your addon manager."]):format(
+        Comm.VersionText(newer), Comm.VersionText(mine)))
+end
+
+-- Eigene Version an Gilde und Gruppe; group = nur an die Gruppe (beim Beitritt)
+function Comm.Announce(group)
+    local mine = Comm.VersionNumber(ns.VERSION)
+    if not (mine and Comm.registered) then return end
+    if not group and IsInGuild and IsInGuild() then Comm.Send("HELLO", "GUILD", nil, mine) end
+    if IsInRaid and IsInRaid() then Comm.Send("HELLO", "RAID", nil, mine)
+    elseif IsInGroup and IsInGroup() then Comm.Send("HELLO", "PARTY", nil, mine) end
+end
+
+local answered = {}      -- wem in dieser Sitzung schon geantwortet wurde
+Comm.handlers.HELLO = function(sender, fields)
+    local mine, theirs = Comm.VersionNumber(ns.VERSION), fields[1]
+    if not mine then return end
+    if theirs > mine then
+        ns.DB.newest = math.max(tonumber(ns.DB.newest) or 0, theirs)      -- auch beim nächsten Einloggen erinnern
+        notice(theirs, mine)
+    elseif theirs < mine and not answered[sender] then
+        -- der andere ist älter: einmal antworten, damit er es erfährt
+        answered[sender] = true
+        Comm.Send("HELLO", "WHISPER", sender, mine)
+    end
+end
+
+-- Beim Einloggen: zuhören, nach ein paar Sekunden die eigene Version melden und an ein
+-- früher gesehenes Update erinnern
+function Comm.StartVersionCheck()
+    if not Comm.VERSION_CHECK then return end
+    Comm.Enable()
+    if not Comm.registered then return end
+    C_Timer.After(8, ns.Wrap("comm-hello", function()
+        local mine = Comm.VersionNumber(ns.VERSION)
+        if mine and (tonumber(ns.DB.newest) or 0) > mine then notice(ns.DB.newest, mine) end
+        Comm.Announce()
+    end))
+end
+
 function Comm.Enable()
     if Comm.registered then return end
     if not (C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix) then return end
@@ -242,7 +308,14 @@ function Comm.Enable()
     Comm.registered = true
     local f = CreateFrame("Frame")
     f:RegisterEvent("CHAT_MSG_ADDON")
-    f:SetScript("OnEvent", ns.Wrap("comm", function(_, _, ...) Comm.OnMessage(...) end))
+    f:RegisterEvent("GROUP_ROSTER_UPDATE")
+    f:SetScript("OnEvent", ns.Wrap("comm", function(_, event, ...)
+        if event == "CHAT_MSG_ADDON" then return Comm.OnMessage(...) end
+        -- einer Gruppe beigetreten: dort einmal die Version melden
+        local grouped = IsInGroup and IsInGroup() and true or false
+        if grouped and not Comm.grouped then Comm.Announce(true) end
+        Comm.grouped = grouped
+    end))
     C_Timer.NewTicker(0.25, ns.Wrap("comm-send", Comm.Flush))
 end
 
@@ -250,4 +323,5 @@ end
 function Comm._Reset()
     wipe(perSender); total = nil; wipe(queue); lastSend = 0
     Comm.session = nil; wipe(Comm.invites)
+    wipe(answered); Comm.noticed = nil; Comm.grouped = nil
 end

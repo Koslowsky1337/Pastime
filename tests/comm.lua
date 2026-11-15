@@ -8,9 +8,9 @@ end
 ns.eventFrame.scripts.OnEvent(ns.eventFrame, "ADDON_LOADED", "Pastime")
 ns.eventFrame.scripts.OnEvent(ns.eventFrame, "PLAYER_LOGIN")
 
-check(C.ENABLED == false and not C.registered, "multiplayer is off in 1.0")
+check(C.ENABLED == false and not C.registered, "multiplayer is off; without the chat API nothing is registered")
 check(#C.PREFIX <= 16, "prefix fits 16 characters")
-check(C.Send("HELLO", "WHISPER", "Thrall", 100) == false, "nothing is sent while disabled")
+check(C.Send("INVITE", "WHISPER", "Thrall", "s1", "snake", 1, 60) == false, "no multiplayer message is sent while disabled")
 
 -- Kodieren / Dekodieren
 local m = C.Encode("INVITE", "s1", "snake", 12345, 120)
@@ -24,7 +24,7 @@ check(C.Encode("EVIL", "x") == nil, "unknown type refused")
 -- Bösartige oder kaputte Eingaben
 local bad = {
     "", "PT1", "PT2^HELLO^100", "PT1^HELLO", "PT1^HELLO^abc", "PT1^HELLO^100^1", "PT1^RUN^os.exit()",
-    "PT1^HELLO^99999", "PT1^MOVE^s1^0^1", "PT1^INVITE^s1^snake^1^9999", "PT1^INVITE^s1^|cffff0000x^1^1",
+    "PT1^HELLO^9999999", "PT1^MOVE^s1^0^1", "PT1^INVITE^s1^snake^1^9999", "PT1^INVITE^s1^|cffff0000x^1^1",
     "PT1^RESULT^s1^-5", "PT1^HELLO^1e9", ("PT1^HELLO^" .. string.rep("1", 300)), "PT1^HELLO^10\n0",
     "PT1^ROLL^s1^0", "PT1^ROLL^s1^101", "PT1^INVITE^s1^snake^0x10^5",
 }
@@ -74,9 +74,49 @@ check(C.Accept(C.PREFIX, C.Encode("MOVE", "s9", 1, 5), "WHISPER", "Thrall") == "
 check(C.Accept(C.PREFIX, C.Encode("MOVE", "s9", 1, 5), "WHISPER", "Thrall") == nil, "replayed move dropped")
 check(C.Accept(C.PREFIX, C.Encode("INVITE", "q", "snake", 1, 60), "WHISPER", "Garrosh") == nil, "no invites during a session")
 
+-- Versionsabgleich: nur die Versionsnummer geht an Gilde und Gruppe; wer älter ist, bekommt einen Hinweis
+C._Reset()
+check(C.VersionNumber("v1.3.0") == 10300 and C.VersionNumber("1.12.7") == 11207 and C.VersionNumber("dev") == nil
+    and C.VersionNumber("v1.3.0-beta1") == nil and C.VersionText(10300) == "1.3.0", "version numbers: only full releases count")
+local SENT, CHAT = {}, {}
+C_ChatInfo = { RegisterAddonMessagePrefix = function() return true end,
+    SendAddonMessage = function(prefix, msg, channel, target) SENT[#SENT + 1] = { prefix, msg, channel, target }; return true end }
+IsInGuild = function() return true end
+IsInGroup = function() return false end
+IsInRaid = function() return false end
+local realPrint = ns.Print
+ns.Print = function(text) CHAT[#CHAT + 1] = text end
+local function flush() for _ = 1, 6 do NOW = NOW + 1; C.Flush() end end
+C.Enable()
+ns.VERSION = "dev"
+C.Announce(); flush()
+check(#SENT == 0, "a development copy announces nothing")
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 20000), "GUILD", "Thrall")
+check(#CHAT == 0, "and is not told to update")
+ns.VERSION = "v1.3.0"
+C.Announce(); flush()
+check(#SENT == 1 and SENT[1][1] == C.PREFIX and SENT[1][2] == "PT1^HELLO^10300" and SENT[1][3] == "GUILD", "the version goes to the guild, nothing else")
+IsInGroup = function() return true end
+C.Announce(true); flush()
+check(#SENT == 2 and SENT[2][3] == "PARTY", "on joining a group it goes to the group only")
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 10300), "GUILD", "Jaina"); flush()
+check(#CHAT == 0 and #SENT == 2, "same version: no notice, no reply")
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 10200), "GUILD", "Rexxar"); flush()
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 10200), "GUILD", "Rexxar"); flush()
+check(#CHAT == 0 and #SENT == 3 and SENT[3][3] == "WHISPER" and SENT[3][4] == "Rexxar" and SENT[3][2] == "PT1^HELLO^10300",
+    "an older copy gets our version once, as a whisper")
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 10400), "PARTY", "Thrall")
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 10500), "PARTY", "Garrosh")
+check(#CHAT == 1 and CHAT[1]:find("1.4.0", 1, true) and CHAT[1]:find("1.3.0", 1, true) and PastimeDB.newest == 10500,
+    "a newer version is announced once per session and remembered: " .. tostring(CHAT[1]))
+ns.Print = realPrint
+C_ChatInfo = nil
+C._Reset()
+C.session = { id = "s9", partner = "Thrall", seq = 2 }
+
 -- Handler-Fehler bleiben eingefangen
 C.handlers.MOVE = function() error("boom") end
-C.OnMessage(C.PREFIX, C.Encode("MOVE", "s9", 2, 1), "WHISPER", "Thrall")
+C.OnMessage(C.PREFIX, C.Encode("MOVE", "s9", 3, 1), "WHISPER", "Thrall")
 check(#ERRORS_FORWARDED >= 1, "handler error caught and logged")
 
 print(("Comm tests: %d ok, %d failed"):format(passes, fails))

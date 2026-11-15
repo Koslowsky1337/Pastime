@@ -229,6 +229,7 @@ local DEFAULTS = {
     blackjack = { gold = 1000, peak = 1000 },   -- Goblin-Gold bleibt zwischen Partien erhalten
     purses = {},                              -- dasselbe für die übrigen Glücksspiele: purses[id] = { gold, peak }
     jackpot = 10000,                          -- gemeinsamer Topf aller Glücksspiele (ns.Gamble)
+    newest = 0,                               -- höchste Pastime-Version, die ein anderer Spieler gemeldet hat (Comm)
     daily = {},                               -- Tagesaufgabe: { last = Tag der letzten erledigten, streak = Serie }
 }
 
@@ -802,6 +803,7 @@ ev:SetScript("OnEvent", ns.Wrap("event", function(_, event, ...)
         if ns.CreateMinimapButton then ns.CreateMinimapButton() end
         if ns.CreateSettings then ns.Safe("options", ns.CreateSettings) end
         if ns.StartTransportWatch then ns.StartTransportWatch() end
+        if ns.Comm then ns.Safe("comm", ns.Comm.StartVersionCheck) end
         if ns.UpdateDebugPanel then ns.UpdateDebugPanel() end
         EnsureTicker()
         for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_CONTROL_LOST", "PLAYER_CONTROL_GAINED",
