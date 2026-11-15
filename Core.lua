@@ -975,8 +975,11 @@ function ns.HandleSlash(msg)
         ns.Print(ns.DB.mpBeta and L["Multiplayer beta |cff80ff80on|r."] or L["Multiplayer beta |cffff6060off|r."])
         ns.Comm.Announce()
         if ns.UpdateUI then ns.UpdateUI() end
-    elseif cmd == "debug" and (arg == "test" or arg == "testlauf" or arg == "selftest" or arg == "selbsttest") then
-        if ns.SelfTest then ns.SelfTest() end
+    elseif cmd == "debug" and ({ test = true, testlauf = true, selftest = true, selbsttest = true })[arg:match("^%S*")] then
+        -- /pastime debug test [schnell|klang]: ohne Zusatz fragt ein Fenster, was getestet werden soll
+        local what = arg:match("^%S+%s+(%S+)")
+        local MODES = { schnell = "quick", quick = "quick", klang = "sounds", sounds = "sounds", alles = "sounds", all = "sounds" }
+        if ns.SelfTest then ns.SelfTest(MODES[what or ""]) end
     elseif cmd == "debug" then
         ns.DB.debug = not ns.DB.debug
         ns.Print(ns.DB.debug and L["Debug |cff80ff80on|r – live window open, detailed log running."]

@@ -309,6 +309,11 @@ local function SelfTestFrame(paths)
         f.desc:SetPoint("TOP", f.step, "BOTTOM", 0, -6)
         f.desc:SetWidth(400)
         f.icons = {}
+        -- Auswahl vor dem Start: mit oder ohne Klänge
+        f.quick = ns.CreateButton(f, L["Quick test"], 190, function() ns.PlaySound("click"); ns.SelfTest("quick") end)
+        f.quick:SetPoint("BOTTOMRIGHT", f, "BOTTOM", -4, 18)
+        f.full = ns.CreateButton(f, L["With all sounds"], 190, function() ns.PlaySound("click"); ns.SelfTest("sounds") end)
+        f.full:SetPoint("BOTTOMLEFT", f, "BOTTOM", 4, 18)
         ns.CreateCloseButton(f):SetPoint("TOPRIGHT", -4, -4)
         tinsert(UISpecialFrames, "PastimeSelfTestFrame")
         ns.selfFrame = f
@@ -327,8 +332,20 @@ local function SelfTestFrame(paths)
     return f
 end
 
-function ns.SelfTest()
+-- what: "quick" (ohne Klänge, wenige Sekunden) · "sounds" (dazu jeder Klang, gut eine Minute) ·
+-- nichts: das Fenster fragt, was es sein soll
+function ns.SelfTest(what)
     if ns.selfTest then return end
+    if what ~= "quick" and what ~= "sounds" then
+        local f = SelfTestFrame({})
+        f:SetScript("OnHide", nil)
+        f.step:SetText(L["What should be tested?"])
+        f.desc:SetText(L["Quick: client, pictures, saved data and addon messages – a few seconds. With all sounds: also every sound, five seconds each."])
+        for _, icon in ipairs(f.icons) do icon:Hide() end
+        f.quick:Show(); f.full:Show()
+        return
+    end
+    local sounds = what == "sounds"
     local out, bad = {}, 0
     ns.selfTest = out
     -- ok: true = in Ordnung, false = Fehler, nil = nur zur Kenntnis
@@ -336,7 +353,8 @@ function ns.SelfTest()
         if ok == false then bad = bad + 1 end
         out[#out + 1] = (ok == true and "ok    " or (ok == false and "FAIL  " or "info  ")) .. text
     end
-    ns.Print(L["Self-test running: a good minute, one sound every five seconds. The result opens in a window afterwards."])
+    ns.Print(sounds and L["Self-test running: a good minute, one sound every five seconds. The result opens in a window afterwards."]
+        or L["Self-test running: a few seconds. The result opens in a window afterwards."])
 
     local version, build, _, toc = GetBuildInfo()
     add(nil, ("Pastime %s · client %s (%s) · interface %s · %s · %s"):format(tostring(ns.VERSION), tostring(version), tostring(build),
@@ -351,6 +369,8 @@ function ns.SelfTest()
     for _, def in ipairs(ns.games) do paths[#paths + 1] = def.icon end
     for _, path in ipairs(ns.SELFTEST_TEXTURES or {}) do paths[#paths + 1] = path end
     local win = SelfTestFrame(paths)
+    win.quick:Hide(); win.full:Hide()
+    for _, icon in ipairs(win.icons) do icon:Show() end
     -- Das Fenster schließen bricht den Test ab
     win:SetScript("OnHide", function()
         if ns.selfTest ~= out then return end
@@ -460,8 +480,9 @@ function ns.SelfTest()
 
     -- Klänge: einer alle SOUND_GAP Sekunden, damit jeder ausklingt; der Client meldet, ob er ihn abspielt
     local kinds = {}
-    for kind in pairs(ns.SOUNDS) do kinds[#kinds + 1] = kind end
+    for kind in pairs(sounds and ns.SOUNDS or {}) do kinds[#kinds + 1] = kind end
     table.sort(kinds)
+    if not sounds then add(nil, "sounds: not tested (quick run)") end
     for i, kind in ipairs(kinds) do
         C_Timer.After((i - 1) * SOUND_GAP + 1, ns.Wrap("selbsttest", function()
             if out.cancelled then return end
@@ -476,7 +497,7 @@ function ns.SelfTest()
             ns.Print(("|cffbbbbbb%d/%d · %s – %s|r"):format(i, #kinds, kind, SOUND_INFO[kind] or ""))
         end))
     end
-    C_Timer.After(#kinds * SOUND_GAP + 1, ns.Wrap("selbsttest", function()
+    C_Timer.After(math.max(#kinds, 1) * SOUND_GAP + 1, ns.Wrap("selbsttest", function()
         if listener then listener:UnregisterEvent("CHAT_MSG_ADDON") end
         if out.cancelled then return end
         if listener then

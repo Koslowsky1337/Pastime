@@ -618,6 +618,15 @@ for line in dtext:gmatch("[^\n]+") do print("  " .. line:gsub("|c%x%x%x%x%x%x%x%
 -- Selbsttest: prüft Schnittstellen, Klänge, Texturen und Addon-Nachrichten und öffnet das Ergebnis
 local debugWas = PastimeDB.debug
 SlashCmdList.PASTIME("debug testlauf")
+check(ns.selfTest == nil and ns.selfFrame.shown and ns.selfFrame.quick:IsShown() and ns.selfFrame.step.text == ns.L["What should be tested?"],
+    "Selbsttest: ohne Zusatz fragt das Fenster, was getestet werden soll")
+ns.selfFrame.quick.scripts.OnClick(ns.selfFrame.quick)
+check(ns.selfTest ~= nil and not ns.selfFrame.quick:IsShown(), "Selbsttest: „Schnelltest“ startet ihn")
+RunTimers()
+check(ns.selfTest == nil and ns.copyFrame.shown and ns.copyFrame.text:find("sounds: not tested", 1, true) and not ns.copyFrame.text:find("sound fanfare", 1, true),
+    "Selbsttest: der Schnelltest lässt die Klänge aus")
+ns.copyFrame:Hide()
+SlashCmdList.PASTIME("debug testlauf klang")
 check(PastimeDB.debug == debugWas and ns.selfTest ~= nil, "Selbsttest: startet, ohne den Debug-Modus umzuschalten")
 check(ns.selfFrame.shown and #ns.selfFrame.icons >= 30 and ns.selfFrame.step.text == ns.L["Checking the client …"],
     "Selbsttest: ein Fenster zeigt, was geprüft wird, und alle Symbolbilder")
@@ -634,13 +643,13 @@ ns.selfFrame:Hide()
 ns.copyFrame:Hide()
 
 -- Das Fenster schließen bricht den Selbsttest ab; danach lässt er sich neu starten
-SlashCmdList.PASTIME("debug test")
+SlashCmdList.PASTIME("debug test schnell")
 ns.selfFrame:Hide()
 check(ns.selfTest == nil, "Selbsttest: Fenster zu bricht ihn ab")
 ns.copyFrame:Hide()
 RunTimers()
 check(not ns.copyFrame.shown, "Selbsttest: abgebrochen öffnet sich kein Ergebnis")
-SlashCmdList.PASTIME("debug test")
+SlashCmdList.PASTIME("debug test schnell")
 check(ns.selfTest ~= nil, "Selbsttest: lässt sich danach neu starten")
 RunTimers()
 ns.selfFrame:Hide(); ns.copyFrame:Hide()
