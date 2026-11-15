@@ -76,11 +76,11 @@ Settings are also available under *Options → AddOns → Pastime*, and there is
 
 - Route names come from your game client, so the route leaderboards on a German client use German names.
 - A round you started during a zeppelin or boat trip counts for that route once you arrive.
-- If something does not work as expected, `/pastime diag` opens a report you can copy into a bug report.
+- If something does not work as expected, `/pastime report` opens a report you can copy into a bug report.
 
 ## Feedback
 
-Found a bug or have an idea? Please open an issue on GitHub: https://github.com/Koslowsky1337/Pastime/issues – the report from `/pastime diag` helps a lot.
+Found a bug or have an idea? Please open an issue on GitHub: https://github.com/Koslowsky1337/Pastime/issues – the report from `/pastime report` helps a lot.
 
 ## Credits and license
 
@@ -113,4 +113,4 @@ Pastime bündelt 24 kleine Spiele in einem Fenster im klassischen Stil. Es merkt
 
 **Befehle:** `/pastime` öffnet das Fenster, `/pastime hilfe` zeigt alle Befehle. Die deutschen Befehle (`rekorde`, `strecken`, `testflug`, `hafen` …) funktionieren ebenfalls. Einstellungen findest du unter *Optionen → AddOns → Pastime*.
 
-**Feedback:** Fehler und Ideen bitte als Issue auf GitHub melden: https://github.com/Koslowsky1337/Pastime/issues. Der Bericht aus `/pastime diag` hilft dabei sehr.
+**Feedback:** Fehler und Ideen bitte als Issue auf GitHub melden: https://github.com/Koslowsky1337/Pastime/issues. Der Bericht aus `/pastime report` hilft dabei sehr.

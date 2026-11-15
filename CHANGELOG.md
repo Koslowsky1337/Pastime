@@ -5,6 +5,8 @@
 - Goblin Slots: new rune symbol. Three, four or five runes anywhere on the reels give 5, 8 or 12 free spins at the same bet; free spins can win more free spins and survive closing the window. The pay table was lowered slightly to make room for them.
 - Goblin Slots: coins at the start of a line now count the better way. Four coins and a fish paid as five fish (12) instead of four coins (40).
 - Goblin Roulette: a wheel with all 37 pockets. The ball runs around it, slows down and comes to rest in the winning pocket; it stays there until the next spin. The last 15 numbers are listed to the left of the table, newest on top.
+- Bug reports: `/pastime report` (or the new button in the options) opens a report to copy into a GitHub issue. It contains the recent log including the detailed lines of the last minutes, without needing debug mode first, and character names are replaced.
+- Client functions that fail are no longer skipped silently: the first failure of each is written to the log as a warning and the report counts them.
 - Route records: the place numbers in front of each score were hard to read on the parchment; they are darker now.
 
 ## 1.0.1

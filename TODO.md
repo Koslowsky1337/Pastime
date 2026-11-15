@@ -15,6 +15,10 @@ Stand: `v1.0.1` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 - [ ] **Im Spiel prüfen:** Rune wird angezeigt (kein grünes Kästchen); Freispiele drehen von selbst; fühlt sich „jede 31. Drehung“ richtig an?
 - [x] Goblin-Roulette: Kessel mit 37 Fächern, die Kugel läuft aus (4,5 s)
 - [ ] **Im Spiel prüfen:** Kessel links unter dem Tisch, Meldungen rechts daneben – passt alles, ist die Kugel gut zu sehen, stimmt das Tempo? 📸
+- [x] Roulette: Liste der letzten 15 Zahlen; Automat: Münzen am Linienanfang zählen in der besseren Lesart
+- [x] Protokoll: Kurzzeitspeicher für Debug-Zeilen, stille Client-Fehlschläge als Warnung (`ns.Try`), anonymisierter Bericht `/pastime report` und Knopf in den Optionen
+- [ ] **Im Spiel prüfen:** `/pastime report` öffnet das Kopierfenster, kein Charaktername im Text; Knopf „Fehlerbericht erstellen“ unter Optionen → AddOns → Pastime
+- [ ] Goblin-Automat: Runen zahlen zusätzlich sofort Gold (Lesart noch bestätigen, Quote neu einstellen)
 - [ ] Tavernen-Hold'em: wer mitten in einer Hand geht, bekommt den Stand vor der Hand zurück – bei Bedarf den Einsatz der Hand abziehen
 
 ## 3. Später

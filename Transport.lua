@@ -58,7 +58,7 @@ ns.DOCKS = DOCKS
 local function World(map, x, y)
     if not (C_Map and C_Map.GetWorldPosFromMapPos) then return nil end
     local v = CreateVector2D and CreateVector2D(x, y) or { x = x, y = y }
-    local ok, cont, pos = pcall(C_Map.GetWorldPosFromMapPos, map, v)
+    local ok, cont, pos = ns.Try("C_Map.GetWorldPosFromMapPos", C_Map.GetWorldPosFromMapPos, map, v)
     if not ok or type(pos) ~= "table" then return nil end
     local wx, wy = pos.x, pos.y
     if (wx == nil or wy == nil) and pos.GetXY then wx, wy = pos:GetXY() end
@@ -69,10 +69,10 @@ end
 
 local function PlayerWorld()
     if not (C_Map and C_Map.GetBestMapForUnit and C_Map.GetPlayerMapPosition) then return nil end
-    local ok, map = pcall(C_Map.GetBestMapForUnit, "player")
+    local ok, map = ns.Try("C_Map.GetBestMapForUnit", C_Map.GetBestMapForUnit, "player")
     map = ok and ns.Num(map) or nil
     if not map then return nil end
-    local ok2, pos = pcall(C_Map.GetPlayerMapPosition, map, "player")
+    local ok2, pos = ns.Try("C_Map.GetPlayerMapPosition", C_Map.GetPlayerMapPosition, map, "player")
     if not ok2 or type(pos) ~= "table" then return nil end
     local x, y = pos.x, pos.y
     if (x == nil or y == nil) and pos.GetXY then x, y = pos:GetXY() end
@@ -82,16 +82,16 @@ local function PlayerWorld()
     return wx, wy, c, map, x, y
 end
 
-local function flag(fn, ...)
+local function flag(name, fn, ...)
     if type(fn) ~= "function" then return nil end
-    local ok, v = pcall(fn, ...)
+    local ok, v = ns.Try(name, fn, ...)
     if not ok or (type(issecretvalue) == "function" and issecretvalue(v)) then return nil end
     return v and true or false
 end
 
 local function OwnSpeed()
     if not GetUnitSpeed then return nil end
-    local ok, v = pcall(GetUnitSpeed, "player")
+    local ok, v = ns.Try("GetUnitSpeed", GetUnitSpeed, "player")
     return ok and ns.Num(v) or nil
 end
 
@@ -185,7 +185,7 @@ end
 local function Tick()
     local t = ns.trip
     S.n = S.n + 1
-    if (t.active and (t.kind == "flug" or t.kind == "test")) or flag(UnitOnTaxi, "player") or flag(IsInInstance) then
+    if (t.active and (t.kind == "flug" or t.kind == "test")) or flag("UnitOnTaxi", UnitOnTaxi, "player") or flag("IsInInstance", IsInInstance) then
         S.last = nil
         S.live = { note = "Flight, test flight or instance – dock watch paused" }
         return
@@ -199,7 +199,7 @@ local function Tick()
     end
 
     local speed = OwnSpeed()
-    local moving = flag(IsPlayerMoving)
+    local moving = flag("IsPlayerMoving", IsPlayerMoving)
     local v, carried = 0, false
     local LV = S.last
     if LV and LV.c == c then

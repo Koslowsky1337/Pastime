@@ -55,7 +55,7 @@ ns.PASS_BINDINGS = PASS_BINDINGS
 local function bindingFor(key)
     local fn = GetBindingFromInput or GetBindingFromClick
     if not fn then return nil end
-    local ok, action = pcall(fn, key)
+    local ok, action = ns.Try("GetBindingFromInput", fn, key)
     return ok and action or nil
 end
 
@@ -67,7 +67,8 @@ function ns.UpdateKeyboard()
         and (run.state == "running" or run.state == "over") and not (ns.inCombat or InCombatLockdown())
     want = want and true or false
     if want ~= kbOn then
-        pcall(gv.EnableKeyboard, gv, want)
+        -- nur bei Erfolg merken: sonst hieße es „Tastatur an“, während keine Taste ankommt
+        if not ns.Try("EnableKeyboard", gv.EnableKeyboard, gv, want) then return end
         kbOn = want
         gv.kbOn = want
         wipe(downTaken)
@@ -679,7 +680,7 @@ function ns.UpdateLauncher()
     -- Fußzeile
     local prefix = ""
     local errs = ns.SessionErrors()
-    if errs > 0 then prefix = (L["|cffff6060%d error(s) – /pastime log|r · "]):format(errs) end
+    if errs > 0 then prefix = (L["|cffff6060%d error(s) – /pastime report|r · "]):format(errs) end
     if ns.DebugOn() then prefix = prefix .. "|cffffb040Debug|r · " end
     local fs = ns.TripStatus()
     if fs then
@@ -803,7 +804,7 @@ local function CreateGameView(parent)
                 ns.Log("E", "spiel:" .. run.def.id, "%s", tostring(err))
                 local eh = geterrorhandler and geterrorhandler()
                 if eh then pcall(eh, err) end
-                ns.Pause(L["|cffff6060Error in the game – see /pastime log|r"])
+                ns.Pause(L["|cffff6060Error in the game – see /pastime report|r"])
             end
         end
         acc = acc + elapsed
@@ -1134,7 +1135,7 @@ function ns.CreateMainFrame()
         tab:SetID(i)
         tab.key = tdef[1]
         if tab.Text then tab.Text:SetText(tdef[2]) else tab:SetText(tdef[2]) end
-        if PanelTemplates_TabResize then pcall(PanelTemplates_TabResize, tab, 0) end
+        if PanelTemplates_TabResize then ns.Try("PanelTemplates_TabResize", PanelTemplates_TabResize, tab, 0) end
         tab:SetScript("OnClick", ns.Wrap("reiter", function(self)
             ns.PlaySound("click")
             if self.key == "records" then
@@ -1262,7 +1263,7 @@ function ns.OnTripEnded(trip, arrived, route)
     if ns.DB.settings.landAlarm and (wasRunning or visible) then
         ns.Alert(K.arrive .. "!", dest)
         ns.PlaySound("alarm")
-        if FlashClientIcon then pcall(FlashClientIcon) end
+        if FlashClientIcon then ns.Try("FlashClientIcon", FlashClientIcon) end
         ns.Print(("|cff80ff80%s%s!|r%s"):format(K.arrive, dest and (L[" in "] .. dest) or "",
             wasRunning and L[" Game paused – keep playing or finish & score."] or ""))
     end

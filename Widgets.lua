@@ -255,7 +255,7 @@ end
 -- Aufsteigende Texte („+10“) – das Spiel ruft :Update(dt) auf
 -- Fraktion des Spielers (neutral zählt als Horde): für Flaggen, Wappen, Kartenrücken
 function ns.IsAlliance()
-    local ok, f = pcall(UnitFactionGroup, "player")
+    local ok, f = ns.Try("UnitFactionGroup", UnitFactionGroup, "player")
     return ok and f == "Alliance"
 end
 

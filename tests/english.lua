@@ -76,7 +76,7 @@ check(SETTINGS_OPENED == 4711, "options opens the settings panel")
 -- Optionsmenü
 check(#Settings.CATEGORIES == 1 and Settings.CATEGORIES[1].name == "Pastime", "settings category registered")
 local cat = Settings.CATEGORIES[1]
-check(#cat.init == 6, "5 checkboxes + button, are " .. #cat.init)
+check(#cat.init == 7, "5 checkboxes + 2 buttons (open, bug report), are " .. #cat.init)
 local auto = Settings.SETTINGS.PASTIME_AUTOOPEN
 check(auto and auto.name == "Open when travelling" and auto:GetValue() == PastimeDB.settings.autoOpen, "proxy setting autoOpen")
 auto:SetValue(false)

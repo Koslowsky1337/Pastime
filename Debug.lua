@@ -20,7 +20,7 @@ end
 
 local function onTaxi()
     if not UnitOnTaxi then return nil end
-    local ok, v = pcall(UnitOnTaxi, "player")
+    local ok, v = ns.Try("UnitOnTaxi", UnitOnTaxi, "player")
     if not ok or (type(issecretvalue) == "function" and issecretvalue(v)) then return nil end
     return v and true or false
 end
@@ -127,7 +127,7 @@ local function CreatePanel()
         acc = 0
         local ok, lines = pcall(ns.DebugLines)
         -- Layout-Prüfung läuft mit: alles, was man durchklickt, wird geprüft (neue Funde ins Protokoll)
-        local okL, found = pcall(ns.LayoutCheck)
+        local okL, found = ns.Try("LayoutCheck", ns.LayoutCheck)
         if okL then layoutN = #found end
         self.text:SetText((ok and table.concat(lines, "\n") or ("Errors: " .. tostring(lines)))
             .. ("\nLayout: %d problem(s) on screen · /pastime log"):format(layoutN))
@@ -155,7 +155,7 @@ local OTHER_ADDONS = { "TomTom", "Questie", "QuestieDB", "ForeverDungeonJournal"
 local function addonLoaded(name)
     local fn = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
     if not fn then return "?" end
-    local ok, v = pcall(fn, name)
+    local ok, v = ns.Try("IsAddOnLoaded", fn, name)
     return ok and (v and "yes" or "no") or "?"
 end
 
@@ -165,13 +165,23 @@ function ns.DiagReport()
     local build, num = "?", "?"
     if GetBuildInfo then build, num = GetBuildInfo() end
     add("Pastime %s · Client %s (%s) · %s · %s · %s", ns.VERSION, tostring(build), tostring(num),
-        GetLocale and GetLocale() or "?", tostring(ns.playerName), date("%Y-%m-%d %H:%M:%S"))
+        GetLocale and GetLocale() or "?", ns.IsAlliance() and "Alliance" or "Horde", date("%Y-%m-%d %H:%M:%S"))
     local set = ns.DB.settings
     add("Session %s · debug %s · auto=%s alarm=%s combat=%s sound=%s", tostring(ns.session), yesno(ns.DB.debug),
         tostring(set.autoOpen), tostring(set.landAlarm), tostring(set.hideInCombat), tostring(set.sound))
     local addons = {}
     for _, a in ipairs(OTHER_ADDONS) do table.insert(addons, a .. "=" .. addonLoaded(a)) end
     add("Addons: %s", table.concat(addons, " "))
+    local run = ns.run
+    add("Game: %s", run and (run.def.id .. " " .. tostring(run.mode) .. " · " .. tostring(run.state)) or "-")
+    add("")
+    add("== Client calls that failed ==")
+    local any = false
+    for name, f in pairs(ns.fails) do
+        any = true
+        add("%s: %d× since %s · %s", name, f.n, f.first, f.err)
+    end
+    if not any then add("none") end
     add("")
     add("== Now ==")
     for _, l in ipairs(ns.DebugLines()) do add(plain(l)) end
@@ -204,9 +214,37 @@ function ns.DiagReport()
         end
     end
     add("")
-    add("== Errors and warnings ==")
-    add(ns.FormatLog(30, true))
-    return table.concat(out, "\n")
+    add("== Log (last 120 entries, with the debug lines of the last minutes) ==")
+    add(ns.FormatLog(120, false, true))
+    return ns.Anonymize(table.concat(out, "\n"))
+end
+
+-- Charakternamen aus einem Text nehmen: jeder bekannte Name (eigene Charaktere, Namen in den
+-- Bestenlisten und im Protokoll) wird zu „Char1“, „Char2“ …
+function ns.Anonymize(text)
+    local names, seen = {}, {}
+    local function note(n)
+        if type(n) == "string" and #n >= 2 and not seen[n] then seen[n] = true; names[#names + 1] = n end
+    end
+    note(ns.playerName)
+    for _, e in ipairs(ns.DB.log) do note(e.p) end
+    local function lists(scores)
+        for _, list in pairs(scores or {}) do
+            for _, e in ipairs(list) do note(e.p) end
+        end
+    end
+    lists(ns.DB.scores)
+    for _, r in pairs(ns.DB.routes) do lists(r.scores) end
+    table.sort(names, function(a, b) return #a > #b end)      -- lange zuerst: „Thokkar“ vor „Thokk“
+    for i, n in ipairs(names) do
+        text = text:gsub(n:gsub("%p", "%%%0"), "Char" .. i)
+    end
+    return text
+end
+
+function ns.ShowReport()
+    ns.ShowCopy(L["Pastime bug report"], ns.DiagReport())
+    ns.Print(L["Copy the report with Ctrl+C and paste it into an issue: github.com/Koslowsky1337/Pastime/issues"])
 end
 
 ---------------------------------------------------------------------------

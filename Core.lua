@@ -14,7 +14,13 @@ ns.VERSION = ns.VersionFrom(C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.
 -- Protokoll (PastimeDB.log)
 -- Stufen: E = Fehler, W = Warnung, I = Info, D = Debug (nur mit /pastime debug)
 ---------------------------------------------------------------------------
-local MAX_ENTRIES = 300
+local MAX_ENTRIES = 400
+-- Kurzzeitspeicher: Debug-Einträge laufen immer mit, aber nur im Arbeitsspeicher. Bei einem Fehler
+-- wandern die letzten davon ins gespeicherte Protokoll (überlebt /reload), und der Bericht
+-- (/pastime report) nimmt sie mit. So enthält eine Fehlermeldung die Minuten davor, ohne dass
+-- jemand vorher den Debug-Modus einschalten musste.
+local RECENT_MAX, RECENT_AGE, FREEZE_MAX = 200, 600, 60
+local recent = {}
 local LEVEL_NAME = { E = "ERROR", W = "WARNING", I = "INFO", D = "DEBUG" }
 local LEVEL_COLOR = { E = "ff6060", W = "ffb040", I = "a0c0ff", D = "909090" }
 local pending, echoed = {}, {}
@@ -31,8 +37,18 @@ end
 
 function ns.DebugOn() return ns.DB and ns.DB.debug and true or false end
 
+-- Die jüngsten Debug-Einträge ins gespeicherte Protokoll übernehmen (vor einem Fehler)
+local function freeze()
+    local target = ns.DB and ns.DB.log or pending
+    local oldest = time() - RECENT_AGE
+    for i = math.max(1, #recent - FREEZE_MAX + 1), #recent do
+        local e = recent[i]
+        if (e.t or 0) >= oldest then table.insert(target, e) end
+    end
+    wipe(recent)
+end
+
 function ns.Log(level, cat, fmt, ...)
-    if level == "D" and not ns.DebugOn() then return end
     local msg
     if select("#", ...) > 0 then
         local ok, res = pcall(string.format, fmt, ...)
@@ -40,7 +56,13 @@ function ns.Log(level, cat, fmt, ...)
     else
         msg = tostring(fmt)
     end
-    local entry = { d = date("%Y-%m-%d %H:%M:%S"), l = level, c = cat, m = msg, p = ns.playerName, s = ns.session }
+    local entry = { d = date("%Y-%m-%d %H:%M:%S"), t = time(), l = level, c = cat, m = msg, p = ns.playerName, s = ns.session }
+    if level == "D" and not ns.DebugOn() then
+        recent[#recent + 1] = entry
+        if #recent > RECENT_MAX then table.remove(recent, 1) end
+        return entry
+    end
+    if level == "E" then freeze() end
     if ns.DB and ns.DB.log then
         table.insert(ns.DB.log, entry)
         trim(ns.DB.log)
@@ -53,6 +75,23 @@ function ns.Log(level, cat, fmt, ...)
     end
     return entry
 end
+
+-- Aufruf einer Client-Funktion, die es in diesem Client vielleicht nicht (so) gibt. Ein Fehlschlag
+-- wird nicht verschluckt: der erste je Funktion steht als Warnung im Protokoll, weitere werden
+-- gezählt (ns.fails, steht im Bericht). Rückgabe wie pcall.
+ns.fails = {}
+local function tried(name, ok, ...)
+    if ok then return true, ... end
+    local f = ns.fails[name]
+    if f then
+        f.n = f.n + 1
+    else
+        ns.fails[name] = { n = 1, first = date("%H:%M:%S"), err = tostring((...)) }
+        ns.Log("W", "client", "%s failed: %s", name, tostring((...)))
+    end
+    return false, ...
+end
+function ns.Try(name, fn, ...) return tried(name, pcall(fn, ...)) end
 
 local function handler(err)
     return { err = err, stack = debugstack and debugstack(2, 12, 0) or "" }
@@ -93,16 +132,26 @@ function ns.SessionErrors()
     return n
 end
 
-function ns.FormatLog(maxLines, onlyProblems)
+function ns.FormatLog(maxLines, onlyProblems, withRecent)
     local log = ns.DB and ns.DB.log or {}
     local list = {}
     for _, e in ipairs(log) do
         if not onlyProblems or e.l == "E" or e.l == "W" then table.insert(list, e) end
     end
+    if withRecent then
+        -- Kurzzeitspeicher an der richtigen Stelle einsortieren (beide Listen sind zeitlich geordnet)
+        local merged, i = {}, 1
+        for _, r in ipairs(recent) do
+            while list[i] and (list[i].t or 0) <= (r.t or 0) do merged[#merged + 1] = list[i]; i = i + 1 end
+            merged[#merged + 1] = r
+        end
+        while list[i] do merged[#merged + 1] = list[i]; i = i + 1 end
+        list = merged
+    end
     local lines, last = {}, nil
     for i = math.max(1, #list - (maxLines or 200) + 1), #list do
         local e = list[i]
-        if e.s ~= last then
+        if e.s and e.s ~= last then
             table.insert(lines, ("---- Session %s%s ----"):format(tostring(e.s), e.s == ns.session and " (current)" or ""))
             last = e.s
         end
@@ -164,7 +213,7 @@ function ns.PlaySound(kind)
     if lastSound[kind] and now - lastSound[kind] < 0.12 then return end   -- kein Dauerfeuer
     lastSound[kind] = now
     local id = SOUNDKIT and SOUNDKIT[SOUND[kind] or ""]
-    if id and PlaySound then pcall(PlaySound, id, kind == "alarm" and "Master" or "SFX") end
+    if id and PlaySound then ns.Try("PlaySound", PlaySound, id, kind == "alarm" and "Master" or "SFX") end
 end
 
 ---------------------------------------------------------------------------
@@ -597,7 +646,7 @@ end
 
 local function onTaxi()
     if not UnitOnTaxi then return false end
-    local ok, v = pcall(UnitOnTaxi, "player")
+    local ok, v = ns.Try("UnitOnTaxi", UnitOnTaxi, "player")
     if not ok or (type(issecretvalue) == "function" and issecretvalue(v)) then return false end
     return v and true or false
 end
@@ -707,7 +756,7 @@ local function HelpLines()
         L["|cffffffff/pastime auto|r · |cffffffff/pastime alarm|r · |cffffffff/pastime combat|r · |cffffffff/pastime sound|r – toggle settings"],
         L["|cffffffff/pastime minimap|r – show or hide the minimap button"],
         L["|cffffffff/pastime log|r – log · |cffffffff/pastime log errors|r – errors and warnings only · |cffffffff/pastime log clear|r"],
-        L["|cffffffff/pastime debug|r – live debug window + detailed log · |cffffffff/pastime diag|r – diagnostic report to copy"],
+        L["|cffffffff/pastime debug|r – live debug window + detailed log · |cffffffff/pastime report|r – bug report to copy"],
     }
 end
 
@@ -817,8 +866,8 @@ function ns.HandleSlash(msg)
         ns.Print(("Layout check: %d problem(s) – see |cffffffff/pastime log|r"):format(#ns.LayoutCheck()))
     elseif cmd == "shots" then
         if ns.PhotoTour then ns.PhotoTour() end
-    elseif cmd == "diag" then
-        ns.ShowCopy(L["Pastime diagnostics"], ns.DiagReport())
+    elseif cmd == "diag" or cmd == "report" or cmd == "bericht" then
+        ns.ShowReport()
     elseif cmd == "debug" then
         ns.DB.debug = not ns.DB.debug
         ns.Print(ns.DB.debug and L["Debug |cff80ff80on|r – live window open, detailed log running."]

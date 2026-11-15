@@ -140,7 +140,7 @@ end
 
 local function isIgnored(name)
     if C_FriendList and C_FriendList.IsIgnored then
-        local ok, res = pcall(C_FriendList.IsIgnored, name)
+        local ok, res = ns.Try("C_FriendList.IsIgnored", C_FriendList.IsIgnored, name)
         return ok and res and true or false
     end
     return false
@@ -225,7 +225,7 @@ function Comm.Flush()
     if not item or GetTime() - lastSend < SEND_GAP then return end
     if not (C_ChatInfo and C_ChatInfo.SendAddonMessage) then wipe(queue); return end
     lastSend = GetTime()
-    local ok, res = pcall(C_ChatInfo.SendAddonMessage, Comm.PREFIX, item.msg, item.channel, item.target)
+    local ok, res = ns.Try("C_ChatInfo.SendAddonMessage", C_ChatInfo.SendAddonMessage, Comm.PREFIX, item.msg, item.channel, item.target)
     local code = ok and (type(res) == "number" and res or (res == true and RESULT_OK)) or -1
     if code == RESULT_THROTTLE or code == RESULT_CHANNEL_THROTTLE then
         item.tries = item.tries + 1

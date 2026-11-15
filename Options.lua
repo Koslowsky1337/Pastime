@@ -53,6 +53,11 @@ function ns.CreateSettings()
                     if HideUIPanel and SettingsPanel then HideUIPanel(SettingsPanel) end
                     ns.ShowFrame()
                 end, L["Opens the game collection. You can also use /pastime or the key binding."], true))
+            layout:AddInitializer(CreateSettingsButtonInitializer(L["Something not working?"], L["Create bug report"],
+                function()
+                    if HideUIPanel and SettingsPanel then HideUIPanel(SettingsPanel) end
+                    ns.ShowReport()
+                end, L["Opens a report with the recent log to copy into a GitHub issue. Character names are replaced."], true))
         end
     end
 
@@ -74,6 +79,6 @@ end
 -- Nach Änderungen über Befehle oder das Spielefenster das Optionsmenü nachziehen
 function ns.RefreshSettings()
     for _, s in pairs(settings) do
-        if s.NotifyUpdate then pcall(s.NotifyUpdate, s) end
+        if s.NotifyUpdate then ns.Try("Setting:NotifyUpdate", s.NotifyUpdate, s) end
     end
 end

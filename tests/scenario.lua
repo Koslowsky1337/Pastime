@@ -569,7 +569,34 @@ local diag = ns.DiagReport()
 check(diag:find("== Now ==") and diag:find("Trip traces") and diag:find("zeppelin:Orgrimmar > Undercity"), "Diagnosebericht")
 check(not diag:find("|c"), "Diagnose ohne Farbcodes")
 slash("diag")
-check(ns.copyFrame.shown and ns.copyFrame.title.text == "Pastime-Diagnose", "/pastime diag öffnet Kopierfenster")
+check(ns.copyFrame.shown and ns.copyFrame.title.text == "Pastime-Fehlerbericht", "/pastime diag öffnet Kopierfenster")
+-- Protokoll: stille Client-Fehlschläge werden gemeldet, Debug-Zeilen laufen im Kurzzeitspeicher mit
+slash("debug")      -- aus
+local before = #PastimeDB.log
+ns.Log("D", "test", "leise Zeile")
+check(#PastimeDB.log == before and not ns.FormatLog(400):find("leise Zeile") and ns.FormatLog(400, false, true):find("leise Zeile"),
+    "Protokoll: Debug-Zeile ohne Debug-Modus nur im Kurzzeitspeicher, der Bericht nimmt sie mit")
+local okT, vT = ns.Try("Probe", function(x) return x * 2 end, 21)
+check(okT and vT == 42 and ns.fails.Probe == nil, "ns.Try: Erfolg reicht die Rückgabe durch")
+for _ = 1, 3 do ns.Try("Kaputt", function() error("gibt es nicht") end) end
+local warn = 0
+for _, e in ipairs(PastimeDB.log) do if e.l == "W" and e.c == "client" and e.m:find("Kaputt") then warn = warn + 1 end end
+check(warn == 1 and ns.fails.Kaputt.n == 3, "ns.Try: Fehlschlag einmal als Warnung im Protokoll, danach gezählt")
+ns.Log("E", "test", "Testfehler")
+local posD, posE
+for i, e in ipairs(PastimeDB.log) do
+    if e.m == "leise Zeile" then posD = i elseif e.m == "Testfehler" then posE = i end
+end
+check(posD and posE and posD < posE, "Protokoll: bei einem Fehler wandern die Debug-Zeilen davor ins gespeicherte Protokoll")
+PastimeDB.scores.kodo = { { s = 5, p = "Fremdername", d = "x" } }
+ns.Log("I", "test", "Besuch von Fremdername und " .. ns.playerName)
+local report = ns.DiagReport()
+check(not report:find(ns.playerName, 1, true) and not report:find("Fremdername", 1, true) and report:find("Besuch von Char%d and Char%d") == nil
+    and report:find("Besuch von Char%d und Char%d"), "Bericht: Charakternamen sind ersetzt")
+check(report:find("Kaputt: 3× since", 1, true) and report:find("== Log", 1, true), "Bericht: nennt fehlgeschlagene Client-Aufrufe und das Protokoll")
+PastimeDB.scores.kodo = nil
+table.remove(PastimeDB.log, posE)      -- der Testfehler soll die Fehlerprüfung am Ende nicht stören
+slash("debug")      -- wieder an
 ns.Log("W", "test", "Testwarnung")
 check(ns.FormatLog(50, true):find("Testwarnung") and not ns.FormatLog(50, true):find("INFO"), "log fehler filtert")
 ns.debugPanel.scripts.OnUpdate(ns.debugPanel, 1)
