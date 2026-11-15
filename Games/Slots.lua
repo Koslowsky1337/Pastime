@@ -14,21 +14,24 @@ Game.__index = Game
 -- den ganzen Einsatz. Die Münze ist Joker. Die Rune (letztes Symbol) zählt auf keiner Linie:
 -- drei, vier oder fünf Runen irgendwo geben FREE Freispiele zum selben Einsatz und zahlen
 -- sofort das RUNE_PAY-fache des ganzen Einsatzes.
+-- In den Freispielen gilt ein Bonussymbol (eins der fünf gewöhnlichen, gewählt beim Auslösen):
+-- liegt es auf drei, vier oder fünf Walzen – egal wo, auch mit Lücken –, füllt es diese Walzen
+-- und zahlt zusätzlich expand (in Linieneinsätzen, für das ganze Bild).
 -- Auszahlungsquote samt Freispielen rund 96 % (tests/games.lua rechnet nach).
 Game.SYMBOLS = {
-    { icon = "Interface\\Icons\\INV_Misc_Fish_02", w = 13, pay = { 6, 7, 10 } },
-    { icon = "Interface\\Icons\\INV_Misc_Bomb_04", w = 10, pay = { 6, 8, 12 } },
-    { icon = "Interface\\Icons\\INV_Misc_Head_Murloc_01", w = 7, pay = { 6, 9, 18 } },
-    { icon = "Interface\\Icons\\INV_Misc_Gem_Emerald_01", w = 4, pay = { 7, 10, 30 } },
-    { icon = "Interface\\Icons\\INV_Misc_Gem_Ruby_01", w = 3, pay = { 8, 15, 60 } },
-    { icon = "Interface\\Icons\\INV_Misc_Coin_01", w = 3, pay = { 10, 30, 200 } },
+    { icon = "Interface\\Icons\\INV_Misc_Fish_02", w = 13, pay = { 6, 7, 9 }, expand = { 1, 3, 15 } },
+    { icon = "Interface\\Icons\\INV_Misc_Bomb_04", w = 10, pay = { 6, 7, 11 }, expand = { 2, 4, 20 } },
+    { icon = "Interface\\Icons\\INV_Misc_Head_Murloc_01", w = 7, pay = { 6, 8, 14 }, expand = { 3, 8, 40 } },
+    { icon = "Interface\\Icons\\INV_Misc_Gem_Emerald_01", w = 4, pay = { 7, 10, 25 }, expand = { 6, 20, 100 } },
+    { icon = "Interface\\Icons\\INV_Misc_Gem_Ruby_01", w = 3, pay = { 8, 12, 50 }, expand = { 10, 40, 250 } },
+    { icon = "Interface\\Icons\\INV_Misc_Coin_01", w = 3, pay = { 10, 25, 200 } },
     { icon = "Interface\\Icons\\INV_Misc_Rune_01", w = 2 },
 }
 local WILD, SCATTER = 6, 7
 Game.STAKE = true
 Game.JACKPOT = L["five rubies or coins on one line"]
 Game.PLAY = L["Spin for %d gold (Space)"]
-Game.FREE = { 5, 8, 12 }
+Game.FREE = { 4, 7, 10 }
 Game.RUNE_PAY = { 1, 5, 20 }
 local AUTO_SPINS = 20
 -- Gewinnlinien: Reihe je Walze (drei Reihen, zwei Diagonalen)
@@ -59,7 +62,7 @@ function Game.LinePay(s)
     if n < 3 then return 0, 0 end
     local pay = Game.SYMBOLS[sym].pay[n - 2]
     -- Münzen vorn können für sich mehr wert sein als die längere Reihe, die sie ergänzen
-    -- (vier Münzen und ein Fisch: 30 statt 10): es zählt die bessere Lesart
+    -- (vier Münzen und ein Fisch: 25 statt 9): es zählt die bessere Lesart
     local coins = 0
     while s[coins + 1] == WILD do coins = coins + 1 end
     if coins >= 3 and Game.SYMBOLS[WILD].pay[coins - 2] > pay then return Game.SYMBOLS[WILD].pay[coins - 2], coins end
@@ -101,6 +104,17 @@ function Game.Scatter(grid)
     return Game.FREE[i], cells, Game.RUNE_PAY[i]
 end
 
+-- Walzen, auf denen das Bonussymbol liegt
+function Game.Expand(grid, sym)
+    local reels = {}
+    for c = 1, COLS do
+        for r = 1, ROWS do
+            if grid[c][r] == sym then reels[#reels + 1] = c; break end
+        end
+    end
+    return reels
+end
+
 -- Ganzes Feld grid[Walze][Reihe]: Summe der Linien und die Felder, die gewonnen haben
 function Game.Evaluate(grid)
     local sum, cells = 0, {}
@@ -132,7 +146,7 @@ function Game:Start()
     self.auto, self.autoT = false, nil
     local p = self:Purse()
     if (tonumber(p.gold) or 0) < ns.Gamble.MIN_BET then p.free = nil end      -- neuer Lauf: alte Freispiele verfallen
-    self.free, self.stake = tonumber(p.free) or 0, tonumber(p.stake) or 0
+    self.free, self.stake, self.special = tonumber(p.free) or 0, tonumber(p.stake) or 0, tonumber(p.special)
     self:OpenRun()
     if self.free > 0 and self.stake > 0 then
         -- Freispiele von vorhin: gleich weiterdrehen
@@ -141,19 +155,23 @@ function Game:Start()
         self.sub:SetText((L["Free spins left: %d"]):format(self.free))
         self:Render()
     else
-        self.free = 0
+        self.free, self.special = 0, nil
     end
 end
 
 function Game:Save()
     ns.Gamble.Save(self)
     local p, left = self:Purse(), (self.free or 0) > 0
-    p.free, p.stake = left and self.free or nil, left and self.stake or nil
+    p.free, p.stake, p.special = left and self.free or nil, left and self.stake or nil, left and self.special or nil
 end
 
 -- Freispiele gehen vor: sie drehen zum Einsatz, der sie ausgelöst hat, und kosten nichts
 function Game:Next()
-    if self.state ~= "result" or (self.free or 0) <= 0 then return ns.Gamble.Next(self) end
+    if self.state ~= "result" then return end
+    if (self.free or 0) <= 0 then
+        self.special = nil      -- Freispiele vorbei: das Bonussymbol gilt nicht mehr
+        return ns.Gamble.Next(self)
+    end
     self.free = self.free - 1
     self.bet = 0
     self:Save()
@@ -236,10 +254,24 @@ function Game:Update(dt)
     if self.spin < self.stops[COLS] then return self:Render() end
     self.hot, self.blink, self.blinkOn = nil, 0, true
     local sum, cells = Game.Evaluate(self.final)
+    -- Freispiel: das Bonussymbol füllt seine Walzen, wenn es auf mindestens dreien liegt
+    local extra, filled = 0, nil
+    if self.isFree and self.special then
+        local reels = Game.Expand(self.final, self.special)
+        if #reels >= 3 then
+            filled = #reels
+            extra = math.floor(self.stake * Game.SYMBOLS[self.special].expand[filled - 2] / #Game.LINES)
+            for _, c in ipairs(reels) do
+                self.grid[c] = { self.special, self.special, self.special }
+                for r = 1, ROWS do cells[c * 10 + r] = true end
+            end
+        end
+    end
     local award, runes, bonus = Game.Scatter(self.final)
     if award then
         self.free = (self.free or 0) + award
         self.auto = false
+        self.special = self.special or math.random(WILD - 1)      -- weitere Freispiele behalten das Symbol
         for k in pairs(runes) do cells[k] = true end
     end
     -- Jackpot: fünf Rubine oder Münzen auf einer Linie (rund jede 3.400. Drehung)
@@ -254,9 +286,10 @@ function Game:Update(dt)
     end
     if jack then self:Jackpot() end
     self.won = cells
-    local text = award and (L["%d free spins!"]):format(award)
+    local text = filled == COLS and L["FULL SCREEN!"] or (filled and (L["Bonus symbol on %d reels!"]):format(filled))
+        or award and (L["%d free spins!"]):format(award)
         or (sum > 0 and L["Winning line!"] or (self.isFree and (L["Free spins left: %d"]):format(self.free) or L["No luck this time."]))
-    self:Pay(math.floor(self.stake * sum / #Game.LINES) + (award and self.stake * bonus or 0), text, (sum > 0 or award) and 2.6 or 1.2)
+    self:Pay(math.floor(self.stake * sum / #Game.LINES) + (award and self.stake * bonus or 0) + extra, text, (sum > 0 or award or filled) and 2.6 or 1.2)
 end
 
 function Game:Key(k, down)
@@ -277,6 +310,8 @@ function Game:Render()
         end
     end
     self:BaseRender()
+    self.bonus:SetShown(self.special ~= nil)
+    if self.special then ns.SetIcon(self.bonus.icon, Game.SYMBOLS[self.special].icon) end
     self.autoBtn:SetText(self.auto and (L["Auto-spin: %d left (A)"]):format(self.autoLeft) or (L["Auto-spin: %d× (A)"]):format(AUTO_SPINS))
     self.autoBtn:SetShown(self.state ~= "over")
 end
@@ -289,6 +324,18 @@ local function Create(host, board)
     g.autoBtn:SetPoint("BOTTOMLEFT", board, "BOTTOMLEFT", 8, 42)
     g.cashBtn:ClearAllPoints()
     g.cashBtn:SetPoint("BOTTOMRIGHT", board, "BOTTOMRIGHT", -8, 42)
+    -- Bonussymbol der Freispiele: oben in der Mitte, nur solange es gilt
+    g.bonus = CreateFrame("Frame", nil, board)
+    g.bonus:SetSize(24, 24)
+    g.bonus:SetPoint("TOP", board, "TOP", 14, -4)
+    g.bonus:EnableMouse(true)
+    g.bonus.icon = g.bonus:CreateTexture(nil, "ARTWORK")
+    g.bonus.icon:SetAllPoints()
+    local bonusLabel = ns.FontString(g.bonus, "GameFontNormalSmall", "RIGHT")
+    bonusLabel:SetPoint("RIGHT", g.bonus, "LEFT", -4, 0)
+    bonusLabel:SetText(L["Bonus:"])
+    ns.SetTooltip(g.bonus, L["Bonus symbol"], L["Picked when the free spins start. If it lands on three or more reels during a free spin, it fills those reels and pays for that many of a kind – gaps do not matter. Five reels fill the whole screen."])
+    g.bonus:Hide()
     local x0 = (W - COLS * CELL - (COLS - 1) * GAPX) / 2
     for c = 1, COLS do
         g.cells[c] = {}
@@ -338,7 +385,7 @@ ns.RegisterGame({
     noLandingScore = true,
     scoreLabel = L["Highest gold"],
     width = W, height = H,
-    desc = L["Five reels, three rows, five lines: the three rows and the two diagonals. Three or more of a kind in a row from the left win, and the coin stands in for any symbol. Every win pays more than you bet. Three to five runes pay 1, 5 or 20 times your bet plus 5, 8 or 12 free spins. Your goblin gold carries over between games. When you go broke or cash out, your highest gold counts."],
+    desc = L["Five reels, three rows, five lines: the three rows and the two diagonals. Three or more of a kind from the left win; the coin is wild. Three to five runes pay 1, 5 or 20 times your bet plus 4, 7 or 10 free spins with a bonus symbol that fills whole reels. Your goblin gold carries over between games. When you go broke or cash out, your highest gold counts."],
     controls = L["1/2: lower or raise your bet · 3: highest bet · Space: spin · A: auto-spin on or off · %s: cash out"]:format(ns.KEYS.cash),
     controlsShort = L["1/2: bet · Space: spin\nA: auto-spin\n%s: cash out"]:format(ns.KEYS.cash),
     Create = Create,

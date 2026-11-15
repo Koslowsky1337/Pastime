@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+
+- Goblin Slots: free spins now come with a bonus symbol. It is picked when the free spins start; whenever it lands on three or more reels during a free spin, it fills those reels and pays for that many of a kind, gaps or not. Five reels fill the whole screen. To make room, runes now give 4, 7 or 10 free spins and the line pays were lowered slightly; the payout rate stays at about 96 %.
+
 ## 1.2.0
 
 - Goblin Slots, Goblin Blackjack, Goblin Poker and Higher or Lower: you now set your bet once (10, 25, 50, 100, 250 … up to your gold) with 1 and 2 or the – and + buttons, 3 picks the highest, and Space plays. The bet stays for the next round and is remembered.
