@@ -7,7 +7,7 @@
 - Goblin Slots: three, four or five runes now also pay 1, 5 or 20 times your bet on the spot. The line pays were lowered slightly; the payout rate stays at about 96 %.
 - Goblin Roulette: the spin button offers “Repeat bets” when the table is empty, and your last bets survive closing the window.
 - Tavern Hold'em: closing the window in the middle of a hand keeps the hand exactly as it was; it continues when you come back.
-- New: a jackpot shared by all six gold games. One hundredth of every bet goes into the pot, and each game has one rare event that wins it (hover over the jackpot to see which): five rubies or coins on a line in Goblin Slots, the ace and jack of spades in Goblin Blackjack, a straight flush or four jacks or better in Goblin Poker, a pot of 1,000 times your bet in Higher or Lower, two hits in a row on a single number in Goblin Roulette, and a pot won with four of a kind or better in Tavern Hold'em.
+- New: a jackpot shared by all six gold games. A tenth of every loss goes into the pot, and each game has one rare event that wins it (hover over the jackpot to see which): five rubies or coins on a line in Goblin Slots, the ace and jack of spades in Goblin Blackjack, a straight flush or four jacks or better in Goblin Poker, a pot of 1,000 times your bet in Higher or Lower, two hits in a row on a single number in Goblin Roulette, and a pot won with four of a kind or better in Tavern Hold'em.
 - New: daily task. Every day one game with a goal, shown at the bottom of the game list; a click starts it. Finishing it on consecutive days builds a streak.
 - Gold games: a run that never got above the 100 gold you start with is no longer entered in the records, and such old entries are removed.
 

@@ -1,6 +1,6 @@
 # Pastime – ToDo
 
-Stand: `v1.1.0` ist veröffentlicht (15.11.), 1.2 ist in Arbeit. Die Prüflisten bis 1.0 sind erledigt und stehen in der Git-Historie.
+Stand: `v1.2.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erledigt und stehen in der Git-Historie.
 (Diese Datei kommt nicht ins Addon-Zip: `.pkgmeta` lässt `TODO.md` weg.)
 
 ## 1. Von Hand (GitHub)
@@ -24,10 +24,10 @@ Stand: `v1.1.0` ist veröffentlicht (15.11.), 1.2 ist in Arbeit. Die Prüflisten
 - [x] Roulette: Knopf „Nochmal“ bei leerem Tisch, letzte Einsätze überstehen das Schließen
 - [x] Tavernen-Hold'em: die laufende Hand übersteht das Schließen des Fensters
 - [x] Glücksspiele: Pleite ohne je über 100 Gold wird nicht gewertet, alte 100er-Einträge entfernt
-- [ ] **Im Spiel prüfen (für 1.2):** Runengold beim Scatter; Auto-Spin zählt 20 herunter und stoppt bei Freispielen; Roulette-Knopf „Nochmal“; Hold'em mitten in der Hand schließen und wieder öffnen; die 100er-Einträge sind aus den Rekorden weg
-- [x] Jackpot über alle sechs Goldspiele: 1 % jedes Einsatzes, je Spiel ein seltener Auslöser (rund 1 zu 1.000 bis 3.400), Tooltip erklärt ihn
+- [ ] **Im Spiel prüfen (nach 1.2):** Runengold beim Scatter; Auto-Spin zählt 20 herunter und stoppt bei Freispielen; Roulette-Knopf „Nochmal“; Hold'em mitten in der Hand schließen und wieder öffnen; die 100er-Einträge sind aus den Rekorden weg
+- [x] Jackpot über alle sechs Goldspiele: 10 % jedes Verlusts, je Spiel ein seltener Auslöser (rund 1 zu 1.000 bis 3.400), Tooltip erklärt ihn
 - [x] Tagesaufgabe: ein Spiel pro Tag mit Ziel in der Fußzeile der Spielauswahl, Klick startet, Serie über aufeinanderfolgende Tage
-- [ ] **Im Spiel prüfen (für 1.2):** Jackpot-Anzeige oben links in allen sechs Goldspielen samt Tooltip; Tagesaufgabe rechts in der Fußzeile, Klick startet das Spiel, Chat-Meldung beim Erreichen
+- [ ] **Im Spiel prüfen (nach 1.2):** Jackpot-Anzeige oben links in allen sechs Goldspielen samt Tooltip; Tagesaufgabe rechts in der Fußzeile, Klick startet das Spiel, Chat-Meldung beim Erreichen
 - [ ] Tagesziele nach ein paar Tagen Spielen nachjustieren (`ns.DAILY` in `Core.lua`; Werte sind geschätzt)
 
 ## 3. Später

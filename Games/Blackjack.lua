@@ -61,7 +61,6 @@ function Game:Play()
     if self.state ~= "bet" or amount > self.gold then return end
     self.bet = amount
     self.gold = self.gold - amount
-    ns.Gamble.Feed(amount)
     self:Save()
     self.player = { self:Draw(), self:Draw() }
     self.dealer = { self:Draw(), self:Draw() }
@@ -95,7 +94,6 @@ end
 function Game:Double()
     if self.state ~= "play" or #self.player ~= 2 or self.gold < self.bet then return end
     self.gold = self.gold - self.bet
-    ns.Gamble.Feed(self.bet)
     self.bet = self.bet * 2
     self:Save()
     table.insert(self.player, self:Draw())
@@ -132,6 +130,7 @@ function Game:Settle()
     else
         win, text = 0, (L["You lose – %d against %d."]):format(p, d)
     end
+    if win < self.bet then ns.Gamble.Feed(self.bet - win) end
     self.gold = self.gold + win
     self.peak = math.max(self.peak, self.gold)
     self.score = self.peak

@@ -514,7 +514,7 @@ g = start("blackjack")
 g.gold, g.peak, g.bet, g.state, g.t = 0, 100, 10, "result", 0.1
 tick(0.3)
 check(over() and best("blackjack") == nil, "Blackjack: pleite mit Höchststand 100 wird nicht gewertet")
--- Jackpot: ein Hundertstel jedes Einsatzes fließt in den Topf; Pik-Ass und Pik-Bube holen ihn
+-- Jackpot: Pik-Ass und Pik-Bube holen ihn
 PastimeDB.jackpot = 1000
 PastimeDB.blackjack.gold, PastimeDB.blackjack.peak = 400, 400
 g = start("blackjack")
@@ -962,7 +962,7 @@ g:Plan()
 check(g.tease[3] and g.tease[5] and g.stops[5] > 0.9 + 4 * 0.45 + 3, "Automat: vor den Walzen 3 bis 5 dauert es länger, wenn die Münzen passen")
 tick(1.5)
 check(g.state == "spin" and g.hot and g.cells[1][1].glow:IsShown(), "Automat: die passenden Felder leuchten, während die nächste Walze läuft")
-local jp = math.floor(PastimeDB.jackpot)
+local jp = math.floor(PastimeDB.jackpot + 0.5)
 tick(6)
 check(g.state == "result" and g.gold == 100 - 10 + 10 * 200 / 5 + jp, "Automat: fünf Münzen in der oberen Reihe zahlen 200-fach auf die Linie, Gold " .. g.gold)
 check(g.jackWon == jp and PastimeDB.jackpot == 1000 and g.jackText.text:find("JACKPOT", 1, true), "Automat: fünf Münzen auf einer Linie holen den Jackpot")
@@ -1010,11 +1010,13 @@ check(g:Wager() == 100, "Automat: 1 senkt den Einsatz")
 key("SPACE")
 check(g.state == "spin" and g.bet == 100 and g.gold == 200, "Automat: Leertaste dreht zum eingestellten Einsatz")
 local fed = PastimeDB.jackpot
-g.final = dull; g:Plan(); tick(8)
+g.final = { { 1, 2, 3 }, { 2, 3, 4 }, { 4, 1, 2 }, { 1, 2, 3 }, { 2, 3, 1 } };      -- keine Linie gewinnt
+ g:Plan(); tick(8)
 check(g.state == "bet" and g:Wager() == 100, "Automat: der Einsatz bleibt für die nächste Drehung stehen")
-g:Play()
-check(math.abs(PastimeDB.jackpot - fed - 1) < 0.001, "Jackpot: ein Hundertstel des Einsatzes (100) fließt in den Topf")
-g.final = dull; g:Plan(); tick(8)
+check(math.abs(PastimeDB.jackpot - fed - 10) < 0.001, "Jackpot: ein Zehntel des Verlusts (100) fließt in den Topf")
+PastimeDB.jackpot = 1000.5; g:Render()
+check(g.jackText.text:find("1001", 1, true), "Jackpot: die Anzeige rundet kaufmännisch")
+PastimeDB.jackpot = fed + 10
 g.gold = 60; g:Render()
 check(g:Wager() == 50, "Automat: reicht das Gold nicht, gilt die höchste bezahlbare Stufe")
 key("A")
@@ -1047,7 +1049,7 @@ check(kp[1] and kp[4] and not kp[5], "Goblin-Poker: der Goblin behält vier Kart
 key("SPACE")
 check(g.state == "hold" and #g.hand == 5 and #g.goblin == 5, "Goblin-Poker: je fünf Karten nach dem Grundeinsatz")
 do
-    local jp, gold = math.floor(PastimeDB.jackpot), g.gold
+    local jp, gold = math.floor(PastimeDB.jackpot + 0.5), g.gold
     g.hand = C("9H 9D 9S 9C 2H"); g.hold = { true, true, true, true, true }
     g:Swap()
     check(g.jackWon == nil and g.gold == gold, "Goblin-Poker: ein Vierling aus Neunen holt den Jackpot nicht")
@@ -1092,7 +1094,7 @@ g.deck = C("2H 3H 4H 5H 6H 7H 9H 10H JH QH KH AH")      -- gezogen wird vom Ende
 key("1")
 check(g.streak == 1 and g.pot == 196 and g.jackWon == nil, "Höher oder tiefer: Treffer vervielfacht den Topf, Topf " .. g.pot)
 do
-    local jp, gold = math.floor(PastimeDB.jackpot), g.gold
+    local jp, gold = math.floor(PastimeDB.jackpot + 0.5), g.gold
     g.card = { rank = 8, suit = 1 }
     g.pot = 6000      -- Einsatz 10: mit dem Treffer über dem 1000-Fachen
     g.deck = C("2H 3H 4H 5H 6H 7H 9H 10H JH QH KH AH")
@@ -1160,7 +1162,7 @@ do
     tick(3); click(17); click("red"); key("SPACE"); g.final = 17; tick(5)
     check(g.solo == 0 and g.jackWon == nil, "Roulette: mit weiteren Chips auf dem Tisch zählt der Treffer nicht")
     tick(3); click(17); key("SPACE"); g.final = 17; tick(5)
-    tick(3); click(17); jp = math.floor(PastimeDB.jackpot + 0.1); key("SPACE"); g.final = 17; tick(5)
+    tick(3); click(17); jp = math.floor(PastimeDB.jackpot + 0.5); key("SPACE"); g.final = 17; tick(5)
     check(g.jackWon == jp and PastimeDB.jackpot == 1000, "Roulette: zweimal hintereinander allein auf der gefallenen Zahl – Jackpot")
     tick(3)
 end
@@ -1244,7 +1246,7 @@ g.holes[1] = C("AH AD")
 math.randomseed(7); local e2x = g:Equity(2)
 check(e1 == e2x, "Hold'em: die Einschätzung eines Gegners hängt nicht von deinen Karten ab")
 do
-    local jp, gold = math.floor(PastimeDB.jackpot), g.gold
+    local jp, gold = math.floor(PastimeDB.jackpot + 0.5), g.gold
     for s = 1, 4 do g.folded[s] = nil end
     g.holes = { C("AH AD"), C("4H 6D"), C("5H 7D"), C("8H JD") }
     g.comm = C("AS AC 2H 3D 9S")

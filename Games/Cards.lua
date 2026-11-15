@@ -264,17 +264,19 @@ function Gamble:Play()
     self:Deal(amount)
 end
 
--- Jackpot: ein Topf für alle Glücksspiele. Ein Hundertstel jedes Einsatzes fließt hinein;
--- jedes Spiel hat ein seltenes Ereignis (rund eines in 1.000 bis 3.500 Runden), bei dem er fällt.
+-- Jackpot: ein Topf für alle Glücksspiele. Ein Zehntel jedes Verlusts fließt hinein (der Goblin
+-- legt einen Teil seiner Beute zurück; wer gewinnt, füllt ihn nicht). Gezählt wird mit Bruchteilen,
+-- angezeigt und ausgezahlt kaufmännisch gerundet.
+---- jedes Spiel hat ein seltenes Ereignis (rund eines in 1.000 bis 3.500 Runden), bei dem er fällt.
 local JACKPOT_START = 1000
 function Gamble.Feed(amount)
-    ns.DB.jackpot = math.max(JACKPOT_START, (tonumber(ns.DB.jackpot) or JACKPOT_START) + amount * 0.01)
+    ns.DB.jackpot = math.max(JACKPOT_START, (tonumber(ns.DB.jackpot) or JACKPOT_START) + amount * 0.1)
 end
 
 -- Der Jackpot fällt: sofort aufs Gold, der Topf beginnt von vorn. Die Anzeige oben links meldet
 -- den Gewinn, bis wieder gesetzt wird.
 function Gamble:Jackpot()
-    local pot = math.floor(tonumber(ns.DB.jackpot) or JACKPOT_START)
+    local pot = math.floor((tonumber(ns.DB.jackpot) or JACKPOT_START) + 0.5)
     ns.DB.jackpot = JACKPOT_START
     self.gold = self.gold + pot
     self.peak = math.max(self.peak, self.gold)
@@ -294,12 +296,12 @@ function Gamble.JackpotText(g, board, how)
     hit:SetPoint("TOPLEFT", 6, -4)
     hit:SetSize(130, 18)
     hit:EnableMouse(true)
-    ns.SetTooltip(hit, L["Jackpot"], (L["One hundredth of every bet in the gold games goes into this pot. It falls on %s."]):format(how))
+    ns.SetTooltip(hit, L["Jackpot"], (L["A tenth of every loss in the gold games goes into this pot. It falls on %s."]):format(how))
 end
 
 function Gamble.ShowJackpot(self)
     self.jackText:SetText(self.jackWon and (L["|cff80ff80JACKPOT! +%d gold|r"]):format(self.jackWon)
-        or (L["Jackpot: |cffffffff%d|r"]):format(math.floor(tonumber(ns.DB.jackpot) or JACKPOT_START)))
+        or (L["Jackpot: |cffffffff%d|r"]):format(math.floor((tonumber(ns.DB.jackpot) or JACKPOT_START) + 0.5)))
 end
 
 function Gamble:Purse()
@@ -335,7 +337,6 @@ end
 function Gamble:Spend(amount)
     self.gold = self.gold - amount
     self.bet = self.bet + amount
-    Gamble.Feed(amount)
     self:Save()
 end
 
@@ -350,6 +351,7 @@ end
 -- Hand abrechnen: win ist die Auszahlung einschließlich Einsatz. wait = Sekunden bis zur
 -- nächsten Hand (false: erst auf Tastendruck)
 function Gamble:Pay(win, text, wait)
+    if win < self.bet then Gamble.Feed(self.bet - win) end
     self.gold = self.gold + win
     self.peak = math.max(self.peak, self.gold)
     self.score = self.peak
