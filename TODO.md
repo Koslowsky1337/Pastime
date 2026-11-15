@@ -33,6 +33,7 @@ Stand: `v1.2.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 - [x] Automat: mehr kleine Treffer (zwei gleiche ab Murloc), Joker unter den Walzen erklärt (Quote 96,5 %, rund 56 % der Drehungen zahlen etwas)
 - [x] Update-Hinweis: Versionsnummer unsichtbar an Gilde und Gruppe, Chat-Zeile bei neuerer Version (nur volle Versionen)
 - [x] Reiter „Einstellungen“ im Fenster (dieselben Schalter wie im Addon-Menü)
+- [x] Selbsttest `/pastime debug test` (Schnittstellen, Klänge, Texturen, Addon-Nachricht an sich selbst), mehr Sprüche im Automaten
 - [ ] **Im Spiel prüfen (für 1.3):** Fanfare beim Runen-Treffer hörbar? Ziehen des Bonussymbols (nur mittlere Walze, dann nur das Symbol); Auffüllen Feld für Feld; zweites Symbol nach Verlängerung; Hochzählen; Spielregeln mit Gewinnplan passen ins Fenster 📸
 - [ ] Tagesziele nach ein paar Tagen Spielen nachjustieren (`ns.DAILY` in `Core.lua`; Werte sind geschätzt)
 

@@ -248,6 +248,110 @@ function ns.ShowReport()
 end
 
 ---------------------------------------------------------------------------
+-- Selbsttest (/pastime debug test): prüft im laufenden Client, was die Tests ohne Spiel nicht
+-- sehen – Schnittstellen, Klänge, Texturen, Addon-Nachrichten. Das Ergebnis öffnet sich zum
+-- Kopieren. Bewusst englisch und ungeschönt: es ist für die Fehlersuche gedacht.
+---------------------------------------------------------------------------
+local NEEDED = { "C_Timer.After", "C_Timer.NewTicker", "PlaySound", "SOUNDKIT", "GetBuildInfo", "hooksecurefunc",
+    "UnitOnTaxi", "TakeTaxiNode", "InCombatLockdown", "C_ChatInfo.RegisterAddonMessagePrefix", "C_ChatInfo.SendAddonMessage",
+    "IsInGuild", "IsInGroup", "IsInRaid", "Settings.RegisterVerticalLayoutCategory", "Settings.RegisterProxySetting" }
+local OPTIONAL = { "C_AddOns.GetAddOnMetadata", "C_FriendList.IsIgnored", "C_FriendList.GetNumFriends", "C_FriendList.GetFriendInfoByIndex",
+    "Ambiguate", "GetBindingFromInput", "FlashClientIcon", "PanelTemplates_TabResize", "issecretvalue", "ChatFrame_AddMessageEventFilter",
+    "GetNumGroupMembers", "GetRaidRosterInfo", "GetGuildRosterInfo", "CreateSettingsButtonInitializer" }
+
+local function lookup(path)
+    local v = _G
+    for part in path:gmatch("[^%.]+") do
+        if type(v) ~= "table" then return nil end
+        v = v[part]
+    end
+    return v
+end
+
+function ns.SelfTest()
+    if ns.selfTest then return end
+    local out, bad = {}, 0
+    ns.selfTest = out
+    -- ok: true = in Ordnung, false = Fehler, nil = nur zur Kenntnis
+    local function add(ok, text)
+        if ok == false then bad = bad + 1 end
+        out[#out + 1] = (ok == true and "ok    " or (ok == false and "FAIL  " or "info  ")) .. text
+    end
+    ns.Print(L["Self-test running: about ten seconds, with sounds. The result opens in a window afterwards."])
+
+    local version, build, _, toc = GetBuildInfo()
+    add(nil, ("Pastime %s · client %s (%s) · interface %s · %s · %s"):format(tostring(ns.VERSION), tostring(version), tostring(build),
+        tostring(toc), tostring(GetLocale and GetLocale()), ns.IsAlliance() and "Alliance" or "Horde"))
+    for _, path in ipairs(NEEDED) do add(lookup(path) ~= nil, "API " .. path) end
+    for _, path in ipairs(OPTIONAL) do add(lookup(path) ~= nil and true or nil, "API " .. path .. (lookup(path) == nil and " (missing, optional)" or "")) end
+
+    -- Texturen: nach SetTexture muss der Client eine Datei kennen
+    local tex = (ns.frame or UIParent):CreateTexture()
+    tex:Hide()
+    local paths = { "Interface\\CharacterFrame\\TempPortraitAlphaMask" }
+    for _, def in ipairs(ns.games) do paths[#paths + 1] = def.icon end
+    for _, path in ipairs(ns.SELFTEST_TEXTURES or {}) do paths[#paths + 1] = path end
+    local missing = 0
+    for _, path in ipairs(paths) do
+        tex:SetTexture(path)
+        if tex:GetTexture() == nil then missing = missing + 1; add(false, "texture " .. tostring(path)) end
+    end
+    add(missing == 0, ("textures: %d of %d known to the client"):format(#paths - missing, #paths))
+
+    -- Gespeichertes
+    local db = ns.DB
+    add(type(db.purses) == "table" and type(db.scores) == "table" and type(db.daily) == "table", "saved data has its tables")
+    add(nil, ("jackpot %s · start gold raised %s · newest version seen %s · log entries %d"):format(tostring(db.jackpot),
+        tostring(db.gold1000), tostring(db.newest), #db.log))
+    local daily, goal, done, streak = ns.Daily()
+    add(daily ~= nil, ("daily task: %s, goal %s, done %s, streak %s"):format(daily and daily.id or "?", tostring(goal), tostring(done), tostring(streak)))
+
+    -- Client-Aufrufe, die in dieser Sitzung schon fehlgeschlagen sind
+    local failed = 0
+    for name, f in pairs(ns.fails) do failed = failed + 1; add(false, ("client call failed %d×: %s (%s)"):format(f.n or 1, name, tostring(f.err))) end
+    add(failed == 0, "client calls that failed so far: " .. failed)
+
+    -- Addon-Nachrichten: eine an sich selbst und zurück
+    local C, echo, listener = ns.Comm, nil, nil
+    add(C.registered == true, "addon message prefix registered")
+    if C.registered and C_ChatInfo and C_ChatInfo.SendAddonMessage then
+        listener = CreateFrame("Frame")
+        listener:RegisterEvent("CHAT_MSG_ADDON")
+        listener:SetScript("OnEvent", function(_, _, prefix, text, channel, sender)
+            if prefix == C.PREFIX and text == "PT1^HELLO^0^0" then echo = ("via %s from %s"):format(tostring(channel), tostring(sender)) end
+        end)
+        local ok, res = ns.Try("SelfTest:SendAddonMessage", C_ChatInfo.SendAddonMessage, C.PREFIX, "PT1^HELLO^0^0", "WHISPER", UnitName("player"))
+        add(ok and (res == true or res == 0), "addon message to yourself sent, result " .. tostring(res))
+    end
+    add(nil, ("in guild %s · in group %s · in raid %s · peers heard %d"):format(tostring(IsInGuild and IsInGuild()), tostring(IsInGroup and IsInGroup()),
+        tostring(IsInRaid and IsInRaid()), (function() local n = 0; for _ in pairs(C.peers or {}) do n = n + 1 end; return n end)()))
+
+    -- Klänge: nacheinander, damit man sie hört; der Client meldet, ob er sie abspielt
+    local kinds = {}
+    for kind in pairs(ns.SOUNDS) do kinds[#kinds + 1] = kind end
+    table.sort(kinds)
+    for i, kind in ipairs(kinds) do
+        C_Timer.After(i * 0.5, ns.Wrap("selbsttest", function()
+            local id = ns.SOUNDS[kind]
+            if type(id) ~= "number" then id = SOUNDKIT and SOUNDKIT[id] end
+            local ok, will = false, nil
+            if id then ok, will = pcall(PlaySound, id, "SFX") end
+            add(id ~= nil and ok and will and true or false, ("sound %s (kit %s) plays: %s"):format(kind, tostring(id), tostring(will)))
+        end))
+    end
+    C_Timer.After(#kinds * 0.5 + 2, ns.Wrap("selbsttest", function()
+        if listener then
+            listener:UnregisterEvent("CHAT_MSG_ADDON")
+            add(echo ~= nil, "addon message came back " .. (echo or "– nothing received within the time"))
+        end
+        table.insert(out, 1, ("Pastime self-test: %d problem(s)"):format(bad))
+        ns.selfTest = nil
+        ns.Log(bad > 0 and "W" or "I", "selbsttest", "%d problem(s)", bad)
+        ns.ShowCopy(L["Pastime self-test"], ns.Anonymize(table.concat(out, "\n")))
+    end))
+end
+
+---------------------------------------------------------------------------
 -- Layout-Prüfer (/pastime layout, nur mit Debug): meldet abgeschnittene,
 -- überstehende und überlappende Texte/Knöpfe als Warnung „layout“ im Protokoll
 ---------------------------------------------------------------------------

@@ -44,6 +44,14 @@ local FILL_WAIT, FILL_STEP = 0.6, 0.14   -- Auffüllen der Walzen: Pause davor, 
 local BIG_WIN, COUNT_TIME = 10, 2.2      -- ab dem BIG_WIN-fachen Einsatz zählt die Anzeige den Gewinn hoch
 -- Gewinnlinien: Reihe je Walze (drei Reihen, zwei Diagonalen)
 Game.LINES = { { 1, 1, 1, 1, 1 }, { 2, 2, 2, 2, 2 }, { 3, 3, 3, 3, 3 }, { 1, 2, 3, 2, 1 }, { 3, 2, 1, 2, 3 } }
+-- Sprüche unter dem Ergebnis: einer davon, zufällig
+local LOSE = { L["No luck this time."], L["The goblin grins."], L["So close."], L["Nothing. Again."], L["The reels have other plans."],
+    L["The goblin counts your gold."], L["Next spin, for sure."] }
+local WIN = { L["Winning line!"], L["That's the stuff!"], L["The goblin winces."], L["Gold for you!"], L["Keep them coming!"],
+    L["The machine likes you."] }
+local function pick(t) return t[math.random(#t)] end
+ns.SELFTEST_TEXTURES = {}
+for _, s in ipairs(Game.SYMBOLS) do ns.SELFTEST_TEXTURES[#ns.SELFTEST_TEXTURES + 1] = s.icon end
 local STRIP = {}
 for i, s in ipairs(Game.SYMBOLS) do for _ = 1, s.w or 0 do STRIP[#STRIP + 1] = i end end
 local FIRST_STOP, STOP_STEP, TEASE = 0.9, 0.45, 1.1      -- die Walzen bleiben von links nach rechts stehen; TEASE: Extrazeit vor einer spannenden Walze
@@ -310,7 +318,7 @@ function Game:Settle()
     local small = win <= self.bet      -- ein Treffer, der den Einsatz nicht wieder einspielt
     local text = filled == COLS and L["FULL SCREEN!"] or (filled and (L["Bonus symbol on %d reels!"]):format(filled))
         or award and (L["%d free spins!"]):format(award)
-        or (sum > 0 and (small and (L["%d gold back"]):format(win) or L["Winning line!"]) or (self.isFree and (L["Free spins left: %d"]):format(self.free) or L["No luck this time."]))
+        or (sum > 0 and (small and (L["%d gold back"]):format(win) or pick(WIN)) or (self.isFree and (L["Free spins left: %d"]):format(self.free) or pick(LOSE)))
     self.pending = { win, text, (award or filled or (sum > 0 and not small)) and 2.6 or (sum > 0 and 1.6 or 1.2) }
     if #steps == 0 then return self:Finish() end
     self.state, self.steps, self.stepT = "expand", steps, FILL_WAIT

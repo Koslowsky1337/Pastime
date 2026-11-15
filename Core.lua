@@ -208,6 +208,7 @@ local SOUND = {
     bad = "IG_QUEST_LOG_ABANDON_QUEST",
     fanfare = 888,      -- Stufenaufstieg: der einzige längere Klang (Freispiele im Automaten); Zahl = Soundkit-ID
 }
+ns.SOUNDS = SOUND      -- für den Selbsttest (Debug.lua)
 local lastSound = {}
 
 function ns.PlaySound(kind)
@@ -958,6 +959,8 @@ function ns.HandleSlash(msg)
         if ns.PhotoTour then ns.PhotoTour() end
     elseif cmd == "diag" or cmd == "report" or cmd == "bericht" then
         ns.ShowReport()
+    elseif cmd == "debug" and (arg == "test" or arg == "testlauf" or arg == "selftest" or arg == "selbsttest") then
+        if ns.SelfTest then ns.SelfTest() end
     elseif cmd == "debug" then
         ns.DB.debug = not ns.DB.debug
         ns.Print(ns.DB.debug and L["Debug |cff80ff80on|r – live window open, detailed log running."]
