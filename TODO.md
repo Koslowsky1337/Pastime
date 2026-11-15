@@ -38,8 +38,9 @@ Stand: `v1.2.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 ## 3. Version 2.0: Mehrspieler
 - [ ] Definition in `MULTIPLAYER.md` durchgehen und bestätigen (offene Punkte dort)
 - [ ] Beta 1: Reiter „Mehrspieler“, Anfrage und Annehmen, Spielwahl, Vier gewinnt, Bilanz
-- [ ] Beta 2: Wettrennen (Runenpaare, Edelsteincode, Wortraten, Minenfeld)
-- [ ] Beta 3: Tavernenwürfel zu zweit
+- [ ] Beta 2: Tavernenwürfel und Runenpaare-Duell
+- [ ] Beta 3: Edelsteincode-Duell und Blackjack-Duell
+- [ ] Beta 4: Flottenduell (neues Spiel)
 - [ ] Jede Beta mit einem zweiten Spieler nach der Prüfliste in `MULTIPLAYER.md` testen
 
 ## 4. Später
