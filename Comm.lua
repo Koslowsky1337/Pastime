@@ -3,9 +3,6 @@
 -- Von selbst sendet Pastime heute nur die eigene Versionsnummer (Nachricht HELLO) an Gilde und
 -- Gruppe – unsichtbar, als Addon-Nachricht. Wer eine höhere Nummer empfängt, bekommt einmal einen
 -- Hinweis auf das Update. Siehe „Versionsabgleich“ weiter unten.
--- Dazu kommt der Verbindungstest: Der Selbsttest (/pastime debug test) fragt mit PING in Gilde und
--- Gruppe, wer Pastime hat; jedes andere Pastime antwortet unsichtbar und direkt mit PONG. So lässt
--- sich prüfen, ob direkte Nachrichten zwischen zwei Spielern ankommen, bevor der Mehrspieler sie braucht.
 --
 -- Addon-Nachrichten sind für Spieler unsichtbar. Pastime erkennt seine eigenen
 -- an der Kennung PREFIX und am Protokoll-Kopf PROTO. Alles, was ankommt, gilt
@@ -66,8 +63,6 @@ end
 -- Nachrichtentypen: Feldliste in fester Reihenfolge
 Comm.TYPES = {
     HELLO  = { int(0, 999999), int(0, 99), int(1, 999999) },    -- Addon-Version (10300 = 1.3.0, 0 = Betastand), Mehrspieler-Stufe, Sitzungsmarke
-    PING   = { int(1, 999999) },                                -- Verbindungstest: Kennzahl
-    PONG   = { int(1, 999999) },                                -- Antwort mit derselben Kennzahl, direkt an den Fragenden
     INVITE = { SESSION },                                       -- Anfrage
     ACCEPT = { SESSION, int(0, 500) },                          -- angenommen; Züge der angehaltenen Partie mit diesem Spieler (0 = keine)
     DECLINE = { SESSION },
@@ -214,9 +209,8 @@ local queue, lastSend = {}, 0
 local SEND_GAP = 0.5
 local RESULT_OK, RESULT_THROTTLE, RESULT_CHANNEL_THROTTLE = 0, 3, 8
 
-local OPEN = { HELLO = true, PING = true, PONG = true }      -- gehen auch ohne Mehrspieler
 function Comm.Send(kind, channel, target, ...)
-    if not (Comm.ENABLED or (OPEN[kind] and Comm.VERSION_CHECK)) then return false end
+    if not (Comm.ENABLED or (kind == "HELLO" and Comm.VERSION_CHECK)) then return false end      -- HELLO geht auch ohne Mehrspieler
     local msg, err = Comm.Encode(kind, ...)
     if not msg then ns.Log("W", "comm", "not sent: %s", tostring(err)); return false end
     if #queue >= 20 then return false end
@@ -306,39 +300,6 @@ Comm.handlers.HELLO = function(sender, fields, channel)
     end
 end
 
--- Vorübergehend, bis bestätigt ist, dass direkte Nachrichten ankommen (siehe TODO.md): dann fliegen
--- PING, PONG und Ping() wieder raus. Das Ergebnis steht im Protokoll und in PastimeDB.directPeer.
--- Verbindungstest. Ping() fragt in Gilde und Gruppe; wer antwortet, steht danach in Comm.ping.from
--- (Name = Kanal, über den die Antwort kam). Geantwortet wird jedem Fragenden höchstens alle 20 Sekunden.
-local ponged = {}
-Comm.handlers.PING = function(sender, fields)
-    if Comm.ping and fields[1] == Comm.ping.nonce then Comm.selfNames[sender] = true; return end      -- die eigene Frage
-    if GetTime() - (ponged[sender] or -20) < 20 then return end
-    ponged[sender] = GetTime()
-    Comm.Send("PONG", "WHISPER", sender, fields[1])
-    ns.Log("I", "comm", "connection test: answered a ping directly")
-end
-
-Comm.handlers.PONG = function(sender, fields, channel)
-    local p = Comm.ping
-    if not (p and fields[1] == p.nonce) then return end
-    p.from[sender] = channel
-    ns.Log("I", "comm", "connection test: answer received via %s", tostring(channel))
-    if channel == "WHISPER" then ns.DB.directPeer = true end      -- bestätigt: direkte Nachrichten kommen an
-end
-
-function Comm.Ping()
-    if not Comm.registered then return nil end
-    local p = { nonce = math.random(1, 999999), from = {}, channels = {} }
-    Comm.ping = p
-    local function ask(channel)
-        if Comm.Send("PING", channel, nil, p.nonce) then p.channels[#p.channels + 1] = channel end
-    end
-    if IsInGuild and IsInGuild() then ask("GUILD") end
-    if IsInRaid and IsInRaid() then ask("RAID") elseif IsInGroup and IsInGroup() then ask("PARTY") end
-    return p
-end
-
 -- Beim Einloggen: zuhören, nach ein paar Sekunden die eigene Version melden und an ein
 -- früher gesehenes Update erinnern
 function Comm.StartVersionCheck()
@@ -374,5 +335,5 @@ end
 function Comm._Reset()
     wipe(perSender); total = nil; wipe(queue); lastSend = 0
     if ns.MP then ns.MP._Reset() end
-    wipe(lastHello); wipe(Comm.peers); wipe(ponged); wipe(Comm.selfNames); Comm.noticed = nil; Comm.grouped = nil; Comm.ping = nil
+    wipe(lastHello); wipe(Comm.peers); wipe(Comm.selfNames); Comm.noticed = nil; Comm.grouped = nil
 end

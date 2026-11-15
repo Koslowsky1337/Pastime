@@ -379,14 +379,20 @@ function ns.SelfTest()
     -- Namen geht danach eine direkte Nachricht an sich selbst.
     local C, echo, listener = ns.Comm, {}, nil
     add(C.registered == true, "addon message prefix registered")
-    local ping = C.Ping and C.Ping()
-    local question = ping and ("PT1^PING^" .. ping.nonce)
-    if ping and C_ChatInfo and C_ChatInfo.SendAddonMessage then
+    local question, channels = ("PT1^HELLO^0^0^%d"):format(C.tag or 1), {}
+    if C.registered and C_ChatInfo and C_ChatInfo.SendAddonMessage then
         listener = CreateFrame("Frame")
         listener:RegisterEvent("CHAT_MSG_ADDON")
         listener:SetScript("OnEvent", function(_, _, prefix, text, channel, sender)
             if prefix == C.PREFIX and text == question then echo[tostring(channel)] = tostring(sender) end
         end)
+        local function ask(channel)
+            local ok, res = ns.Try("SelfTest:SendAddonMessage", C_ChatInfo.SendAddonMessage, C.PREFIX, question, channel)
+            add(ok and (res == true or res == 0), ("addon message sent to %s, result %s"):format(channel, tostring(res)))
+            channels[#channels + 1] = channel
+        end
+        if IsInGuild and IsInGuild() then ask("GUILD") end
+        if IsInRaid and IsInRaid() then ask("RAID") elseif IsInGroup and IsInGroup() then ask("PARTY") end
         C_Timer.After(SOUND_GAP * 0.5, ns.Wrap("selbsttest", function()
             local me = echo.GUILD or echo.RAID or echo.PARTY
             local short = UnitName("player")
@@ -420,30 +426,14 @@ function ns.SelfTest()
     C_Timer.After(#kinds * SOUND_GAP + 1, ns.Wrap("selbsttest", function()
         if listener then
             listener:UnregisterEvent("CHAT_MSG_ADDON")
-            for _, channel in ipairs(ping.channels) do
+            for _, channel in ipairs(channels) do
                 add(echo[channel] ~= nil, ("addon message via %s %s"):format(channel, echo[channel] and "came back" or "did not come back"))
             end
             add(echo.WHISPER and true or nil, "direct addon message to yourself " .. (echo.WHISPER and "came back: direct messages arrive"
                 or "did not come back (it takes a second player to be sure)"))
             if echo.WHISPER then db.directSelf = true end
         end
-        if ping then
-            -- Wer geantwortet hat: jeder mit maskiertem Namen, damit man sieht, dass man es nicht selbst war,
-            -- ohne dass fremde Namen im Bericht stehen
-            local n, direct, who = 0, 0, {}
-            for name, channel in pairs(ping.from) do
-                n = n + 1
-                if channel == "WHISPER" then direct = direct + 1 end
-                who[#who + 1] = ("%s via %s"):format(mask(name), tostring(channel))
-            end
-            table.sort(who)
-            add(#ping.channels == 0 and nil or (n > 0 and direct == n) or (n > 0 and false or nil),
-                #ping.channels == 0 and "connection test: not in a guild or group, nobody to ask"
-                or (n == 0 and ("connection test via %s: no other player answered (nobody online with Pastime 1.3 or newer, or direct messages do not arrive)"):format(table.concat(ping.channels, ", "))
-                or ("connection test via %s: %d other player(s) answered, %d of them directly: %s"):format(table.concat(ping.channels, ", "), n, direct, table.concat(who, "; "))))
-            win.desc:SetText(#ping.channels == 0 and L["Connection test: you are not in a guild or group."]
-                or (L["Connection test: %d other Pastime user(s) answered."]):format(n))
-        end
+        win.desc:SetText("")
         win.step:SetText((L["Done: %d problem(s)"]):format(bad))
         table.insert(out, 1, ("Pastime self-test: %d problem(s)"):format(bad))
         ns.selfTest = nil

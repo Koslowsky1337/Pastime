@@ -44,7 +44,7 @@ Stand: `v1.3.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 - [x] Beta 1, Schritt 1: Sitzungslogik `Multiplayer.lua` (Anfrage, Annehmen, Spielwahl, Züge, Aufgeben, Anhalten und Fortsetzen, Bilanz, Fristen) und Regelwerk Vier gewinnt, mit Tests `tests/mp.lua`
 - [ ] Beta 1, Schritt 2: Reiter „Mehrspieler“ (Mitspielerliste, Anfragen, Anfrage-Fenster, Spielwahl), Mehrspieler-Schalter im Reiter „Einstellungen“
 - [ ] Beta 1, Schritt 3: Vier gewinnt als Mehrspieler-Brett, laufendes Einzelspiel parken, Offline-Zeile ausblenden
-- [ ] Verbindungstest aus 1.3 auswerten: Sobald ein `/pastime debug test` mit einem zweiten 1.3-Nutzer „answered … directly“ zeigt (steht auch im Protokoll und als `directPeer`), `PING`/`PONG`/`Comm.Ping` wieder entfernen und README anpassen
+- [x] Verbindungstest aus 1.3 ausgewertet (15.11.): ein anderer Spieler hat direkt geantwortet, direkte Nachrichten kommen an. `PING`/`PONG` sind wieder entfernt
 - [ ] Beta 2: Tavernenwürfel und Runenpaare-Duell
 - [ ] Beta 3: Edelsteincode-Duell und Blackjack-Duell
 - [ ] Beta 4: Flottenduell (neues Spiel)

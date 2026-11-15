@@ -97,36 +97,16 @@ check(#CHAT == 1 and CHAT[1]:find("1.4.0", 1, true) and CHAT[1]:find("1.3.0", 1,
 C.OnMessage(C.PREFIX, C.Encode("HELLO", 10300, 0, C.tag), "GUILD", "Thokk Eisenfaust")
 check(C.selfNames["Thokk Eisenfaust"] and C.peers["Thokk Eisenfaust"] == nil, "our own announcement is recognised by its session mark, whatever the sender name")
 check(C.Accept(C.PREFIX, C.Encode("HELLO", 10900, 0, 7), "GUILD", "Thokk Eisenfaust") == nil, "and from then on that sender counts as ourselves")
--- Verbindungstest: PING in Gilde und Gruppe, jedes andere Pastime antwortet direkt mit PONG
-local before = #SENT
-C.OnMessage(C.PREFIX, C.Encode("PING", 4711), "GUILD", "Jaina"); flush()
-check(#SENT == before + 1 and SENT[#SENT][2] == "PT1^PONG^4711" and SENT[#SENT][3] == "WHISPER" and SENT[#SENT][4] == "Jaina",
-    "a ping is answered directly and invisibly with the same number")
-C.OnMessage(C.PREFIX, C.Encode("PING", 4712), "GUILD", "Jaina"); flush()
-check(#SENT == before + 1, "the same player is answered at most every 20 seconds")
-local ping = C.Ping(); flush()
-check(ping and #ping.channels == 2 and SENT[#SENT - 1][3] == "GUILD" and SENT[#SENT][3] == "PARTY" and SENT[#SENT][2] == "PT1^PING^" .. ping.nonce,
-    "the self-test asks in guild and group")
-C.OnMessage(C.PREFIX, C.Encode("PONG", ping.nonce), "WHISPER", "Jaina")
-C.OnMessage(C.PREFIX, C.Encode("PONG", ping.nonce % 999999 + 1), "WHISPER", "Rexxar")
-check(ping.from.Jaina == "WHISPER" and ping.from.Rexxar == nil, "only answers with the right number count")
-before = #SENT
-NOW = NOW + 30
-C.OnMessage(C.PREFIX, C.Encode("PING", ping.nonce), "GUILD", "Thokk von Orgrimmar"); flush()
-check(#SENT == before and C.selfNames["Thokk von Orgrimmar"], "our own ping coming back is not answered")
-local logged = false
-for _, e in ipairs(PastimeDB.log) do if e.c == "comm" and tostring(e.m):find("answer received via WHISPER", 1, true) then logged = true end end
-check(PastimeDB.directPeer == true and logged, "a direct answer is logged and remembered as confirmation")
 check(C.Send("INVITE", "WHISPER", "Thrall", "s1") == false, "multiplayer messages stay switched off")
 ns.Print = realPrint
 C_ChatInfo = nil
 C._Reset()
 
 -- Handler-Fehler bleiben eingefangen
-local realPing = C.handlers.PING
-C.handlers.PING = function() error("boom") end
-C.OnMessage(C.PREFIX, C.Encode("PING", 1), "GUILD", "Thrall")
-C.handlers.PING = realPing
+local realHello = C.handlers.HELLO
+C.handlers.HELLO = function() error("boom") end
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 100, 0, 9), "GUILD", "Thrall")
+C.handlers.HELLO = realHello
 check(#ERRORS_FORWARDED >= 1, "handler error caught and logged")
 
 print(("Comm tests: %d ok, %d failed"):format(passes, fails))

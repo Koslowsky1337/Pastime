@@ -246,7 +246,7 @@ local function openInvites()
 end
 
 function Comm.Gate(kind, fields, sender, channel)
-    if kind == "HELLO" or kind == "PING" or kind == "PONG" then return true end
+    if kind == "HELLO" then return true end
     if not MP.On() then return false, "multiplayer off" end
     if channel ~= "WHISPER" then return false, "not direct" end
     local s = MP.session
