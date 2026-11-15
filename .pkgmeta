@@ -2,6 +2,7 @@ package-as: Pastime
 
 ignore:
   - tests
+  - .github
   - media
   - "*.md"
   - README.md

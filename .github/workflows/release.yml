@@ -1,0 +1,45 @@
+# Creates the GitHub release for every pushed version tag (v1.2.0, v1.2.0-beta1 ...).
+# The text is the matching section of CHANGELOG.md. Can also be run by hand for an existing tag:
+# Actions -> Release -> Run workflow -> tag.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag, e.g. v1.1.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Release notes from the changelog
+        run: |
+          version="${TAG#v}"
+          awk -v v="## $version" '$0 == v { on = 1; next } /^## / { on = 0 } on' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then echo "Pastime $version" > notes.md; fi
+          printf '\nDownload: https://www.curseforge.com/wow/addons/pastime-in-flight-entertainment\n' >> notes.md
+          cat notes.md
+
+      - name: Create or update the release
+        run: |
+          flags=""
+          case "$TAG" in *-*) flags="--prerelease" ;; esac
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --title "Pastime ${TAG#v}" --notes-file notes.md $flags
+          else
+            gh release create "$TAG" --verify-tag --title "Pastime ${TAG#v}" --notes-file notes.md $flags
+          fi
