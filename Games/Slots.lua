@@ -24,6 +24,8 @@ Game.SYMBOLS = {
     { icon = "Interface\\Icons\\INV_Misc_Rune_01", w = 2 },
 }
 local WILD, SCATTER = 6, 7
+Game.STAKE = true
+Game.PLAY = L["Spin for %d gold (Space)"]
 Game.FREE = { 5, 8, 12 }
 -- Gewinnlinien: Reihe je Walze (drei Reihen, zwei Diagonalen)
 Game.LINES = { { 1, 1, 1, 1, 1 }, { 2, 2, 2, 2, 2 }, { 3, 3, 3, 3, 3 }, { 1, 2, 3, 2, 1 }, { 3, 2, 1, 2, 3 } }
@@ -122,6 +124,7 @@ end
 
 function Game:Start()
     self.grid = randomGrid()
+    self.auto, self.autoT = false, nil
     local p = self:Purse()
     if (tonumber(p.gold) or 0) < ns.Gamble.MIN_BET then p.free = nil end      -- neuer Lauf: alte Freispiele verfallen
     self.free, self.stake = tonumber(p.free) or 0, tonumber(p.stake) or 0
@@ -177,7 +180,23 @@ function Game:Plan()
     end
 end
 
+-- Auto-Spin: dreht von selbst weiter, bis er abgeschaltet wird oder das Gold ausgeht
+function Game:ToggleAuto()
+    if self.state == "over" then return end
+    self.auto, self.autoT = not self.auto, nil
+    self.host:Sound("click")
+    self:Render()
+end
+
 function Game:Update(dt)
+    if self.auto and self.state == "bet" then
+        self.autoT = (self.autoT or 0.4) - dt
+        if self.autoT <= 0 then
+            self.autoT = nil
+            self:Play()
+        end
+        return
+    end
     if self.state ~= "spin" then
         -- Gewinnfelder blinken, solange das Ergebnis steht
         if self.state == "result" and next(self.won) then
@@ -221,6 +240,10 @@ function Game:Update(dt)
 end
 
 function Game:Key(k, down)
+    if k == "A" then
+        if down then self:ToggleAuto() end
+        return true
+    end
     return self:BaseKey(k, down)
 end
 
@@ -234,11 +257,18 @@ function Game:Render()
         end
     end
     self:BaseRender()
+    self.autoBtn:SetText(self.auto and L["Auto-spin: on (A)"] or L["Auto-spin: off (A)"])
+    self.autoBtn:SetShown(self.state ~= "over")
 end
 
 local function Create(host, board)
     local g = ns.Gamble.New(Game, host, board, "slots", 266)
     g.grid, g.cells, g.won = randomGrid(), {}, {}
+    g.autoBtn = ns.CreateButton(board, "", 190, function() if host:IsRunning() then ns.Safe("slots", g.ToggleAuto, g) end end)
+    g.autoBtn:SetHeight(24)
+    g.autoBtn:SetPoint("BOTTOMLEFT", board, "BOTTOMLEFT", 8, 42)
+    g.cashBtn:ClearAllPoints()
+    g.cashBtn:SetPoint("BOTTOMRIGHT", board, "BOTTOMRIGHT", -8, 42)
     local x0 = (W - COLS * CELL - (COLS - 1) * GAPX) / 2
     for c = 1, COLS do
         g.cells[c] = {}
@@ -289,7 +319,7 @@ ns.RegisterGame({
     scoreLabel = L["Highest gold"],
     width = W, height = H,
     desc = L["Five reels, three rows, five lines: the three rows and the two diagonals. Three or more of a kind in a row from the left win, and the coin stands in for any symbol. Every win pays more than you bet. Three, four or five runes anywhere give 5, 8 or 12 free spins at the same bet. Your goblin gold carries over between games. When you go broke or cash out, your highest gold counts."],
-    controls = L["1/2/3: bet 10, ¼ or ½ of your gold and spin · %s: cash out"]:format(ns.KEYS.cash),
-    controlsShort = L["1–3: bet and spin\n%s: cash out"]:format(ns.KEYS.cash),
+    controls = L["1/2: lower or raise your bet · 3: highest bet · Space: spin · A: auto-spin on or off · %s: cash out"]:format(ns.KEYS.cash),
+    controlsShort = L["1/2: bet · Space: spin\nA: auto-spin\n%s: cash out"]:format(ns.KEYS.cash),
     Create = Create,
 })

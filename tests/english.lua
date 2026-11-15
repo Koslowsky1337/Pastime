@@ -106,8 +106,8 @@ check(ns.KEYS.hit == "H" and ns.KEYS.stand == "S" and ns.KEYS.double == "D" and 
 local bj = ns.gamesById.blackjack
 ns.StartGame(bj)
 local g = ns.run.game
-key("1")
-check(g.state == "play" or g.state == "result", "bet placed with 1, state " .. tostring(g.state))
+key("SPACE")
+check(g.state == "play" or g.state == "result", "bet placed with Space, state " .. tostring(g.state))
 if g.state == "play" then
     local n = #g.player
     key("H")

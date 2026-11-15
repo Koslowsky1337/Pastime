@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+
+- Goblin Slots, Goblin Blackjack, Goblin Poker and Higher or Lower: you now set your bet once (10, 25, 50, 100, 250 … up to your gold) with 1 and 2 or the – and + buttons, 3 picks the highest, and Space plays. The bet stays for the next round and is remembered.
+- Goblin Slots: auto-spin. Press A or the button and the machine keeps spinning at your bet until you switch it off or run out of gold.
+
 ## 1.1.0
 
 - Goblin Slots: new rune symbol. Three, four or five runes anywhere on the reels give 5, 8 or 12 free spins at the same bet; free spins can win more free spins and survive closing the window. The pay table was lowered slightly to make room for them.

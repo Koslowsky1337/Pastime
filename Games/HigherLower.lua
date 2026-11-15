@@ -8,6 +8,7 @@ local CW, CH = 100, 140
 
 local Game = setmetatable({}, { __index = ns.Gamble })
 Game.__index = Game
+Game.STAKE = true
 
 local function value(card) return card.rank == 1 and 14 or card.rank end
 
@@ -136,7 +137,7 @@ ns.RegisterGame({
     scoreLabel = L["Highest gold"],
     width = W, height = H,
     desc = L["Is the next card higher or lower? Every hit multiplies the pot – the less likely your guess, the more. One miss and the pot is gone, so take it in time. Your goblin gold carries over between games. When you go broke or cash out, your highest gold counts."],
-    controls = L["1/2/3: bet 10, ¼ or ½ of your gold · 1 or Up: higher · 2 or Down: lower · 3 or Space: take the pot · %s: cash out"]:format(ns.KEYS.cash),
+    controls = L["1/2: lower or raise your bet · 3: highest bet · Space: deal · then 1 or Up: higher · 2 or Down: lower · 3 or Space: take the pot · %s: cash out"]:format(ns.KEYS.cash),
     controlsShort = L["1: higher · 2: lower\n3: take the pot\n%s: cash out"]:format(ns.KEYS.cash),
     Create = Create,
 })

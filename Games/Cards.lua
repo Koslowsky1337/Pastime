@@ -221,6 +221,49 @@ function Gamble.Bets(gold)
     return { MIN_BET, part(0.25), part(0.5) }
 end
 
+-- Fester Einsatz (Spiele mit STAKE): einmal einstellen, dann nur noch spielen. Stufen 10, 25, 50,
+-- 100, 250 … bis zum eigenen Gold; der Einsatz bleibt im Topf gespeichert.
+function Gamble.Ladder(gold)
+    local t, base = {}, MIN_BET
+    while base <= gold do
+        for _, f in ipairs({ 1, 2.5, 5 }) do
+            if base * f <= gold then t[#t + 1] = base * f end
+        end
+        base = base * 10
+    end
+    return t
+end
+
+-- Der eingestellte Einsatz, höchstens so viel, wie das Gold hergibt
+function Gamble:Wager()
+    local steps = self.Ladder(self.gold or 0)
+    local w = steps[1] or MIN_BET
+    for _, v in ipairs(steps) do
+        if v <= (self.wager or MIN_BET) then w = v end
+    end
+    return w
+end
+
+-- dir: -1 kleiner, 1 größer, "max" höchste Stufe
+function Gamble:Stake(dir)
+    if self.state ~= "bet" then return end
+    local steps, cur, i = self.Ladder(self.gold or 0), self:Wager(), 1
+    for k, v in ipairs(steps) do if v == cur then i = k end end
+    i = dir == "max" and #steps or math.max(1, math.min(#steps, i + dir))
+    self.wager = steps[i] or MIN_BET
+    self:Purse().wager = self.wager
+    self.host:Sound("click")
+    self:Render()
+end
+
+function Gamble:Play()
+    local amount = self:Wager()
+    if self.state ~= "bet" or amount > self.gold then return end
+    self:Spend(amount)
+    self.host:Sound("click")
+    self:Deal(amount)
+end
+
 function Gamble:Purse()
     local p = ns.DB.purses[self.id]
     if type(p) ~= "table" then p = {}; ns.DB.purses[self.id] = p end
@@ -239,6 +282,7 @@ function Gamble:OpenRun()
     self.gold = p.gold
     self.peak = math.max(tonumber(p.peak) or 0, self.gold)
     self.score = self.peak
+    self.wager = tonumber(p.wager) or MIN_BET
     self:Betting()
 end
 
@@ -314,7 +358,11 @@ end
 -- Tasten, die in jedem Glücksspiel gleich sind; true = verbraucht
 function Gamble:BaseKey(k, down)
     local act
-    if self.state == "bet" and (k == "1" or k == "2" or k == "3") then act = function() self:PlaceBet(tonumber(k)) end
+    if self.state == "bet" and self.STAKE and (k == "1" or k == "LEFT") then act = function() self:Stake(-1) end
+    elseif self.state == "bet" and self.STAKE and (k == "2" or k == "RIGHT") then act = function() self:Stake(1) end
+    elseif self.state == "bet" and self.STAKE and k == "3" then act = function() self:Stake("max") end
+    elseif self.state == "bet" and self.STAKE and (k == "SPACE" or k == "ENTER") then act = function() self:Play() end
+    elseif self.state == "bet" and (k == "1" or k == "2" or k == "3") then act = function() self:PlaceBet(tonumber(k)) end
     elseif self.state == "bet" and k == ns.KEYS.cash then act = function() self:CashOut() end
     elseif self.state == "result" and (k == "SPACE" or k == "ENTER") then act = function() self:Next() end
     end
@@ -327,15 +375,31 @@ function Gamble:BaseRender()
     self.goldText:SetText((L["Goblin gold: |cffffffff%d|r%s"]):format(self.gold or 0,
         (self.bet or 0) > 0 and (L["  ·  Bet: %d"]):format(self.bet) or ""))
     local betting = self.state == "bet"
-    local amounts = self.Bets(self.gold or START_GOLD)
-    for i, b in ipairs(self.betButtons) do
-        b:SetShown(betting)
-        b:SetText((L["Bet %d (%d)"]):format(amounts[i], i))
-        b:SetEnabled((self.gold or 0) >= amounts[i])
+    if self.STAKE then
+        Gamble.StakeButtons(self, betting)
+    else
+        local amounts = self.Bets(self.gold or START_GOLD)
+        for i, b in ipairs(self.betButtons) do
+            b:SetShown(betting)
+            b:SetText((L["Bet %d (%d)"]):format(amounts[i], i))
+            b:SetEnabled((self.gold or 0) >= amounts[i])
+        end
     end
     self.nextBtn:SetShown(self.state == "result")
     self.cashBtn:SetShown(betting)
     self.cashBtn:SetEnabled(betting and (self.gold or 0) > START_GOLD)
+end
+
+-- Die drei unteren Knöpfe als „kleiner · spielen · größer“ (auch für Blackjack)
+function Gamble.StakeButtons(self, betting)
+    local steps, w, b = self.Ladder(self.gold or 0), self:Wager(), self.betButtons
+    b[1]:SetText("– (1)")
+    b[2]:SetText((self.PLAY or L["Deal for %d gold (Space)"]):format(w))
+    b[3]:SetText("+ (2)")
+    for i = 1, 3 do b[i]:SetShown(betting) end
+    b[1]:SetEnabled(w > (steps[1] or w))
+    b[2]:SetEnabled((self.gold or 0) >= w)
+    b[3]:SetEnabled(w < (steps[#steps] or w))
 end
 
 function Gamble:Info()
@@ -367,8 +431,14 @@ function Gamble.New(class, host, board, id, msgY)
     g.sub:SetWidth(380)
     g.goldText = ns.FontString(board, "GameFontNormal", "RIGHT")
     g.goldText:SetPoint("TOPRIGHT", -10, -8)
-    for i = 1, 3 do
-        g.betButtons[i] = g:Button("", 126, 8 + (i - 1) * 136, function() g:PlaceBet(i) end)
+    if class.STAKE then
+        g.betButtons[1] = g:Button("", 64, 8, function() g:Stake(-1) end)
+        g.betButtons[2] = g:Button("", 264, 78, function() g:Play() end)
+        g.betButtons[3] = g:Button("", 64, 348, function() g:Stake(1) end)
+    else
+        for i = 1, 3 do
+            g.betButtons[i] = g:Button("", 126, 8 + (i - 1) * 136, function() g:PlaceBet(i) end)
+        end
     end
     g.nextBtn = g:Button(L["Next (Space)"], 180, 120, function() g:Next() end)
     g.cashBtn = ns.CreateButton(board, L["Cash out (%s)"]:format(ns.KEYS.cash), 170,
