@@ -128,6 +128,9 @@ check(ping and #ping.channels == 2 and SENT[#SENT - 1][3] == "GUILD" and SENT[#S
 C.OnMessage(C.PREFIX, C.Encode("PONG", ping.nonce), "WHISPER", "Jaina")
 C.OnMessage(C.PREFIX, C.Encode("PONG", ping.nonce % 999999 + 1), "WHISPER", "Rexxar")
 check(ping.from.Jaina == "WHISPER" and ping.from.Rexxar == nil, "only answers with the right number count")
+local logged = false
+for _, e in ipairs(PastimeDB.log) do if e.c == "comm" and tostring(e.m):find("answer received via WHISPER", 1, true) then logged = true end end
+check(PastimeDB.directOK == true and logged, "a direct answer is logged and remembered as confirmation")
 check(C.Send("INVITE", "WHISPER", "Thrall", "s1", "snake", 1, 60) == false, "multiplayer messages stay switched off")
 ns.Print = realPrint
 C_ChatInfo = nil

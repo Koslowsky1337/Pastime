@@ -39,6 +39,7 @@ Stand: `v1.2.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 
 ## 3. Version 2.0: Mehrspieler
 - [ ] Definition in `MULTIPLAYER.md` durchgehen und bestätigen (offene Punkte dort)
+- [ ] Verbindungstest aus 1.3 auswerten: Sobald ein `/pastime debug test` mit einem zweiten 1.3-Nutzer „answered … directly“ zeigt (steht auch im Protokoll und als `directOK`), `PING`/`PONG`/`Comm.Ping` wieder entfernen und README anpassen
 - [ ] Beta 1: Reiter „Mehrspieler“, Anfrage und Annehmen, Spielwahl, Vier gewinnt, Bilanz
 - [ ] Beta 2: Tavernenwürfel und Runenpaare-Duell
 - [ ] Beta 3: Edelsteincode-Duell und Blackjack-Duell

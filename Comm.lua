@@ -307,6 +307,8 @@ Comm.handlers.HELLO = function(sender, fields, channel)
     end
 end
 
+-- Vorübergehend, bis bestätigt ist, dass direkte Nachrichten ankommen (siehe TODO.md): dann fliegen
+-- PING, PONG und Ping() wieder raus. Das Ergebnis steht im Protokoll und in PastimeDB.directOK.
 -- Verbindungstest. Ping() fragt in Gilde und Gruppe; wer antwortet, steht danach in Comm.ping.from
 -- (Name = Kanal, über den die Antwort kam). Geantwortet wird jedem Fragenden höchstens alle 20 Sekunden.
 local ponged = {}
@@ -314,11 +316,15 @@ Comm.handlers.PING = function(sender, fields)
     if GetTime() - (ponged[sender] or -20) < 20 then return end
     ponged[sender] = GetTime()
     Comm.Send("PONG", "WHISPER", sender, fields[1])
+    ns.Log("I", "comm", "connection test: answered a ping directly")
 end
 
 Comm.handlers.PONG = function(sender, fields, channel)
     local p = Comm.ping
-    if p and fields[1] == p.nonce then p.from[sender] = channel end
+    if not (p and fields[1] == p.nonce) then return end
+    p.from[sender] = channel
+    ns.Log("I", "comm", "connection test: answer received via %s", tostring(channel))
+    if channel == "WHISPER" then ns.DB.directOK = true end      -- bestätigt: direkte Nachrichten kommen an
 end
 
 function Comm.Ping()
