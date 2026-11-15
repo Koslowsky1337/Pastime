@@ -51,7 +51,13 @@ end
 function Game.LinePay(s)
     local n, sym = Game.Run(s, COLS)
     if n < 3 then return 0, 0 end
-    return Game.SYMBOLS[sym].pay[n - 2], n
+    local pay = Game.SYMBOLS[sym].pay[n - 2]
+    -- Münzen vorn können für sich mehr wert sein als die längere Reihe, die sie ergänzen
+    -- (vier Münzen und ein Fisch: 40 statt 12): es zählt die bessere Lesart
+    local coins = 0
+    while s[coins + 1] == WILD do coins = coins + 1 end
+    if coins >= 3 and Game.SYMBOLS[WILD].pay[coins - 2] > pay then return Game.SYMBOLS[WILD].pay[coins - 2], coins end
+    return pay, n
 end
 
 -- Spannung: Felder der Linien, auf denen vor Walze col noch alles passt. Vor der dritten

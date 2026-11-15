@@ -3,7 +3,8 @@
 ## 1.1.0
 
 - Goblin Slots: new rune symbol. Three, four or five runes anywhere on the reels give 5, 8 or 12 free spins at the same bet; free spins can win more free spins and survive closing the window. The pay table was lowered slightly to make room for them.
-- Goblin Roulette: a wheel with all 37 pockets. The ball runs around it, slows down and comes to rest in the winning pocket; it stays there until the next spin.
+- Goblin Slots: coins at the start of a line now count the better way. Four coins and a fish paid as five fish (12) instead of four coins (40).
+- Goblin Roulette: a wheel with all 37 pockets. The ball runs around it, slows down and comes to rest in the winning pocket; it stays there until the next spin. The last 15 numbers are listed to the left of the table, newest on top.
 - Route records: the place numbers in front of each score were hard to read on the parchment; they are darker now.
 
 ## 1.0.1

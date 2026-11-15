@@ -880,6 +880,32 @@ while true do
     if i == 0 then break end
     idx[i] = idx[i] + 1
 end
+-- Gegenrechnung der Linienerkennung, unabhängig geschrieben: für jedes Symbol die Felder von links zählen,
+-- die es selbst oder eine Münze zeigen; die beste Lesart zählt. Über alle 7^5 Stellungen gleich LinePay.
+local wrong, seq = 0, { 1, 1, 1, 1, 1 }
+while true do
+    local best = 0
+    for sym = 1, 6 do
+        local n = 0
+        while n < 5 and (seq[n + 1] == sym or seq[n + 1] == 6) do n = n + 1 end
+        if n >= 3 and g.SYMBOLS[sym].pay[n - 2] > best then best = g.SYMBOLS[sym].pay[n - 2] end
+    end
+    if g.LinePay(seq) ~= best then wrong = wrong + 1 end
+    local i = 5
+    while i >= 1 and seq[i] == nSym do seq[i] = 1; i = i - 1 end
+    if i == 0 then break end
+    seq[i] = seq[i] + 1
+end
+check(wrong == 0, "Automat: Linienerkennung stimmt in allen 16.807 Stellungen mit der Gegenrechnung überein (" .. wrong .. " Abweichungen)")
+check(g.LinePay({ 6, 6, 6, 6, 1 }) == 40 and g.LinePay({ 6, 6, 6, 1, 2 }) == 12 and g.LinePay({ 6, 6, 1, 1, 1 }) == 12,
+    "Automat: Münzen vorn zählen in der besseren Lesart")
+local seen = {}
+for _, line in ipairs(g.LINES) do
+    local ok = #line == 5
+    for _, r in ipairs(line) do ok = ok and r >= 1 and r <= 3 end
+    check(ok and not seen[table.concat(line)], "Automat: Linie " .. table.concat(line) .. " ist gültig und kommt nur einmal vor")
+    seen[table.concat(line)] = true
+end
 -- Freispiele: jedes der 15 Felder zeigt unabhängig mit q eine Rune; F = erwartete Freispiele je Drehung,
 -- und weil Freispiele selbst wieder welche bringen können, zahlt eine Drehung im Schnitt rtp / (1 - F)
 local q, F, trigger = g.SYMBOLS[nSym].w / wsum, 0, 0
@@ -1024,6 +1050,7 @@ tick(1)
 check(g.state == "result" and g.gold == 80 + 360 and g.numText.text:find("17", 1, true) and g.cells[17].hit:IsShown(),
     "Roulette: 17 fällt – Zahl zahlt 35:1, Rot verliert, Gold " .. g.gold)
 check(g.WHEEL[g.pos + 1] == 17, "Roulette: die Kugel liegt im Fach der 17")
+check(g.history[1] == 17 and g.hist[1].fs.text == "17" and g.hist[1].bg:IsShown() and not g.hist[2].bg:IsShown(), "Roulette: die 17 steht oben in der Liste der letzten Zahlen")
 tick(3)
 check(g.state == "bet" and g.bet == 0 and next(g.bets) == nil, "Roulette: neue Runde, Tisch leer")
 key("SPACE")

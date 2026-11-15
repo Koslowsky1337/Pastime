@@ -31,7 +31,8 @@ local SLOT = {}
 for i, n in ipairs(WHEEL) do SLOT[n] = i - 1 end
 Game.WHEEL = WHEEL
 local SPIN_TIME = 4.5
-local WHEEL_X, WHEEL_Y, WHEEL_R, BALL_R = 90, 272, 55, 43
+local WHEEL_X, WHEEL_Y, WHEEL_R, BALL_R = 117, 302, 72, 57
+local HISTORY = 15
 local ROUND = "Interface\\CharacterFrame\\TempPortraitAlphaMask"      -- weiße Kreisscheibe, wird eingefärbt
 
 -- Auszahlung eines Chips auf spot, wenn n fällt (0: verloren)
@@ -46,7 +47,7 @@ function Game:Clear()
 end
 
 function Game:Start()
-    self.chip, self.last, self.pos, self.number = 1, nil, 0, nil
+    self.chip, self.last, self.pos, self.number, self.history = 1, nil, 0, nil, {}
     self:OpenRun()
 end
 
@@ -123,6 +124,8 @@ function Game:Update(dt)
     n = self.final
     self.number, self.pos = n, SLOT[n]
     for spot, amount in pairs(self.bets) do win = win + Game.Payout(spot, n, amount) end
+    table.insert(self.history, 1, n)
+    self.history[HISTORY + 1] = nil
     self:Pay(win, win > 0 and L["The ball is kind to you."] or L["The goblin rakes in the chips."], 2.2)
 end
 
@@ -150,6 +153,12 @@ function Game:Render()
     self.ball:ClearAllPoints()
     self.ball:SetPoint("CENTER", self.board, "TOPLEFT", WHEEL_X + math.sin(a) * BALL_R, -(WHEEL_Y - math.cos(a) * BALL_R))
     self.ball:SetShown(n ~= nil)
+    for i, h in ipairs(self.hist) do
+        local v = self.history[i]
+        h.bg:SetShown(v ~= nil)
+        h.fs:SetText(v and tostring(v) or "")
+        if v then h.bg:SetColorTexture(v == 0 and 0.05 or (RED[v] and 0.55 or 0.08), v == 0 and 0.4 or 0.08, v == 0 and 0.12 or (RED[v] and 0.06 or 0.09), 1) end
+    end
     if self.state == "spin" then self.msg:SetText("") end
     self:BaseRender()
     local betting = self.state == "bet"
@@ -179,23 +188,35 @@ local function Create(host, board)
         return t
     end
     -- Holzrand, Fächerring, Laufbahn der Kugel, Nabe
-    for sub, d in ipairs({ { 130, 0.42, 0.24, 0.09 }, { 122, 0.72, 0.58, 0.25 }, { 98, 0.16, 0.09, 0.04 }, { 72, 0.3, 0.17, 0.07 } }) do
+    for sub, d in ipairs({ { 170, 0.42, 0.24, 0.09 }, { 160, 0.72, 0.58, 0.25 }, { 130, 0.16, 0.09, 0.04 }, { 94, 0.3, 0.17, 0.07 } }) do
         local t = disc(sub - 3, d[1], d[2], d[3], d[4])
         t:SetPoint("CENTER", board, "TOPLEFT", WHEEL_X, -WHEEL_Y)
     end
     for i, n in ipairs(WHEEL) do
         local a = (i - 1) / 37 * 2 * math.pi
         local red = RED[n]
-        local pocket = disc(2, 10, n == 0 and 0.1 or (red and 0.8 or 0.03), n == 0 and 0.7 or (red and 0.1 or 0.03), red and 0.08 or (n == 0 and 0.2 or 0.03))
+        local pocket = disc(2, 12, n == 0 and 0.1 or (red and 0.8 or 0.03), n == 0 and 0.7 or (red and 0.1 or 0.03), red and 0.08 or (n == 0 and 0.2 or 0.03))
         pocket:SetPoint("CENTER", board, "TOPLEFT", WHEEL_X + math.sin(a) * WHEEL_R, -(WHEEL_Y - math.cos(a) * WHEEL_R))
     end
-    g.ball = disc(4, 8, 1, 1, 1)
+    g.ball = disc(4, 10, 1, 1, 1)
     g.ball:Hide()
     g.numText = ns.FontString(board, "GameFontNormalHuge", "CENTER")
     g.numText:SetPoint("CENTER", board, "TOPLEFT", WHEEL_X, -WHEEL_Y)
     g.msg:ClearAllPoints()
-    g.msg:SetPoint("CENTER", board, "TOPLEFT", 288, -246)
-    g.sub:SetWidth(230)
+    if g.numText.SetTextScale then g.numText:SetTextScale(1.4) end
+    g.msg:SetPoint("CENTER", board, "TOPLEFT", 311, -236)
+    g.sub:SetWidth(196)
+    -- Die letzten Zahlen links neben dem Tisch: oben die neueste
+    g.hist, g.history = {}, {}
+    for i = 1, HISTORY do
+        local bg = ns.Box(board, "BORDER", 0, 0, 0, 1)
+        bg:SetSize(22, 14)
+        bg:SetPoint("TOPLEFT", board, "TOPLEFT", 3, -(Y0 + (i - 1) * 16))
+        bg:Hide()
+        local fs = ns.FontString(board, "GameFontHighlightSmall", "CENTER")
+        fs:SetPoint("CENTER", bg, "CENTER")
+        g.hist[i] = { bg = bg, fs = fs }
+    end
     local function cell(spot, x, y, w, h, r, gr, b, text)
         local btn = CreateFrame("Button", nil, board)
         btn:SetSize(w - 2, h - 2)
@@ -238,7 +259,9 @@ local function Create(host, board)
     hint:SetText(L["A number pays 35:1, a dozen 2:1, the bottom row 1:1."])
     g.spinBtn = ns.CreateButton(board, L["Spin (Space)"], 170, function() if host:IsRunning() then ns.Safe("roulette", g.Spin, g) end end)
     g.spinBtn:SetHeight(24)
-    g.spinBtn:SetPoint("BOTTOM", board, "BOTTOM", 0, 70)
+    g.spinBtn:SetPoint("TOP", board, "TOPLEFT", 311, -326)
+    g.cashBtn:ClearAllPoints()
+    g.cashBtn:SetPoint("TOP", g.spinBtn, "BOTTOM", 0, -8)
     return g
 end
 
