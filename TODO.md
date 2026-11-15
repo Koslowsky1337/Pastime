@@ -13,7 +13,8 @@ Stand: `v1.0.1` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 - [x] `/pastime fotos`: wertet nichts, zeigt Beispiel-Rekorde, Kodo mitten im Sprung
 - [x] Goblin-Automat: Freispiele und Scatter-Symbol (Rune; 3/4/5 Runen = 5/8/12 Freispiele, Quote rund 96 %)
 - [ ] **Im Spiel prüfen:** Rune wird angezeigt (kein grünes Kästchen); Freispiele drehen von selbst; fühlt sich „jede 31. Drehung“ richtig an?
-- [ ] Goblin-Roulette: Animation wie bei einem echten Kessel
+- [x] Goblin-Roulette: Kessel mit 37 Fächern, die Kugel läuft aus (4,5 s)
+- [ ] **Im Spiel prüfen:** Kessel links unter dem Tisch, Meldungen rechts daneben – passt alles, ist die Kugel gut zu sehen, stimmt das Tempo? 📸
 - [ ] Tavernen-Hold'em: wer mitten in einer Hand geht, bekommt den Stand vor der Hand zurück – bei Bedarf den Einsatz der Hand abziehen
 
 ## 3. Später

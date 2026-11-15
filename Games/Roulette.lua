@@ -25,6 +25,14 @@ local OUTSIDE = {
     high = { pays = 2, hit = function(n) return n >= 19 end, label = "19–36" },
 }
 
+-- Der Kessel: Reihenfolge der Fächer wie am echten Rad; SLOT[Zahl] = Platz im Ring (ab 0)
+local WHEEL = { 0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26 }
+local SLOT = {}
+for i, n in ipairs(WHEEL) do SLOT[n] = i - 1 end
+Game.WHEEL = WHEEL
+local SPIN_TIME = 4.5
+local WHEEL_X, WHEEL_Y, WHEEL_R, BALL_R = 82, 268, 50, 39
+
 -- Auszahlung eines Chips auf spot, wenn n fällt (0: verloren)
 function Game.Payout(spot, n, amount)
     if type(spot) == "number" then return spot == n and amount * 36 or 0 end
@@ -33,11 +41,11 @@ function Game.Payout(spot, n, amount)
 end
 
 function Game:Clear()
-    self.bets, self.number = {}, nil
+    self.bets = {}      -- die letzte Zahl bleibt stehen, die Kugel im Fach liegen
 end
 
 function Game:Start()
-    self.chip, self.last = 1, nil
+    self.chip, self.last, self.pos = 1, nil, 0
     self:OpenRun()
 end
 
@@ -88,7 +96,9 @@ function Game:Spin()
     self.last = {}
     for spot, amount in pairs(self.bets) do self.last[spot] = amount end
     self.final = math.random(0, 36)
-    self.state, self.spin, self.flick, self.number = "spin", 0, 0, math.random(0, 36)
+    self.from = self.pos % 37 + math.random(0, 36)      -- die Kugel wird irgendwo eingeworfen
+    self.state, self.spin, self.pos = "spin", 0, self.from
+    self.number = WHEEL[math.floor(self.pos + 0.5) % 37 + 1]
     self.sub:SetText("")
     self.host:Sound("click")
     self:Render()
@@ -97,16 +107,20 @@ end
 function Game:Update(dt)
     if self.state ~= "spin" then return self:Tick(dt) end
     self.spin = self.spin + dt
-    self.flick = self.flick + dt
-    if self.spin < 1.6 then
-        if self.flick >= 0.08 then
-            self.flick, self.number = 0, math.random(0, 36)
-            self:Render()
-        end
-        return
+    -- Die Kugel läuft drei Runden und weiter bis zum Gewinnfach und wird dabei immer langsamer
+    local from = self.from
+    local dist = 37 * 3 + (SLOT[self.final] - from) % 37
+    local left = math.max(0, 1 - self.spin / SPIN_TIME)
+    self.pos = from + dist * (1 - left ^ 3)
+    local n = WHEEL[math.floor(self.pos + 0.5) % 37 + 1]
+    if self.spin < SPIN_TIME then
+        if n ~= self.number and left < 0.45 then self.host:Sound("click") end      -- die letzten Fächer klackern
+        self.number = n
+        return self:Render()
     end
-    local n, win = self.final, 0
-    self.number = n
+    local win = 0
+    n = self.final
+    self.number, self.pos = n, SLOT[n]
     for spot, amount in pairs(self.bets) do win = win + Game.Payout(spot, n, amount) end
     self:Pay(win, win > 0 and L["The ball is kind to you."] or L["The goblin rakes in the chips."], 2.2)
 end
@@ -131,6 +145,10 @@ function Game:Render()
     end
     local n = self.number
     self.numText:SetText(n and ("|cff%s%d|r"):format(colorOf(n), n) or "")
+    local a = (self.pos or 0) / 37 * 2 * math.pi
+    self.ball:ClearAllPoints()
+    self.ball:SetPoint("CENTER", self.board, "TOPLEFT", WHEEL_X + math.sin(a) * BALL_R, -(WHEEL_Y - math.cos(a) * BALL_R))
+    self.ball:SetShown(n ~= nil)
     if self.state == "spin" then self.msg:SetText("") end
     self:BaseRender()
     local betting = self.state == "bet"
@@ -149,11 +167,24 @@ end
 
 local function Create(host, board)
     local g = ns.Gamble.New(Game, host, board, "roulette", 266)
-    g.cells, g.chip = {}, 1
     g:Clear()
+    g.cells, g.chip, g.pos = {}, 1, 0
+    -- Kessel links: 37 Fächer im Ring (die Null oben), die gefallene Zahl in der Mitte, Meldungen rechts daneben
+    for i, n in ipairs(WHEEL) do
+        local a = (i - 1) / 37 * 2 * math.pi
+        local red = RED[n]
+        local pocket = ns.Box(board, "BORDER", n == 0 and 0.1 or (red and 0.75 or 0.02), n == 0 and 0.7 or (red and 0.1 or 0.02), red and 0.08 or (n == 0 and 0.2 or 0.02), 1)
+        pocket:SetSize(7, 7)
+        pocket:SetPoint("CENTER", board, "TOPLEFT", WHEEL_X + math.sin(a) * WHEEL_R, -(WHEEL_Y - math.cos(a) * WHEEL_R))
+    end
+    g.ball = ns.Box(board, "ARTWORK", 1, 1, 1, 1)
+    g.ball:SetSize(6, 6)
+    g.ball:Hide()
     g.numText = ns.FontString(board, "GameFontNormalHuge", "CENTER")
-    g.numText:SetPoint("CENTER", board, "TOP", 0, -230)
-    if g.numText.SetTextScale then g.numText:SetTextScale(1.4) end
+    g.numText:SetPoint("CENTER", board, "TOPLEFT", WHEEL_X, -WHEEL_Y)
+    g.msg:ClearAllPoints()
+    g.msg:SetPoint("CENTER", board, "TOPLEFT", 275, -244)
+    g.sub:SetWidth(250)
     local function cell(spot, x, y, w, h, r, gr, b, text)
         local btn = CreateFrame("Button", nil, board)
         btn:SetSize(w - 2, h - 2)

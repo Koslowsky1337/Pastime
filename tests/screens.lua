@@ -91,7 +91,7 @@ do
     g = open("roulette")
     for _, spot in ipairs({ 0, 17, 36, "d1", "d3", "low", "even", "red", "black", "odd", "high" }) do g:Click(spot, "LeftButton") end
     scan("Roulette mit Chips")
-    g:Spin(); g:Update(2)
+    g:Spin(); g:Update(5)
     scan("Roulette nach dem Wurf")
     g = open("drawpoker")
     g:PlaceBet(3); g:Toggle(1); g:Toggle(5)

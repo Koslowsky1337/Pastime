@@ -1015,15 +1015,21 @@ key("1"); click(17)
 key("SPACE")
 check(g.state == "spin", "Roulette: Leertaste dreht")
 g.final = 17
-tick(2)
+tick(1)
+local early = g.pos
+tick(3)
+check(g.state == "spin" and early > g.from + 37 and g.pos - early < early - g.from and g.ball:IsShown(),
+    "Roulette: die Kugel läuft im Kessel und wird langsamer")
+tick(1)
 check(g.state == "result" and g.gold == 80 + 360 and g.numText.text:find("17", 1, true) and g.cells[17].hit:IsShown(),
     "Roulette: 17 fällt – Zahl zahlt 35:1, Rot verliert, Gold " .. g.gold)
+check(g.WHEEL[g.pos + 1] == 17, "Roulette: die Kugel liegt im Fach der 17")
 tick(3)
 check(g.state == "bet" and g.bet == 0 and next(g.bets) == nil, "Roulette: neue Runde, Tisch leer")
 key("SPACE")
 check(g.state == "spin" and g.bets.red == 10 and g.bets[17] == 10, "Roulette: Leertaste wiederholt die letzten Einsätze")
 g.final = 0
-tick(2)
+tick(5)
 
 -- Tavernen-Hold'em: Turnier am Tisch
 g = start("holdem")
