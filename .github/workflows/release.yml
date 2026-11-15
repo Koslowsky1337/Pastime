@@ -34,12 +34,27 @@ jobs:
           printf '\nDownload: https://www.curseforge.com/wow/addons/pastime-in-flight-entertainment\n' >> notes.md
           cat notes.md
 
+      # Same content as the CurseForge package: the folder "Pastime" without tests, media,
+      # Markdown files and repository files; the TOC gets the tag as its version.
+      - name: Build the addon zip
+        run: |
+          mkdir -p build/Pastime
+          git ls-files | grep -Ev '^(tests/|media/|\.github/)|\.md$|^\.pkgmeta$|^\.gitignore$' | while IFS= read -r f; do
+            mkdir -p "build/Pastime/$(dirname "$f")"
+            cp "$f" "build/Pastime/$f"
+          done
+          sed -i "s/@project-version@/$TAG/" build/Pastime/Pastime.toc
+          grep -q "^## Version: $TAG" build/Pastime/Pastime.toc
+          (cd build && zip -qr "../Pastime-$TAG.zip" Pastime)
+          unzip -l "Pastime-$TAG.zip" | tail -1
+
       - name: Create or update the release
         run: |
           flags=""
           case "$TAG" in *-*) flags="--prerelease" ;; esac
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release edit "$TAG" --title "Pastime ${TAG#v}" --notes-file notes.md $flags
+            gh release upload "$TAG" "Pastime-$TAG.zip" --clobber
           else
-            gh release create "$TAG" --verify-tag --title "Pastime ${TAG#v}" --notes-file notes.md $flags
+            gh release create "$TAG" "Pastime-$TAG.zip" --verify-tag --title "Pastime ${TAG#v}" --notes-file notes.md $flags
           fi
