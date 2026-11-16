@@ -488,6 +488,12 @@ function ns.SelfTest(what)
                     if type(n) == "string" then guild[n] = true end
                 end
                 local inWow, space, inGuild, sameProject, keys = 0, 0, 0, 0, nil
+                -- Muster eines Namens: Buchstaben werden zu x, Ziffern zu 9; Leerzeichen, Striche und Länge bleiben
+                local function pattern(v)
+                    if type(v) ~= "string" then return tostring(v) end
+                    return (v:gsub("[\128-\255]+", "x"):gsub("%a", "x"):gsub("%d", "9"))
+                end
+                local samples = {}
                 for i = 1, tonumber(total) or 0 do
                     for j = 1, B.GetFriendNumGameAccounts(i) or 0 do
                         local a = B.GetFriendGameAccountInfo(i, j)
@@ -496,6 +502,12 @@ function ns.SelfTest(what)
                             if a.characterName:find(" ", 1, true) then space = space + 1 end
                             if guild[a.characterName] or guild[C.FullName(a.characterName)] then inGuild = inGuild + 1 end
                             if a.wowProjectID == WOW_PROJECT_ID then sameProject = sameProject + 1 end
+                            if #samples < 5 then
+                                samples[#samples + 1] = ("  sample %d: characterName \"%s\" · realmName \"%s\" · realmDisplayName \"%s\" · online %s · project %s (mine %s) · faction same: %s · in guild list: %s · id %s"):format(
+                                    #samples + 1, pattern(a.characterName), pattern(a.realmName), pattern(a.realmDisplayName), tostring(a.isOnline),
+                                    tostring(a.wowProjectID), tostring(WOW_PROJECT_ID), tostring(a.factionName == UnitFactionGroup("player")),
+                                    tostring(guild[a.characterName] or guild[C.FullName(a.characterName)] or false), mask(a.characterName))
+                            end
                             if not keys then
                                 keys = {}
                                 for k, val in pairs(a) do keys[#keys + 1] = tostring(k) .. "=" .. type(val) end
@@ -507,6 +519,7 @@ function ns.SelfTest(what)
                 add(nil, ("Battle.net friends: %s total, %s online, %d in WoW with a character, %d of those names with a space, %d found in the guild list, %d on this game version"):format(
                     tostring(total), tostring(onlineBN), inWow, space, inGuild, sameProject))
                 if keys then add(nil, "Battle.net game account fields: " .. table.concat(keys, ", ")) end
+                for _, line in ipairs(samples) do add(nil, line) end
             else
                 add(nil, "Battle.net friends: the client does not offer the game account functions")
             end
