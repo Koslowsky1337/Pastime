@@ -32,16 +32,45 @@ check(next(MP.invites) == nil, "ausgeschaltet kommt keine Anfrage an")
 
 SlashCmdList.PASTIME("mp")
 local ask = ns.mpAskFrame
-check(PastimeDB.mpBeta == true and not MP.On() and ask and ask.shown and #ask.checks == 4, "/pastime mp schaltet die Beta frei und fragt zuerst, wer einen sehen darf")
+check(PastimeDB.mpBeta == true and not MP.On() and ask and ask.shown and #ask.checks == 7, "/pastime mp schaltet die Beta frei und fragt zuerst, wer einen sehen darf")
 C.Announce(); flush()
 local early = 0
 for _, m in ipairs(SENT) do if m.msg:find("^PT1%^HELLO%^0%^1") then early = early + 1 end end
 check(early == 0 and MP.Invite(JAINA) == false, "solange die Frage offen ist, wird nichts gemeldet und nichts angefragt")
 check(ask.checks[4]:GetChecked() == true and ask.checks[4].key == "mpGuild", "vorgeschlagen ist alles an, auch die Gilde")
+check(ask.checks[5]:GetChecked() == true and ask.checks[6]:GetChecked() == true and ask.checks[7]:GetChecked() == false and ask.checks[7].key == "mpInviteAnywhere",
+    "Anfragen: vorgeschlagen sind Reisen und Ruhebereiche, „überall“ ist aus")
 ask.checks[4]:SetChecked(false)
 ask.save.scripts.OnClick(ask.save)
 check(MP.On() and PastimeDB.mpAsked == true and not ask.shown and PastimeDB.settings.mpGuild == false and PastimeDB.settings.mpParty == true,
     "Speichern übernimmt die Wahl; erst dann ist der Mehrspieler an")
+check(PastimeDB.settings.mpInviteTravel == true and PastimeDB.settings.mpInviteRest == true and PastimeDB.settings.mpInviteAnywhere == false,
+    "Anfragen kommen als Standard nur auf Reisen und in Ruhebereichen an")
+-- Wann Anfragen ankommen
+SENT = {}
+from(JAINA, "INVITE", "q1"); flush()
+check(MP.invites[JAINA] == nil and SENT[#SENT].msg == "PT1^AWAY^q1" and SENT[#SENT].target == JAINA, "unterwegs zu Fuß: die Anfrage kommt nicht an, die Anfragende erfährt es")
+IsResting = function() return true end
+from(JAINA, "INVITE", "q2")
+check(MP.invites[JAINA] ~= nil, "im Gasthaus kommt sie an")
+MP.invites[JAINA] = nil
+PastimeDB.settings.mpInviteRest = false
+from(JAINA, "INVITE", "q3")
+check(MP.invites[JAINA] == nil, "Ruhebereich abgeschaltet: auch im Gasthaus nicht")
+IsResting = nil
+PastimeDB.settings.mpInviteRest = true
+ns.trip.active = true
+from(JAINA, "INVITE", "q4")
+check(MP.invites[JAINA] ~= nil, "auf einer Reise kommt sie an")
+MP.invites[JAINA] = nil
+ns.trip.active = false
+-- der Anfragende sieht, warum nichts kam
+MP.Invite(JAINA)
+from(JAINA, "AWAY", MP.session.id)
+check(MP.session == nil and MP.note == "away", "nimmt sie gerade keine Anfragen an, endet meine Anfrage mit diesem Hinweis")
+-- für die übrigen Tests: Anfragen überall
+PastimeDB.settings.mpInviteAnywhere = true
+MP._Reset(); flush(); SENT = {}
 SENT = {}
 
 -- Regelwerk Vier gewinnt
@@ -289,6 +318,30 @@ check(again == 2, "Reiter offen: einmal neu in Gilde und Gruppe gemeldet (" .. a
 NOW = NOW + 25
 SENT = {}; MP.Refresh(); flush()
 check(#SENT == 0, "aber nicht öfter als einmal je Minute")
+-- Entdeckung: jede Meldung mit Mehrspieler wird direkt beantwortet, und die Antwort trägt den Kanal
+flush(); SENT = {}
+NOW = NOW + 100
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 0, 1, 31), "GUILD", "Cairne Bluthuf"); flush()
+local here
+for _, m in ipairs(SENT) do if m.msg == "PT1^HERE^1^GUILD" and m.channel == "WHISPER" and m.target == "Cairne Bluthuf" then here = m end end
+check(here ~= nil, "wer sich in der Gilde meldet, bekommt eine direkte Antwort mit Stufe und Kanal")
+local nSent = #SENT
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 0, 1, 31), "GUILD", "Cairne Bluthuf"); flush()
+check(#SENT == nSent, "aber höchstens einmal in 50 Sekunden")
+-- und umgekehrt: eine solche Antwort macht den Absender sichtbar, sobald die Gildenliste ihn als online führt
+C.OnMessage(C.PREFIX, C.Encode("HERE", 1, "GUILD"), "WHISPER", "Baine Bluthuf")
+check(C.peers["Baine Bluthuf"] and C.peers["Baine Bluthuf"].seen.GUILD.mp == 1 and names()["Baine Bluthuf"] == nil,
+    "eine direkte Antwort merkt sich den Spieler; in der Liste steht er erst, wenn die Gildenliste ihn kennt")
+guildOnline["Baine Bluthuf"] = true
+GetNumGuildMembers = function() return 3 end
+GetGuildRosterInfo = function(i) local n = i == 1 and "Rexxar" or (i == 2 and JAINA or "Baine Bluthuf"); return n, nil, nil, nil, nil, nil, nil, nil, guildOnline[n] end
+check(names()["Baine Bluthuf"] == "mpGuild", "online in der Gildenliste: jetzt steht er da")
+C.OnMessage(C.PREFIX, C.Encode("HERE", 1, "GUILD"), "GUILD", "Rexxar")
+C.OnMessage(C.PREFIX, C.Encode("HERE", 1, "TRADE"), "WHISPER", "Rexxar")
+check(true, "Antworten über einen Kanal oder für einen fremden Kanal werden nicht gewertet")
+C.peers["Baine Bluthuf"], C.peers["Cairne Bluthuf"] = nil, nil
+GetNumGuildMembers = function() return 2 end
+GetGuildRosterInfo = function(i) local n = i == 1 and "Rexxar" or JAINA; return n, nil, nil, nil, nil, nil, nil, nil, guildOnline[n] end
 -- Abmelden: wer sich für die Gruppe unsichtbar macht, sagt es dort einmal
 C.Announce(); flush(); SENT = {}
 PastimeDB.settings.mpParty = false
@@ -329,6 +382,34 @@ C.OnMessage(C.PREFIX, C.Encode("HELLO", 0, 1, 12), "WHISPER", "Thrall Kriegshäu
 check(names()["Thrall Kriegshäuptling"] == "mpFriends", "antwortet er, steht er als Freund in der Liste, obwohl die Freundesliste nur „Thrall“ kennt")
 friends[2] = { name = "Garrosh", connected = false }
 C.peers["Thrall Kriegshäuptling"] = nil
+SENT = { {}, }
+-- Battle.net-Freunde: wer dieselbe Spielversion auf demselben Realm in derselben Fraktion spielt, zählt als Freund
+GetNormalizedRealmName = function() return "TestRealm" end
+WOW_PROJECT_ID = 18
+local bnet = {
+    { { isOnline = true, clientProgram = "WoW", characterName = "Lor'themar Theron", wowProjectID = 18, realmName = "TestRealm", factionName = "Horde" },
+      { isOnline = true, clientProgram = "App" } },
+    { { isOnline = true, clientProgram = "WoW", characterName = "Anduin Wrynn", wowProjectID = 18, realmName = "TestRealm", factionName = "Alliance" } },
+    { { isOnline = true, clientProgram = "WoW", characterName = "Thalyssra", wowProjectID = 1, realmName = "TestRealm", factionName = "Horde" } },
+    { { isOnline = true, clientProgram = "WoW", characterName = "Liadrin", wowProjectID = 18, realmName = "AndererRealm", factionName = "Horde" } },
+    {},
+}
+BNGetNumFriends = function() return #bnet, 4 end
+C_BattleNet = { GetFriendNumGameAccounts = function(i) return #bnet[i] end, GetFriendGameAccountInfo = function(i, j) return bnet[i][j] end }
+local fr = C.OnlineFriends()
+local nfr = 0
+for _ in pairs(fr) do nfr = nfr + 1 end
+check(fr["Lor'themar Theron"] and fr[SYL] and not fr["Anduin Wrynn"] and not fr.Thalyssra and not fr.Liadrin and nfr == 2,
+    "Battle.net-Freunde zählen nur mit gleicher Spielversion, gleichem Realm und gleicher Fraktion (" .. nfr .. ")")
+bnet[1][1].characterName = "Lorthemar Theron"
+SENT = {}; C.GreetFriends(); flush()
+check(#SENT == 1 and SENT[1].target == "Lorthemar Theron" and SENT[1].channel == "WHISPER", "ein Battle.net-Freund wird direkt unter seinem Charakternamen gegrüßt")
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 10400, 1, 14), "WHISPER", "Lorthemar Theron"); flush()
+check(names()["Lorthemar Theron"] == "mpFriends", "antwortet er, steht er als Freund in der Liste")
+bnet[1][1].isOnline = false
+check(names()["Lorthemar Theron"] == nil, "geht er bei Battle.net offline, verschwindet er")
+BNGetNumFriends, C_BattleNet, GetNormalizedRealmName = nil, nil, nil
+C.peers["Lorthemar Theron"] = nil
 SENT = { {}, }
 -- ein Fremder, der mich als Freund hat, meldet sich direkt: einmal antworten, aber er steht nicht in meiner Liste
 C.OnMessage(C.PREFIX, C.Encode("HELLO", 0, 1, 9), "WHISPER", "Varian Wrynn"); flush()
@@ -520,8 +601,9 @@ check(C.FilterOffline(nil, nil, ERR_CHAT_PLAYER_NOT_FOUND_S:format(JAINA)) == tr
 -- Einstellungen: die Mehrspieler-Schalter
 ns.ShowFrame("settings")
 local sv = ns.settingsView
-check(#sv.checks == 9 and sv.checks[6]:IsShown() and sv.checks[7]:GetChecked() == true and sv.checks[8]:GetChecked() == true and sv.checks[9]:GetChecked() == false,
-    "Einstellungen: Mehrspieler-Schalter sichtbar; Freunde und Gruppe an, Gilde aus")
+check(#sv.checks == 12 and sv.checks[6]:IsShown() and sv.checks[7]:GetChecked() == true and sv.checks[8]:GetChecked() == true and sv.checks[9]:GetChecked() == false
+    and sv.checks[10]:GetChecked() == true and sv.checks[12]:GetChecked() == true,
+    "Einstellungen: Mehrspieler-Schalter sichtbar; Freunde und Gruppe an, Gilde aus, dazu die drei für Anfragen")
 sv.checks[6]:SetChecked(false); click(sv.checks[6])
 check(PastimeDB.settings.mp == false and #MP.Players() == 0, "Hauptschalter aus: niemand mehr zu sehen")
 sv.checks[6]:SetChecked(true); click(sv.checks[6])

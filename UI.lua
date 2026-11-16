@@ -1205,21 +1205,41 @@ local function CreateSettingsView(parent)
             ns.DB.minimap.hidden = not on
             if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end
         end)
-    -- Mehrspieler: nur zu sehen, solange er freigeschaltet ist
+    -- Mehrspieler: nur zu sehen, solange er freigeschaltet ist. Kompakt in zwei Spalten, die Erklärung
+    -- steht im Tooltip: links, wer einen sieht – rechts, wann Anfragen ankommen dürfen.
     v.mpRows = {}
-    local function mpRow(key, label, tip)
-        local c, text = row(label, tip,
-            function() return ns.DB.settings[key] and true or false end,
-            function(on) ns.DB.settings[key] = on; ns.Comm.Announce() end)
-        v.mpRows[#v.mpRows + 1] = c
-        v.mpRows[#v.mpRows + 1] = text
+    local function mpNote(text, x, yy)
+        local fs = ns.FontString(box, "GameFontNormal", "LEFT")
+        fs:SetPoint("TOPLEFT", box, "TOPLEFT", x, yy)
+        fs:SetText(text)
+        v.mpRows[#v.mpRows + 1] = fs
     end
-    mpRow("mp", L["Multiplayer"], L["Other players with Pastime can ask you for a game. Off: nobody sees you and you see nobody."])
-    mpRow("mpFriends", L["Visible to your friends"], L["Friends who have you on their friend list see you in their multiplayer list."])
-    mpRow("mpParty", L["Visible to your group"], L["Players in your party or raid see you in their multiplayer list."])
-    mpRow("mpGuild", L["Visible to your guild"], L["Guild members see you in their multiplayer list."])
+    local function mpCheck(key, label, tip, x, yy)
+        local c = ns.CreateCheck(box, label, function(_, on)
+            ns.DB.settings[key] = on
+            ns.Comm.Announce()
+            ns.UpdateUI()
+            if ns.RefreshSettings then ns.RefreshSettings() end
+        end)
+        c:SetPoint("TOPLEFT", x, yy)
+        c.get = function() return ns.DB.settings[key] and true or false end
+        ns.SetTooltip(c, label, tip)
+        v.checks[#v.checks + 1] = c
+        v.mpRows[#v.mpRows + 1] = c
+    end
+    y = y - 4
+    mpNote(L["Multiplayer"], 16, y)
+    mpNote(L["Requests reach you:"], 356, y)
+    y = y - 22
+    mpCheck("mp", L["Multiplayer on"], L["Other players with Pastime can ask you for a game. Off: nobody sees you and you see nobody."], 14, y)
+    mpCheck("mpFriends", L["Visible to your friends"], L["Friends who have you on their friend list see you in their multiplayer list."], 14, y - 26)
+    mpCheck("mpParty", L["Visible to your group"], L["Players in your party or raid see you in their multiplayer list."], 14, y - 52)
+    mpCheck("mpGuild", L["Visible to your guild"], L["Guild members see you in their multiplayer list."], 14, y - 78)
+    mpCheck("mpInviteTravel", L["While travelling"], L["Requests reach you while you are on a flight, a zeppelin or a boat."], 354, y)
+    mpCheck("mpInviteRest", L["In inns and cities"], L["Requests reach you while you are resting in an inn or a city."], 354, y - 26)
+    mpCheck("mpInviteAnywhere", L["Anywhere"], L["Requests reach you wherever you are, except in combat."], 354, y - 52)
     v.report = ns.CreateButton(box, L["Create bug report"], 200, function() ns.ShowReport() end)
-    v.report:SetPoint("TOPRIGHT", -14, -10)      -- oben rechts: unten stehen die Mehrspieler-Schalter
+    v.report:SetPoint("TOPRIGHT", -14, -10)      -- oben rechts: unten steht der Mehrspieler-Block
     ns.SetTooltip(v.report, L["Create bug report"], L["Opens a report with the recent log to copy into a GitHub issue. Character names are replaced."])
     local version = ns.FontString(box, "GameFontDisableSmall", "RIGHT")
     version:SetPoint("BOTTOMRIGHT", -14, 18)
@@ -1249,6 +1269,7 @@ local MP_NOTES = {
     mismatch = L["The paused game could not be restored."],
     ["unknown game"] = L["Your opponent chose a game this version does not know."],
     offline = L["That player is not online."],
+    away = L["That player is not taking requests right now. By default they only arrive while travelling or resting."],
 }
 
 -- Woher man einen Spieler kennt: farbiges Kürzel hinter dem Namen (Freund rosa, Gruppe blau, Gilde grün)
@@ -1463,6 +1484,10 @@ local MP_ASK = {
     { "mpFriends", L["Visible to your friends"], L["Friends who have you on their friend list see you in their multiplayer list."] },
     { "mpParty", L["Visible to your group"], L["Players in your party or raid see you in their multiplayer list."] },
     { "mpGuild", L["Visible to your guild"], L["Guild members see you in their multiplayer list."] },
+    -- wann Anfragen ankommen: vorgeschlagen ist „nur wenn man ohnehin wartet“
+    { "mpInviteTravel", L["Requests while travelling"], L["Requests reach you while you are on a flight, a zeppelin or a boat."] },
+    { "mpInviteRest", L["Requests in inns and cities"], L["Requests reach you while you are resting in an inn or a city."] },
+    { "mpInviteAnywhere", L["Requests anywhere"], L["Requests reach you wherever you are, except in combat."], false },
 }
 
 function ns.MPAsk()
@@ -1471,7 +1496,7 @@ function ns.MPAsk()
         f = CreateFrame("Frame", "PastimeMPAskFrame", UIParent, "BackdropTemplate")
         f:SetBackdrop(BACKDROP_DIALOG_32_32 or ns.TOOLTIP_BACKDROP)
         ns.TintDialog(f)
-        f:SetSize(460, 330)
+        f:SetSize(460, 330 + 3 * 44)
         f:SetPoint("CENTER", 0, 40)
         f:SetFrameStrata("DIALOG")
         f:EnableMouse(true)
@@ -1481,7 +1506,7 @@ function ns.MPAsk()
         local text = ns.FontString(f, "GameFontHighlight", "CENTER")
         text:SetPoint("TOP", title, "BOTTOM", 0, -10)
         text:SetWidth(410)
-        text:SetText(L["You can now play against other players. Choose who may see you as a player. Nothing appears in chat, and you can change this any time in the Settings tab."])
+        text:SetText(L["You can now play against other players. Choose who may see you and when requests may reach you. Nothing appears in chat, and you can change this any time in the Settings tab."])
         f.checks = {}
         for i, o in ipairs(MP_ASK) do
             local c = ns.CreateCheck(f, o[2])
@@ -1492,7 +1517,7 @@ function ns.MPAsk()
             tip:SetWidth(380)
             tip:SetWordWrap(false)
             tip:SetText(o[3])
-            c.key = o[1]
+            c.key, c.default = o[1], o[4] ~= false
             f.checks[i] = c
         end
         f.save = ns.CreateButton(f, L["Save"], 160, function()
@@ -1509,7 +1534,7 @@ function ns.MPAsk()
         ns.mpAskFrame = f
     end
     if f:IsShown() then return end
-    for _, c in ipairs(f.checks) do c:SetChecked(true) end      -- Vorschlag: alles an
+    for _, c in ipairs(f.checks) do c:SetChecked(c.default) end      -- Vorschlag: alles an, nur „Anfragen überall“ aus
     f:Show()
 end
 

@@ -60,7 +60,10 @@ Stand: `v1.4.0` ist veröffentlicht (16.11.). Der Mehrspieler steckt abgeschalte
 
 - [x] Die Vorab-Releases und Tags `v2.0.0-beta1` bis `-beta3` sind entfernt (16.11.): ihr Inhalt steckt abgeschaltet in 1.4.0. Getestet wird mit den normalen Versionen und `/pastime mp`. Die Namen nicht wiederverwenden, solange auf CurseForge Dateien dazu liegen
 
-- [ ] Mehrspieler-Test mit 1.4.0 auf beiden Seiten: Beide sehen sich nicht in der Liste. Ursache offen, bis `/pastime debug dump` von beiden vorliegt; auf `main` meldet sich der offene Reiter jetzt einmal je Minute neu und frischt die Liste laufend auf
+- [x] Mehrspieler-Test mit 1.4.0 auf beiden Seiten: Beide sehen sich nicht in der Liste. Ursache (16.11., aus `/pastime debug dump`): Die Meldung `HELLO` ging nur einmal raus und wurde nur unbekannten Absendern beantwortet, gleichzeitiges Neuladen verpasst sich also dauerhaft; Freunde wurden in der leeren Spiel-Freundesliste gesucht statt bei Battle.net. Behoben auf `main`: jedes `HELLO` wird direkt mit `HERE` beantwortet, Battle.net-Freunde zählen als Freunde
+- [x] Einstellung, wann Anfragen ankommen (16.11.): auf Reisen (an), in Gasthäusern und Städten (an), überall (aus); der Anfragende bekommt sonst den Hinweis `AWAY`. Mehrspieler-Einstellungen als kompakter Block, erste Frage mit sieben Zeilen
+- [ ] **Test zu zweit mit der nächsten Version (1.4.1) auf beiden Seiten** – 1.4.0 beantwortet `HELLO` nicht mit `HERE`: Liste über Gilde und Battle.net-Freunde, Anfrage im Gasthaus, Anfrage „zu Fuß“ (Hinweis beim Anfragenden), „Überall“ an, Revanche
+- [ ] Im Spiel ansehen: Mehrspieler-Block im Reiter „Einstellungen“ (zwei Spalten), erste Frage mit sieben Zeilen
 
 ## 4. Später
 - [x] Ausführliche Spielerklärung für alle 24 Spiele im Regel-Fenster (oben Steuerung, darunter „So geht's“), Englisch und Deutsch (16.11.)

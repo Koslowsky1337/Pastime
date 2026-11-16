@@ -38,8 +38,10 @@ Wer einen Kreis abschaltet, erscheint dort bei niemandem und sieht dort auch nie
 | Nachricht | Weg | Inhalt | Wann |
 |---|---|---|---|
 | `HELLO` | Gilden-, Gruppen-, Schlachtzugskanal; an Freunde einzeln | Versionsnummer, Mehrspieler-Stufe | Einloggen, Gruppenbeitritt, selten als Wiederholung |
+| `HERE` | an den Absender eines `HELLO` | Mehrspieler-Stufe, Kanal des `HELLO` | Antwort auf jedes `HELLO` mit Mehrspieler-Stufe, höchstens alle 50 Sekunden je Absender. So finden sich zwei, auch wenn einer das `HELLO` des anderen verpasst hat |
 | `INVITE` | an den Mitspieler | Sitzungsnummer | Klick auf „Anfragen“ |
 | `ACCEPT` / `DECLINE` | an den Mitspieler | Sitzungsnummer | Antwort des Eingeladenen |
+| `AWAY` | an den Anfragenden | Sitzungsnummer | Der Angefragte nimmt dort, wo er gerade ist, keine Anfragen an (siehe 8) |
 | `START` | an den Mitspieler | Sitzungsnummer, Spiel, Startwert | Der Einladende hat ein Spiel gewählt |
 | `MOVE` | an den Mitspieler | Sitzungsnummer, laufende Nummer, Zug | Jeder Zug |
 | `RESULT` | an den Mitspieler | Sitzungsnummer, Ergebnis aus eigener Sicht | Spielende, zur Gegenprobe |
@@ -126,11 +128,18 @@ Weitere Ideen für später, nur im Mehrspieler: Reversi, Dame, Mühle, Käsekäs
 | Sichtbar für Gruppe und Schlachtzug | an |
 | Sichtbar für Freunde | an |
 | Sichtbar für die Gilde | an |
+| Anfragen auf Reisen (Flug, Zeppelin, Schiff) | an |
+| Anfragen in Gasthäusern und Städten (Ruhebereich) | an |
+| Anfragen überall | aus |
 | Meine Bilanz mitschicken | an |
 | Ton bei einer Anfrage | an |
 | Keine Anfragen in Instanzen und Schlachtzügen | an |
 
-**Erste Frage:** Beim ersten Öffnen mit Mehrspieler fragt ein Fenster, wer einen sehen darf (Hauptschalter und die drei Kreise, vorgeschlagen ist alles an). Solange die Frage offen ist, meldet Pastime nichts und nimmt keine Anfragen an.
+**Wann Anfragen ankommen:** Als Standard nur, wenn man ohnehin wartet: auf einer Reise oder in einem Ruhebereich. Sonst bekommt der Anfragende den Hinweis, dass gerade keine Anfragen angenommen werden; beim Angefragten erscheint nichts. Ausnahme: Wer in den letzten zehn Minuten mit einem gespielt hat oder ein angehaltenes Spiel mit einem hat, darf immer anfragen (Revanche, Fortsetzen).
+
+**Freunde** sind die Freunde der Spielliste und die Battle.net-Freunde, die gerade in diesem Spiel, auf diesem Realm und in der eigenen Fraktion online sind.
+
+**Erste Frage:** Beim ersten Öffnen mit Mehrspieler fragt ein Fenster, wer einen sehen darf und wann Anfragen ankommen (Hauptschalter, die drei Kreise, die drei Orte; vorgeschlagen ist alles an außer „Anfragen überall“). Solange die Frage offen ist, meldet Pastime nichts und nimmt keine Anfragen an.
 
 Der Update-Hinweis aus 1.3 bleibt davon unabhängig.
 
@@ -166,6 +175,10 @@ Der Mehrspieler wird erst mit 2.0 im Changelog genannt. Bis dahin steckt er abge
 
 ### Beta 4
 
+- Players find each other reliably: every announcement is answered directly, so two players no longer miss each other after logging in at the same moment. Needs this version on both sides; 1.4.0 does not answer.
+- Friends now include Battle.net friends who are online in this game, on your realm and in your faction.
+- New settings for when requests reach you: while travelling, in inns and cities, anywhere. By default only the first two; otherwise the asking player is told that you are not taking requests right now. A rematch or a paused game always gets through.
+- The multiplayer settings are one compact block in the Settings tab; the first-run question asks for the three new settings too.
 - New button “What wins?” in the card and gold games. Tavern Hold'em and Goblin Poker list the poker hands from strongest to weakest, each with an example hand and a short explanation; Goblin Blackjack shows example hands too; Goblin Blackjack, Higher or Lower and Goblin Roulette explain what wins and what it pays; Goblin Slots show their pay table there.
 - The rules window now starts with the controls and explains the game below, for all 24 games in more detail than before: the goal, how a turn works, what scores and when the game ends.
 - Solitaire: a tip (button or H) highlights a move that helps and says why. If no move is left, the game recognises it and ends as lost instead of leaving you searching.

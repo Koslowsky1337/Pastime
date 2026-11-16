@@ -63,9 +63,11 @@ end
 -- Nachrichtentypen: Feldliste in fester Reihenfolge
 Comm.TYPES = {
     HELLO  = { int(0, 999999), int(0, 99), int(1, 999999) },    -- Addon-Version (10300 = 1.3.0, 0 = Betastand), Mehrspieler-Stufe, Sitzungsmarke
+    HERE   = { int(0, 99), word(8) },                           -- direkte Antwort auf ein HELLO: Mehrspieler-Stufe, für welchen Kanal
     INVITE = { SESSION },                                       -- Anfrage
     ACCEPT = { SESSION, int(0, 500) },                          -- angenommen; Züge der angehaltenen Partie mit diesem Spieler (0 = keine)
     DECLINE = { SESSION },
+    AWAY   = { SESSION },                                       -- der Angefragte nimmt gerade keine Anfragen an
     -- Spiel, Startwert, Platz (1/2), der beginnt, Platz des Absenders, Züge, die als Mitschrift folgen (0 = neue Partie)
     START  = { SESSION, word(16), int(1, 2147483647), int(1, 2), int(1, 2), int(0, 500) },
     MOVE   = { SESSION, int(1, 100000), int(-100000, 100000) }, -- Sitzung, laufende Nr., Zug
@@ -203,7 +205,7 @@ function Comm.OnMessage(prefix, text, channel, sender)
         return
     end
     -- der Verlauf einer Sitzung steht im Protokoll, mit Kennung statt Name
-    if kind ~= "HELLO" or channel == "WHISPER" then ns.Log("I", "mp", "in  %s from %s", kind, ns.NameId(who)) end
+    if (kind ~= "HELLO" and kind ~= "HERE") or (kind == "HELLO" and channel == "WHISPER") then ns.Log("I", "mp", "in  %s from %s", kind, ns.NameId(who)) end
     local h = Comm.handlers[kind]
     if h then ns.Safe("comm-" .. kind, h, who, fields, channel) end
 end
@@ -216,7 +218,8 @@ local SEND_GAP = 0.5
 local RESULT_OK, RESULT_THROTTLE, RESULT_CHANNEL_THROTTLE = 0, 3, 8
 
 function Comm.Send(kind, channel, target, ...)
-    if not (Comm.ENABLED or (kind == "HELLO" and Comm.VERSION_CHECK)) then return false end      -- HELLO geht auch ohne Mehrspieler
+    -- HELLO und die Antwort darauf gehen auch ohne Mehrspieler-Sitzungen
+    if not (Comm.ENABLED or ((kind == "HELLO" or kind == "HERE") and Comm.VERSION_CHECK)) then return false end
     local msg, err = Comm.Encode(kind, ...)
     if not msg then ns.Log("W", "comm", "not sent: %s", tostring(err)); return false end
     if #queue >= 60 then ns.Log("W", "comm", "send queue full, %s dropped", tostring(kind)); return false end
@@ -238,7 +241,7 @@ function Comm.Flush()
     end
     if code ~= RESULT_OK then ns.Log("D", "comm", "send result %s", tostring(code)) end
     local kind = item.msg:match("^[^%^]+%^([^%^]+)")
-    if kind ~= "HELLO" or item.channel == "WHISPER" then
+    if (kind ~= "HELLO" and kind ~= "HERE") or (kind == "HELLO" and item.channel == "WHISPER") then
         ns.Log("I", "mp", "out %s to %s, result %s", tostring(kind), ns.NameId(item.target), tostring(code))
     end
     table.remove(queue, 1)
@@ -304,17 +307,54 @@ function Comm.FullName(name)
     return found or name
 end
 
+-- Freunde, die gerade mit einem Charakter online sind: die Freundesliste des Spiels und Battle.net-Freunde,
+-- die dieselbe Spielversion auf demselben Realm in derselben Fraktion spielen (nur die erreicht eine
+-- direkte Addon-Nachricht). Rückgabe: { [voller Charaktername] = true } oder nil, wenn der Client keine
+-- der beiden Listen kennt. Battle.net nennt den vollen Namen (im Client geprüft, Auszug vom 16.11.).
+function Comm.OnlineFriends()
+    local t, any = {}, false
+    local F = C_FriendList
+    if F and F.GetNumFriends and F.GetFriendInfoByIndex then
+        any = true
+        local ok, n = ns.Try("C_FriendList.GetNumFriends", F.GetNumFriends)
+        for i = 1, ok and tonumber(n) or 0 do
+            local ok2, info = ns.Try("C_FriendList.GetFriendInfoByIndex", F.GetFriendInfoByIndex, i)
+            if ok2 and type(info) == "table" and info.connected and type(info.name) == "string" and info.name ~= "" then
+                t[Comm.FullName(info.name)] = true
+            end
+        end
+    end
+    local B = C_BattleNet
+    if BNGetNumFriends and B and B.GetFriendNumGameAccounts and B.GetFriendGameAccountInfo then
+        any = true
+        local realm = GetNormalizedRealmName and GetNormalizedRealmName()
+        local faction = UnitFactionGroup and UnitFactionGroup("player")
+        local ok, total = ns.Try("BNGetNumFriends", BNGetNumFriends)
+        for i = 1, ok and tonumber(total) or 0 do
+            local ok2, n = ns.Try("C_BattleNet.GetFriendNumGameAccounts", B.GetFriendNumGameAccounts, i)
+            for j = 1, ok2 and tonumber(n) or 0 do
+                local ok3, acc = ns.Try("C_BattleNet.GetFriendGameAccountInfo", B.GetFriendGameAccountInfo, i, j)
+                if ok3 and type(acc) == "table" and acc.isOnline and acc.clientProgram == (BNET_CLIENT_WOW or "WoW")
+                    and type(acc.characterName) == "string" and acc.characterName ~= ""
+                    and (acc.wowProjectID == nil or acc.wowProjectID == WOW_PROJECT_ID)
+                    and (not realm or not acc.realmName or acc.realmName == realm)
+                    and (not faction or not acc.factionName or acc.factionName == faction) then
+                    t[acc.characterName] = true
+                end
+            end
+        end
+    end
+    return any and t or nil
+end
+
+-- Freunde haben keinen Kanal: wer online ist, bekommt einmal je Sitzung eine direkte Meldung (und eine
+-- weitere, wenn sich die eigene Sichtbarkeit ändert). Wer Pastime hat, antwortet einmal.
 local greeted = {}
 function Comm.GreetFriends()
-    local F = C_FriendList
-    if not (Comm.registered and F and F.GetNumFriends and F.GetFriendInfoByIndex) then return end
+    if not Comm.registered then return end
     local level = Comm.MPLevel and Comm.MPLevel("WHISPER") or 0
-    local ok, n = ns.Try("C_FriendList.GetNumFriends", F.GetNumFriends)
-    for i = 1, ok and tonumber(n) or 0 do
-        local ok2, info = ns.Try("C_FriendList.GetFriendInfoByIndex", F.GetFriendInfoByIndex, i)
-        local name = ok2 and type(info) == "table" and info.connected and info.name
-        name = type(name) == "string" and name ~= "" and Comm.FullName(name)
-        if name and not Comm.selfNames[name] then
+    for name in pairs(Comm.OnlineFriends() or {}) do
+        if not Comm.selfNames[name] then
             if (not greeted[name] and level > 0) or (greeted[name] and lastLevel[name] ~= level) then
                 greeted[name] = true
                 hello("WHISPER", name)
@@ -334,6 +374,7 @@ end
 -- Wer Pastime hat: [Name] = { v = Version, mp = höchste Mehrspieler-Stufe, t = zuletzt gehört, channel,
 --   seen = { [Kanal] = { t, mp } } }
 Comm.peers = {}
+local hereSent = {}      -- [Absender] = wann ihm zuletzt direkt geantwortet wurde
 local REPLY_GAP = 600      -- so lange nach einer Meldung im selben Kanal wird nicht noch einmal gemeldet
 
 Comm.handlers.HELLO = function(sender, fields, channel)
@@ -348,10 +389,17 @@ Comm.handlers.HELLO = function(sender, fields, channel)
     p.seen[channel] = { t = GetTime(), mp = fields[2] }
     p.v, p.t, p.channel, p.mp = theirs, GetTime(), channel, math.max(fields[2], known and known.mp or 0)
     Comm.peers[sender] = p
-    -- ein neuer Mitspieler: einmal zurückmelden, damit auch er mich sieht
-    if fields[2] > 0 and not known and channel ~= "WHISPER" and Comm.MPLevel and Comm.MPLevel(channel) > 0
-        and GetTime() - (lastHello[channel] or -60) >= 60 then
-        hello(channel)
+    -- Wer sich in einem Kanal mit Mehrspieler meldet, bekommt von jedem, der dort sichtbar ist, eine direkte
+    -- Antwort (HERE). So erfährt er sofort, wer da ist – egal, wer sich zuerst gemeldet hat und ob eine
+    -- frühere Meldung verloren ging. Höchstens eine Antwort je Absender in 50 Sekunden.
+    local level = channel ~= "WHISPER" and Comm.MPLevel and Comm.MPLevel(channel) or 0
+    if fields[2] > 0 and level > 0 then
+        if GetTime() - (hereSent[sender] or -50) >= 50 then
+            hereSent[sender] = GetTime()
+            Comm.Send("HERE", "WHISPER", sender, level, channel)
+        end
+        -- 1.3 und 1.4.0 kennen HERE nicht: ihnen meldet man sich wie bisher einmal im Kanal zurück
+        if not known and theirs >= 10300 and theirs <= 10400 and GetTime() - (lastHello[channel] or -60) >= 60 then hello(channel) end
     end
     -- direkt gemeldet (er hat mich als Freund): einmal direkt antworten, wenn ich für Freunde sichtbar bin
     if channel == "WHISPER" and fields[2] > 0 and not greeted[sender] and Comm.MPLevel and Comm.MPLevel("WHISPER") > 0 then
@@ -366,6 +414,19 @@ Comm.handlers.HELLO = function(sender, fields, channel)
         -- der andere ist älter: die eigene Version noch einmal im selben Kanal melden, damit er es erfährt
         hello(channel)
     end
+end
+
+-- Die direkte Antwort auf ein HELLO: der Absender ist im genannten Kanal (Gilde oder Gruppe) mit dieser
+-- Mehrspieler-Stufe zu sehen. Ob er dort wirklich ist, zeigt erst die Gilden- oder Gruppenliste des Clients.
+Comm.handlers.HERE = function(sender, fields, channel)
+    local where = fields[2]
+    if channel ~= "WHISPER" or (where ~= "GUILD" and where ~= "PARTY" and where ~= "RAID") then return end
+    local p = Comm.peers[sender] or { seen = {}, v = 0 }
+    p.seen = p.seen or {}
+    p.seen[where] = { t = GetTime(), mp = fields[1] }
+    p.t, p.channel, p.mp = GetTime(), p.channel or where, math.max(fields[1], p.mp or 0)
+    Comm.peers[sender] = p
+    ns.Log("D", "mp", "here from %s for %s: level %d", ns.NameId(sender), where, fields[1])
 end
 
 -- Beim Einloggen: zuhören, nach ein paar Sekunden die eigene Version melden und an ein
@@ -418,5 +479,5 @@ end
 function Comm._Reset()
     wipe(perSender); total = nil; wipe(queue); lastSend = 0
     if ns.MP then ns.MP._Reset() end
-    wipe(lastHello); wipe(lastLevel); wipe(greeted); wipe(Comm.peers); wipe(Comm.selfNames); Comm.noticed = nil; Comm.grouped = nil
+    wipe(lastHello); wipe(lastLevel); wipe(greeted); wipe(hereSent); wipe(Comm.peers); wipe(Comm.selfNames); Comm.noticed = nil; Comm.grouped = nil
 end

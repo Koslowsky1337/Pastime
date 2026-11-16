@@ -99,7 +99,7 @@ local function finish(res, why)
     db.stats[s.partner][s.game] = g
     if s.result == 2 then g.w = g.w + 1 elseif s.result == 0 then g.l = g.l + 1 else g.d = g.d + 1 end
     g.last = date("%Y-%m-%d")
-    MP.last = { partner = s.partner, game = s.game, result = s.result }
+    MP.last = { partner = s.partner, game = s.game, result = s.result, t = GetTime() }
     send("RESULT", s.result)
     ns.Log("I", "mp", "%s finished: %d (%s)", s.game, s.result, tostring(why or "played out"))
 end
@@ -252,14 +252,27 @@ end
 -- nicht (mehr) gibt, sagt das dem Absender einmal mit BYE; der beendet dann seine Seite. Ohne das wartete
 -- einer auf den anderen, bis eine Frist abläuft.
 local refused = {}      -- [Sitzungsnummer] = true: schon einmal zurückgewiesen
-local function refuse(sender, id, kind)
-    if refused[id] or kind == "BYE" or kind == "PAUSE" or kind == "RESULT" or kind == "DECLINE" then return end
+local function refuse(sender, id, kind, with)
+    if refused[id] or kind == "BYE" or kind == "PAUSE" or kind == "RESULT" or kind == "DECLINE" or kind == "AWAY" then return end
     refused[id] = true
-    Comm.Send(kind == "INVITE" and "DECLINE" or "BYE", "WHISPER", sender, id)
+    Comm.Send(with or (kind == "INVITE" and "DECLINE" or "BYE"), "WHISPER", sender, id)
+end
+
+-- Wann Anfragen ankommen dürfen: als Standard nur, wenn man ohnehin wartet – auf einer Reise (Flug,
+-- Zeppelin, Schiff) oder in einem Ruhebereich (Gasthaus, Stadt). „Überall“ muss man selbst einschalten.
+-- Wer gerade mit einem gespielt hat, darf in den nächsten zehn Minuten immer anfragen (Revanche, Fortsetzen).
+function MP.TakingInvites(sender)
+    local s = ns.DB.settings
+    if s.mpInviteAnywhere then return true end
+    if s.mpInviteTravel and ((ns.trip and ns.trip.active) or (UnitOnTaxi and UnitOnTaxi("player"))) then return true end
+    if s.mpInviteRest and IsResting and IsResting() then return true end
+    local last = MP.last
+    if last and last.partner == sender and GetTime() - (last.t or -PAUSE_TTL) < PAUSE_TTL then return true end
+    return paused(sender) ~= nil
 end
 
 function Comm.Gate(kind, fields, sender, channel)
-    if kind == "HELLO" then return true end
+    if kind == "HELLO" or kind == "HERE" then return true end
     if not MP.On() then return false, "multiplayer off" end
     if channel ~= "WHISPER" then return false, "not direct" end
     local s = MP.session
@@ -273,6 +286,10 @@ function Comm.Gate(kind, fields, sender, channel)
             return false, "busy"
         end
         if not MP.invites[sender] and openInvites() >= MAX_INVITES then return false, "too many invites" end
+        if not crossing and not MP.TakingInvites(sender) then
+            refuse(sender, fields[1], kind, "AWAY")      -- der Anfragende erfährt, dass es gerade nicht passt
+            return false, "not taking requests here"
+        end
         return true
     end
     if not (s and s.partner == sender and s.id == fields[1]) then
@@ -317,6 +334,10 @@ end
 
 H.DECLINE = function()
     if MP.session.state == "asking" then cancel("declined") end
+end
+
+H.AWAY = function()
+    if MP.session.state == "asking" then cancel("away") end
 end
 
 H.START = function(_, f)
@@ -427,6 +448,9 @@ local PRIORITY = { { "mpFriends", "WHISPER" }, { "mpParty", "PARTY", "RAID" }, {
 -- Steht der Spieler auf der Freundesliste? (Der Kreis „Freunde“ selbst kommt mit Beta 2; bis dahin
 -- dient das nur der Kennzeichnung von Spielern, die man über Gruppe oder Gilde sieht.)
 local function isFriend(name)
+    local set = Comm.OnlineFriends()
+    if set and (set[name] or set[name:match("^(%S+) ") or ""]) then return true end
+    -- die Freundesliste des Spiels zählt auch, wenn der Freund gerade als offline geführt wird
     local F = C_FriendList
     if not (F and F.GetNumFriends and F.GetFriendInfoByIndex) then return false end
     local ok, n = ns.Try("C_FriendList.GetNumFriends", F.GetNumFriends)
@@ -469,16 +493,7 @@ local function online()
         end
         roster.mpGuild = t
     end
-    local F = C_FriendList
-    if F and F.GetNumFriends and F.GetFriendInfoByIndex then
-        local t = {}
-        local ok, n = ns.Try("C_FriendList.GetNumFriends", F.GetNumFriends)
-        for i = 1, ok and tonumber(n) or 0 do
-            local ok2, info = ns.Try("C_FriendList.GetFriendInfoByIndex", F.GetFriendInfoByIndex, i)
-            if ok2 and type(info) == "table" and type(info.name) == "string" and info.connected then t[info.name] = true end
-        end
-        roster.mpFriends = t
-    end
+    roster.mpFriends = Comm.OnlineFriends()      -- Freundesliste und Battle.net
     return roster
 end
 

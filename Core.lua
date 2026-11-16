@@ -233,7 +233,8 @@ end
 ---------------------------------------------------------------------------
 local DEFAULTS = {
     settings = { autoOpen = true, landAlarm = true, hideInCombat = true, sound = true,
-        mp = true, mpParty = true, mpFriends = true, mpGuild = true },       -- Mehrspieler: Hauptschalter und wo man gesehen wird
+        mp = true, mpParty = true, mpFriends = true, mpGuild = true,         -- Mehrspieler: Hauptschalter und wo man gesehen wird
+        mpInviteTravel = true, mpInviteRest = true, mpInviteAnywhere = false },      -- wann Anfragen ankommen dürfen
     scores = {}, stats = {}, routes = {}, minimap = {}, collapsed = {}, modes = {},
     frame = false, lastGame = false, debug = false, log = {}, logSession = 0,
     blackjack = { gold = 1000, peak = 1000 },   -- Goblin-Gold bleibt zwischen Partien erhalten

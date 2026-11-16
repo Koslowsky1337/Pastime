@@ -718,8 +718,8 @@ ns.ShowLauncher()
 -- Reiter „Einstellungen“: dieselben Schalter wie im Addon-Menü
 ns.ShowFrame("settings")
 local sv = ns.settingsView
-check(sv:IsShown() and not ns.launcher:IsShown() and #sv.checks == 9 and sv.checks[5]:IsShown() and not sv.checks[6]:IsShown(),
-    "Einstellungen: der Reiter zeigt fünf Schalter; die vier für den Mehrspieler erst, wenn er freigeschaltet ist")
+check(sv:IsShown() and not ns.launcher:IsShown() and #sv.checks == 12 and sv.checks[5]:IsShown() and not sv.checks[6]:IsShown() and not sv.checks[12]:IsShown(),
+    "Einstellungen: der Reiter zeigt fünf Schalter; die sieben für den Mehrspieler erst, wenn er freigeschaltet ist")
 check(not ns.frame.tabs[3]:IsShown() and ns.frame.tabs[3].key == "mp" and ns.mpAskFrame == nil, "ohne Freischaltung gibt es keinen Reiter „Mehrspieler“ und keine Frage")
 check(PastimeDB.settings.mpGuild == true and PastimeDB.settings.mpParty == true and PastimeDB.mpAsked == false, "Mehrspieler: als Standard sind alle Kreise an, gefragt wurde noch nicht")
 local was = PastimeDB.settings.sound
