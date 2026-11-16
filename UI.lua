@@ -189,6 +189,36 @@ function ns.Pause(reason)
 end
 
 -- Spielregeln: pausiert die Partie und zeigt Ziel und Steuerung (dieselben Texte wie in der Auswahl)
+-- Ausführliche Erklärung je Spiel für das Regel-Fenster („So geht's“). Die Spielauswahl zeigt weiter
+-- die kurze Beschreibung (def.desc); dort fehlt der Platz. Bewusst ohne Fraktionsbegriffe, damit ein
+-- Text für Horde und Allianz passt.
+ns.HELP = {
+    snake = L["Steer the serpent to the murloc eggs. Each egg makes it one piece longer and scores points; the longer you last, the more an egg is worth. Now and then a pearl appears for a few seconds and scores extra. The round ends when you hit a rock, the edge or your own tail."],
+    windrider = L["Your mount flies on by itself and sinks unless you flap. Each flap lifts it a little. Steer through the gap in every obstacle: each one you pass is a point. The gaps get tighter and the flight faster. Touching an obstacle or the ground ends the round."],
+    kodo = L["Your mount runs by itself and keeps getting faster. Jump over what stands on the ground and duck under what flies or hangs low. Ducking in mid-air brings you down sooner. A single collision ends the run. Your score is the distance in metres."],
+    kobold = L["For 60 seconds kobolds look out of the nine shafts. A kobold is worth 10 points, a golden foreman 30. Leave the dynamite alone: hitting it costs 20 points. The longer the round runs, the faster they appear and vanish. When the time is up, your points count."],
+    angeln = L["You have ten casts. After a cast, wait: the bobber twitches before it really goes under. Strike only when it dips – too early or too late and the fish is gone. The faster you strike, the better your chance of a rare, valuable fish. Several catches in a row add a streak bonus."],
+    rockfall = L["Move and turn the falling blocks so that they fill whole lines; full lines disappear. One line scores 100 points, two 300, three 500 and four at once 800, each multiplied by the level. Every ten lines the level rises and the blocks fall faster. The round ends when they pile up to the top."],
+    wallbreaker = L["Keep the ball in play with your paddle and break every brick. Rarer colours score more, and the two rarest need two hits. A cleared wall brings the next level with a faster ball. A ball that gets past your paddle is lost. After three lost balls the round ends."],
+    murlocs = L["The murlocs march back and forth and come closer row by row. Shoot them before they reach the shore; the upper rows score more. Dodge their bubbles and use the crates as cover. Now and then the golden murloc king passes at the top – hitting him is a bonus. Every cleared wave brings a faster one."],
+    totemecho = L["Watch the sequence, then repeat it in the same order. Every round it grows by one step and plays a little faster. A single mistake ends the game. Your score is the number of rounds you completed."],
+    runepairs = L["All cards lie face down. Turn over two: if they match, they stay open; if not, they turn back, so remember where they were. The game ends when every pair is found. Your score is the number of moves – the fewer, the better. Easy has 8 pairs, Medium 15."],
+    code = L["Four gems lie hidden in a fixed order. Lay your guess and check it. A gold peg means: one gem is the right kind in the right place. A silver peg means: one gem is the right kind in the wrong place. The pegs do not say which gems they mean. You have ten tries; the fewer you need, the more points."],
+    wortraten = L["Type a word with five letters and check it. Green: the letter is in the right place. Gold: it is in the word, but somewhere else. Grey: it is not in the word. Use that to close in on the word within six tries. Every word comes from Azeroth. The fewer tries you need, the more points."],
+    fourinarow = L["You and your opponent take turns dropping a piece into one of seven columns; it falls to the lowest free place. Whoever first lines up four of their own – across, up and down or diagonally – wins. A full board without a line is a draw. Against the computer a win scores more the stronger the opponent and the fewer moves you needed."],
+    minen = L["Uncover every square without a mine. A number tells you how many of the eight squares around it hold a mine; an empty square opens its neighbours by itself. Mark squares you suspect with a flag. If a number has all its flags, clicking it opens the rest around it. A single mine ends the game. Your time is your score."],
+    ["2048"] = L["Every move slides all tiles as far as they go. Two equal tiles that meet merge into one of double the value, and you score that value. After each move a new tile appears. It helps to keep your biggest tile in a corner. The game ends when the board is full and nothing can merge any more."],
+    edelsteine = L["Swap two neighbouring gems so that three or more of a kind line up. They vanish, and new gems fall in from above. Longer rows score more. If the falling gems form new rows by themselves, that is a chain, and every link multiplies the points. After 30 moves the game is over."],
+    taverndice = L["Each turn you roll five dice up to three times and may hold any of them in between. Then you must enter the result in one free box, even if it scores nothing there. The upper boxes count ones to sixes; 63 points or more up there earn a bonus of 35. The lower boxes reward combinations. After 13 turns every box is full and the total is your score."],
+    solitaer = L["Bring all four suits onto their piles at the top, each from ace to king. In the seven columns you build downwards in alternating colours – red on black, black on red – and may move whole runs. Only a king may go onto an empty column. Turn the stock over one card at a time, as often as you like. H shows a tip. If no move is left, the game is lost. Your time is your score."],
+    blackjack = L["Set your bet and try to get closer to 21 than the goblin without going over. Hit takes another card, stand ends your turn, double doubles the bet for exactly one more card. Then the goblin draws until he has 17 or more. A win pays your bet, a blackjack one and a half times. Your gold carries over; the run ends when you are broke or cash out."],
+    slots = L["Set your bet and spin. On each of the five lines, three or more equal symbols from the left win; from the murloc upwards two are enough. The rune is wild and stands in for any symbol. Three or four runes anywhere pay at once and start free spins with a bonus symbol that can fill whole reels. Auto-spin plays 20 spins for you. “What wins?” lists every payout."],
+    drawpoker = L["You pay an ante, and you and the goblin each get five cards. Mark the cards you want to keep and swap the rest once. Then decide: fold and lose only the ante, or raise by the same amount. If you raise, the goblin swaps too and the hands are compared. The better poker hand wins; he keeps a tenth of what you win. “What wins?” lists the hands."],
+    higherlower = L["After your bet a card is dealt. Guess whether the next one will be higher or lower. Every hit multiplies your pot by the factor on the button – unlikely guesses pay more. After any hit you may take the pot. One wrong guess and it is gone. The ace is the highest card, the 2 the lowest."],
+    roulette = L["Pick a chip size and click the fields you want to bet on; a right-click takes chips back. Then let the ball roll. A single number pays 35 to 1, a dozen 2 to 1, and red, black, even, odd, low and high 1 to 1. On zero only a chip on the zero wins. With an empty table, Space repeats your last bets."],
+    holdem = L["You buy in and sit at a table of four; everyone starts with the same chips. Each hand you get two cards of your own. Five shared cards are revealed in three steps, with a round of betting before each: fold, call, raise or go all in. The best five out of seven cards win the pot. Whoever runs out of chips is out, and the blinds double every five hands. Between hands you can leave and take your chips as gold."],
+}
+
 function ns.ShowRules()
     local run = ns.run
     if not run then return end
@@ -196,7 +226,7 @@ function ns.ShowRules()
     if run.state ~= "paused" or ns.overlay.kind ~= "pause" then return end      -- Spielende und Ankunft behalten ihren Dialog
     -- oben kurz die Steuerung, darunter die Erklärung des Spiels
     ns.ShowOverlay("pause", L["Rules"], "|cffffd100" .. L["Controls"] .. "|r\n" .. run.def.controls
-        .. "\n\n|cffffd100" .. L["How to play"] .. "|r\n" .. run.def.desc)
+        .. "\n\n|cffffd100" .. L["How to play"] .. "|r\n" .. (ns.HELP[run.def.id] or run.def.desc))
 end
 
 -- Was gewinnt: Blattrangfolge, Auszahlungen, Sonderregeln eines Spiels (def.wins liefert den Text)

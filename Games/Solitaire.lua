@@ -31,7 +31,7 @@ function Game:Start()
     end
     for _, c in ipairs(deck) do c.up = false; table.insert(self.stock, c) end
     self.sel, self.moves, self.time, self.started, self.done = nil, 0, 0, false, false
-    self.auto, self.score = nil, 0
+    self.auto, self.score, self.hint = nil, 0, nil
     self:Render()
 end
 
@@ -122,6 +122,94 @@ function Game:DrawStock()
     self:Render()
 end
 
+-- Ein Zug, der weiterhilft – für den Tipp und um zu erkennen, dass nichts mehr geht.
+-- Rückgabe: { cards = { Karte = true … } (hervorzuheben), text } oder nil.
+-- Gesucht wird in dieser Reihenfolge: auf einen Farbstapel legen · eine verdeckte Karte freilegen ·
+-- die Ablagekarte anlegen · einen Teilstapel umlegen, damit die Karte darunter auf ihren Farbstapel
+-- kann · eine Spalte für einen König frei machen · eine Karte aus dem Nachziehstapel holen.
+-- shortcut: eine Karte vom Farbstapel zurück in die Spalten zu holen gilt nicht als Zug; in seltenen
+-- Lagen wäre das der einzige Ausweg, dann meldet das Spiel zu früh „kein Zug mehr“
+function Game:FindMove()
+    local function set(list) local t = {}; for _, c in ipairs(list) do t[c] = true end; return t end
+    local function toFound(c) return self:CanPlace({ c }, { where = "found", pile = c.suit }) end
+    local function onto(cards, skip)
+        for j = 1, 7 do
+            if j ~= skip and self:CanPlace(cards, { where = "tab", pile = j }) then return j end
+        end
+    end
+    local waste = self.waste[#self.waste]
+    -- 1. auf einen Farbstapel
+    if waste and toFound(waste) then return { cards = set({ waste }), text = L["Tip: this card goes onto its suit pile."] } end
+    for i = 1, 7 do
+        local top = self.tab[i][#self.tab[i]]
+        if top and top.up and toFound(top) then return { cards = set({ top }), text = L["Tip: this card goes onto its suit pile."] } end
+    end
+    -- 2. eine verdeckte Karte freilegen: die ganze offene Reihe einer Spalte umlegen
+    local kingWaiting = false
+    for i = 1, 7 do
+        local pile = self.tab[i]
+        local first
+        for k, c in ipairs(pile) do if c.up then first = k; break end end
+        if first and first > 1 then
+            local run = self:Taking({ where = "tab", pile = i, index = first })
+            local j = onto(run, i)
+            if j then
+                local hit = set(run)
+                local dst = self.tab[j][#self.tab[j]]
+                if dst then hit[dst] = true end
+                return { cards = hit, text = L["Tip: move these cards – a face-down card is waiting underneath."] }
+            end
+            if run[1].rank == 13 then kingWaiting = true end
+        end
+    end
+    -- 3. die Ablagekarte in eine Spalte
+    if waste then
+        local j = onto({ waste })
+        if j then
+            local hit = set({ waste })
+            local dst = self.tab[j][#self.tab[j]]
+            if dst then hit[dst] = true end
+            return { cards = hit, text = L["Tip: play the card from the waste pile."] }
+        end
+    end
+    -- 4. einen Teil der offenen Reihe umlegen, damit die Karte darunter auf ihren Farbstapel kann
+    for i = 1, 7 do
+        local pile = self.tab[i]
+        for k = 2, #pile do
+            local below = pile[k - 1]
+            if pile[k].up and below.up and toFound(below) then
+                local run = self:Taking({ where = "tab", pile = i, index = k })
+                if onto(run, i) then return { cards = set(run), text = L["Tip: move these cards to free the one underneath."] } end
+            end
+        end
+    end
+    -- 5. eine Spalte leer machen, wenn ein König darauf wartet (aus einer Spalte, der Ablage oder dem Stapel)
+    for _, c in ipairs(self.stock) do if c.rank == 13 then kingWaiting = true end end
+    for _, c in ipairs(self.waste) do if c.rank == 13 then kingWaiting = true end end
+    if kingWaiting then
+        for i = 1, 7 do
+            local pile = self.tab[i]
+            if pile[1] and pile[1].up and pile[1].rank ~= 13 and onto(pile, i) then
+                return { cards = set(pile), text = L["Tip: move this whole column to make room for a king."] }
+            end
+        end
+    end
+    -- 6. im Nachziehstapel oder weiter unten in der Ablage liegt eine Karte, die passt
+    local function playable(c) return toFound(c) or onto({ c }) ~= nil end
+    for _, c in ipairs(self.stock) do if playable(c) then return { cards = {}, text = L["Tip: draw from the stock (Space)."] } end end
+    for k = 1, #self.waste - 1 do if playable(self.waste[k]) then return { cards = {}, text = L["Tip: draw from the stock (Space)."] } end end
+    return nil
+end
+
+-- Tipp: den nächsten sinnvollen Zug ein paar Sekunden lang hervorheben
+function Game:Hint()
+    if self.done or self.auto then return end
+    self.hint = self:FindMove() or { cards = {}, text = L["No move is left."] }
+    self.hint.t = 4
+    self.host:Sound("click")
+    self:Render()
+end
+
 function Game:Placed()
     local n = 0
     for f = 1, 4 do n = n + #self.found[f] end
@@ -138,8 +226,16 @@ function Game:CheckEnd()
     end
     -- Alles offen und kein Stapel mehr: automatisch abräumen
     if not self.auto and #self.stock == 0 and #self.waste == 0 then
-        for i = 1, 7 do for _, c in ipairs(self.tab[i]) do if not c.up then return end end end
-        self.auto = 0.1
+        local open = true
+        for i = 1, 7 do for _, c in ipairs(self.tab[i]) do if not c.up then open = false end end end
+        if open then self.auto = 0.1; return end
+    end
+    -- Kein Zug mehr, der weiterhilft: die Partie ist verloren
+    if not self.auto and not self:FindMove() then
+        self.done, self.hint = true, nil
+        self:Render()
+        return self.host:Over({ submit = false, title = L["No moves left"],
+            text = (L["No card can be moved any more. %d of 52 cards were played."]):format(self:Placed()) })
     end
 end
 
@@ -250,6 +346,10 @@ function Game:Update(dt)
         self.score = self.time         -- große Anzeige zählt mit; gewertet wird erst das gelöste Spiel
     end
     if self.drag then self:DragMove() end
+    if self.hint then
+        self.hint.t = self.hint.t - dt
+        if self.hint.t <= 0 then self.hint = nil; self:Render() end
+    end
     if self.auto then
         self.auto = self.auto - dt
         if self.auto <= 0 then
@@ -283,6 +383,10 @@ function Game:Key(k, down)
         if down then self:DrawStock() end
         return true
     end
+    if k == "H" then
+        if down then self:Hint() end
+        return true
+    end
     return false
 end
 
@@ -291,6 +395,10 @@ function Game:Render()
     local sel = self.sel
     local selCards = {}
     if sel then for _, c in ipairs(self:Taking(sel)) do selCards[c] = true end end
+    -- ein Tipp hebt seine Karten genauso hervor und schreibt unten dazu, was gemeint ist
+    if self.hint then for c in pairs(self.hint.cards) do selCards[c] = true end end
+    self.note:SetShown(self.hint ~= nil)
+    if self.hint then self.note.text:SetText(self.hint.text) end
     local function place(card, up, x, y, loc, level)
         used = used + 1
         local f = self.pool[used]
@@ -378,6 +486,19 @@ local function Create(host, board)
     -- Anzahl unten auf dem Nachziehstapel (darunter beginnt gleich die erste Spalte)
     g.stockCount = ns.BoardText(board, "GameFontHighlightSmall", "CENTER")
     g.stockCount:SetPoint("BOTTOM", board, "TOPLEFT", colX(1) + CW / 2, -(TOPY + CH - 4))
+    -- Tipp-Knopf auf dem freien Platz zwischen Ablage und Farbstapeln
+    g.hintBtn = ns.CreateButton(board, L["Tip (H)"], CW + 4, function() if host:IsRunning() then ns.Safe("solitaer", g.Hint, g) end end)
+    g.hintBtn:SetPoint("TOP", board, "TOPLEFT", colX(3) + CW / 2, -(TOPY + 26))
+    -- Zeile für den Tipp: unten, über allen Karten
+    g.note = CreateFrame("Frame", nil, board)
+    g.note:SetSize(W - 12, 22)
+    g.note:SetPoint("BOTTOM", 0, 4)
+    g.note:SetFrameLevel(board:GetFrameLevel() + 120)
+    local noteBack = ns.Box(g.note, "BACKGROUND", 0, 0, 0, 0.8)
+    noteBack:SetAllPoints()
+    g.note.text = ns.FontString(g.note, "GameFontNormal", "CENTER")
+    g.note.text:SetPoint("CENTER")
+    g.note:Hide()
     for i = 1, 52 do
         local f = Cards.Create(board, CW, CH)
         f:Hide()
@@ -413,7 +534,7 @@ ns.RegisterGame({
     scoreLabel = L["Time"],
     FormatScore = fmtTime,
     desc = L["The classic: build all cards up by suit from ace to king. In the columns, stack downwards in alternating red and black; only kings may fill an empty column. Your time is your score."],
-    controls = L["Drag a card onto its target (or click it, then the target) · Click a fitting card: onto its suit pile · Stock or Space: draw"],
-    controlsShort = L["Drag card to target\nClick: onto suit pile\nSpace: draw"],
+    controls = L["Drag a card onto its target (or click it, then the target) · Click a fitting card: onto its suit pile · Stock or Space: draw · H: tip"],
+    controlsShort = L["Drag card to target\nClick: onto suit pile\nSpace: draw · H: tip"],
     Create = Create,
 })

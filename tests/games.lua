@@ -598,6 +598,33 @@ g.tab[2] = {}
 check(g:CanPlace({ { rank = 13, suit = 2 } }, { where = "tab", pile = 2 }) and not g:CanPlace({ { rank = 12, suit = 2 } }, { where = "tab", pile = 2 }), "leere Spalte nur König")
 check(g:CanPlace({ { rank = 1, suit = 2 } }, { where = "found", pile = 2 }), "Karo-Ass auf den Karo-Platz")
 check(not g:CanPlace({ { rank = 1, suit = 2 } }, { where = "found", pile = 1 }), "Karo-Ass nicht auf den Herz-Platz")
+-- Tipp und „kein Zug mehr“
+g = start("solitaer")
+g.stock, g.waste = {}, {}
+for i = 1, 7 do g.tab[i] = {} end
+for s = 1, 4 do g.found[s] = {} end
+g.tab[1] = { { rank = 9, suit = 2, up = false }, { rank = 4, suit = 1, up = true } }      -- Herz 4 auf einer verdeckten Karte
+g.tab[2] = { { rank = 5, suit = 3, up = true } }                                           -- Pik 5
+g:Render()
+key("H")
+check(g.hint and g.hint.cards[g.tab[1][2]] and g.hint.cards[g.tab[2][1]] and g.note:IsShown()
+    and g.note.text.text == ns.L["Tip: move these cards – a face-down card is waiting underneath."],
+    "Solitär: der Tipp hebt Herz 4 und ihr Ziel Pik 5 hervor und sagt, warum")
+tick(5)
+check(g.hint == nil and not g.note:IsShown(), "Solitär: der Tipp verschwindet nach ein paar Sekunden")
+g.tab[3] = { { rank = 1, suit = 4, up = true } }
+check(g:FindMove().text == ns.L["Tip: this card goes onto its suit pile."], "Solitär: ein Ass gehört zuerst auf seinen Farbstapel")
+g.tab[3] = {}
+g.tab[1], g.tab[2] = { { rank = 5, suit = 3, up = true } }, { { rank = 9, suit = 3, up = true } }
+g.stock = { { rank = 4, suit = 1, up = false } }
+check(g:FindMove().text == ns.L["Tip: draw from the stock (Space)."], "Solitär: passt eine Karte im Stapel, rät der Tipp zum Ziehen")
+g.stock = { { rank = 2, suit = 1, up = false } }      -- Herz 2: kein Ass liegt, keine schwarze 3 – passt nirgends
+check(g:FindMove() == nil, "Solitär: kein Zug hilft mehr weiter")
+key("H")
+check(g.note.text.text == ns.L["No move is left."], "Solitär: der Tipp sagt es")
+local before = best("solitaer")
+key("SPACE")
+check(over() and ns.overlay.title.text == ns.L["No moves left"] and best("solitaer") == before, "Solitär: geht nichts mehr, ist die Partie verloren und wird nicht gewertet")
 -- Fast gewonnen: alles bis auf die Könige liegt ab -> automatisch abräumen
 g = start("solitaer")
 g.stock, g.waste = {}, {}

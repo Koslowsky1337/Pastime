@@ -685,6 +685,18 @@ ns.StartGame(ns.gamesById.snake)
 check(not side.wins:IsShown(), "Windnatter: kein solcher Knopf")
 ns.ShowLauncher()
 
+-- Spielregeln: oben die Steuerung, darunter die ausführliche Erklärung – für jedes Spiel
+for _, def in ipairs(ns.games) do
+    check(type(ns.HELP[def.id]) == "string" and #ns.HELP[def.id] > 150, def.id .. ": hat eine ausführliche Erklärung")
+end
+ns.StartGame(ns.gamesById.snake)
+ns.ShowRules()
+local rt = ns.overlay.text.text
+local pc, ph = rt:find(ns.L["Controls"], 1, true), rt:find(ns.L["How to play"], 1, true)
+check(pc and ph and pc < ph and rt:find(ns.HELP.snake, 1, true) and rt:find(ns.gamesById.snake.controls, 1, true) < ph,
+    "Spielregeln: erst die Steuerung, dann die ausführliche Erklärung")
+ns.ShowLauncher()
+
 -- Reiter „Einstellungen“: dieselben Schalter wie im Addon-Menü
 ns.ShowFrame("settings")
 local sv = ns.settingsView
