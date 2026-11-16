@@ -106,10 +106,12 @@ Plan für 2.0 (16.11. beschlossen, alle vier Schritte): alle vorhandenen Kartens
 | 1 | Goblin-Blackjack | fertig | Wettrennen: dasselbe Blatt gegen den Goblin, fünf Runden mit 1000 Gold |
 | 1 | Solitär | fertig | Wettrennen: dasselbe Blatt, fünf Minuten; 100 Punkte je abgelegter Karte, wer alle ablegt, bekommt die restlichen Sekunden dazu |
 | 1 | Runenpaare | fertig | ein gemeinsames Feld mit 15 Paaren, abwechselnd zwei Karten; wer ein Paar findet, ist noch einmal dran |
-| 2 | Mau-Mau (neu) | offen | zwei Spieler, auf Wunsch mit Bots aufgefüllt |
+| 2 | Mau-Mau (neu) | fertig | zwei Spieler, in der Spielwahl auch mit 1 oder 2 Bots. 32 Karten; 7: zwei ziehen (oder selbst eine 7 legen), 8: aussetzen, Bube: Wunschfarbe. Geht ein Bot zuerst aus, gewinnt von beiden, wer weniger Karten hat |
 | 3 | Goblin-Poker | offen | fünf Karten, einmal tauschen, eine Setzrunde; über fünf Blätter |
 | 3 | Tavernen-Hold'em | offen | zu zweit mit je 1000 Gold und Blinds, zehn Blätter oder bis einer pleite ist |
 | 4 | Sechsundsechzig (neu) | offen | das klassische Stichspiel für zwei |
+
+**Nur im Mehrspieler:** Solche Spiele (`mpOnly`) stehen nicht in der Spielauswahl, haben keine Bestenliste und keine Tagesaufgabe. **Bots** ziehen nach festen Regeln innerhalb des Regelwerks, also auf beiden Seiten gleich; gesendet werden nur die Züge der beiden Spieler.
 
 **Wettrennen:** Beide spielen gleichzeitig ihr eigenes Brett mit demselben Startwert und melden am Ende genau eine Zahl (`MOVE`). Es gibt keine Zugfolge und keine Mitschrift; ein angehaltenes Wettrennen lässt sich nicht fortsetzen. Das Gold im Duell gehört nur zu dieser Partie: Goblingold, Bestenliste und Jackpot bleiben unberührt.
 
@@ -183,6 +185,7 @@ Der Mehrspieler wird erst mit 2.0 im Changelog genannt. Bis dahin steckt er abge
 
 ### Beta 4
 
+- New game, multiplayer only: Mau-Mau for two, optionally with one or two bots at the table.
 - Four more games for two: Higher or Lower, Goblin Blackjack and Solitaire as races (both play the same cards at the same time, the better result wins) and Rune Pairs as a duel on a shared board.
 - Rematch is a question to both players: after a game both are asked and both have to agree. Then the same session continues and the player who did not choose last time picks the game. Saying no, closing the window or not answering for two minutes ends the session for both; after that it takes a new request.
 - `/pastime invite First Last` asks a player directly (it was `/pastime debug user` during testing).

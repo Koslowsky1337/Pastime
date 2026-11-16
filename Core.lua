@@ -357,10 +357,16 @@ ns.LENGTHS = {
         desc = L["for long journeys – rounds last several minutes, ideal for zeppelins and boats"] },
 }
 ns.games, ns.gamesById = {}, {}
+ns.boards = {}      -- alle Spiele mit Brett, auch die nur für den Mehrspieler (die stehen nicht in ns.games)
 
 -- def: id, name, category, icon, short, desc, controls, width, height,
 --      Create(host, board) -> Spielobjekt; optional modes, lowerIsBetter, FormatScore, aliases
 function ns.RegisterGame(def)
+    table.insert(ns.boards, def)
+    if def.mpOnly then      -- nur im Mehrspieler: nicht in Auswahl, Bestenliste und Tagesaufgabe
+        ns.gamesById[def.id] = def
+        return def
+    end
     def.order = #ns.games + 1
     def.length = def.length or "kurz"
     table.insert(ns.games, def)

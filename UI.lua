@@ -145,10 +145,9 @@ function ns.StartGame(def, mode)
     ns.EndRun()
     mode = mode or ns.DefaultMode(def)
     if mode and mode ~= "mp" then ns.DB.modes[def.id] = mode end      -- „mp“ ist keine Schwierigkeit
-    ns.DB.lastGame = def.id
-    ns.selected = def
+    if not def.mpOnly then ns.DB.lastGame, ns.selected = def.id, def end
     GetBoard(def)
-    for _, d in ipairs(ns.games) do
+    for _, d in ipairs(ns.boards) do
         if d._board then d._board:SetShown(d == def) end
     end
     local trip = ns.trip
@@ -222,6 +221,7 @@ ns.HELP = {
     drawpoker = L["You pay an ante, and you and the goblin each get five cards. Mark the cards you want to keep and swap the rest once. Then decide: fold and lose only the ante, or raise by the same amount. If you raise, the goblin swaps too and the hands are compared. The better poker hand wins; he keeps a tenth of what you win. “What wins?” lists the hands."],
     higherlower = L["After your bet a card is dealt. Guess whether the next one will be higher or lower. Every hit multiplies your pot by the factor on the button – unlikely guesses pay more. After any hit you may take the pot. One wrong guess and it is gone. The ace is the highest card, the 2 the lowest."],
     roulette = L["Pick a chip size and click the fields you want to bet on; a right-click takes chips back. Then let the ball roll. A single number pays 35 to 1, a dozen 2 to 1, and red, black, even, odd, low and high 1 to 1. On zero only a chip on the zero wins. With an empty table, Space repeats your last bets."],
+    maumau = L["Everyone starts with five cards from a deck of 32 (7 to ace); one card lies face up. On your turn you play one card that matches the top card in suit or value. If you cannot or do not want to, you draw one card and may play it straight away if it fits; otherwise you pass. Three cards are special: a 7 makes the next player draw two – unless they play a 7 themselves, then the one after them draws four, and so on. An 8 makes the next player sit out. A jack fits on everything except another jack, and whoever plays it wishes for a suit. The first to play their last card wins. With bots at the table the game also ends when a bot goes out first; then whoever of you two holds fewer cards wins."],
     holdem = L["You buy in and sit at a table of four; everyone starts with the same chips. Each hand you get two cards of your own. Five shared cards are revealed in three steps, with a round of betting before each: fold, call, raise or go all in. The best five out of seven cards win the pot. Whoever runs out of chips is out, and the blinds double every five hands. Between hands you can leave and take your chips as gold."],
 }
 
@@ -1411,7 +1411,7 @@ function ns.UpdateMPView()
             text = L["You choose the game:"]
             local p = MP.Paused(s.partner)
             if (p and #p.moves > 0) or (s.theirs or 0) > 0 then add(L["Continue the paused game"], MP.Resume) end
-            for _, id in ipairs(MP.order) do add(ns.gamesById[id].name, function() MP.Choose(id) end) end
+            for _, id in ipairs(MP.order) do add(MP.games[id].name or ns.gamesById[id].name, function() MP.Choose(id) end) end
             add(L["Cancel"], MP.Pause)
         elseif s.state == "waiting" then
             text = L["Your opponent is choosing a game …"]
@@ -1489,7 +1489,7 @@ function ns.MPShowBoard()
     if ns.run and ns.run.mode == "mp" and ns.run.game.mp == s then return ns.ShowView("game") end
     if ns.MP.games[s.game].race and s.board.score[s.me] then return end      -- Wettrennen: mein Ergebnis steht schon
     if InCombatLockdown() then return end      -- nach dem Kampf holt MPSync es nach
-    local def, run = ns.gamesById[s.game], ns.run
+    local def, run = ns.gamesById[ns.MP.games[s.game].def or s.game], ns.run
     if run and run.state ~= "over" and run.mode ~= "mp" and run.def ~= def then
         if run.state == "running" then ns.Pause() end
         ns.HideOverlay()
@@ -1503,7 +1503,7 @@ function ns.Unpark()
     local run = ns.parked
     ns.parked = nil
     if not run then return end
-    for _, d in ipairs(ns.games) do
+    for _, d in ipairs(ns.boards) do
         if d._board then d._board:SetShown(d == run.def) end
     end
     ns.run, ns.selected = run, run.def

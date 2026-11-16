@@ -783,6 +783,114 @@ do
     PastimeDB.mp.stats = {}
 end
 
+-- Mau-Mau: nur im Mehrspieler, mit 0 bis 2 Bots
+do
+    local function card(rank, suit) local k = ({ [7] = 1, [8] = 2, [9] = 3, [10] = 4, [11] = 5, [12] = 6, [13] = 7, [1] = 8 })[rank]; return { rank = rank, suit = suit, id = (suit - 1) * 8 + k } end
+    local function total(st) local n = 1 + #st.pile + #st.discard; for _, h in ipairs(st.hands) do n = n + #h end; return n end
+    -- ganze Partien mit zufälligen erlaubten Zügen: sie enden, keine Karte geht verloren, und es ist auf beiden Seiten dasselbe
+    local function playOut(id, seed)
+        local G, rnd = MP.games[id], ns.RNG(seed + 99)
+        local st, turn, res, steps, whole = G.New(seed), 1 + seed % 2, nil, 0, true
+        while res == nil and steps < 3000 do
+            steps = steps + 1
+            local moves = {}
+            for _, c in ipairs(st.hands[st.human[turn]]) do
+                for w = 0, 4 do if G.Legal(st, turn, w * 100 + c.id) then moves[#moves + 1] = w * 100 + c.id end end
+            end
+            if #moves == 0 or rnd(4) == 1 then
+                for _, v in ipairs({ 0, -1 }) do if G.Legal(st, turn, v) then moves[#moves + 1] = v end end
+            end
+            if #moves == 0 then return nil end
+            local nextSeat
+            res, nextSeat = G.Apply(st, turn, moves[rnd(#moves)])
+            turn = nextSeat or (3 - turn)
+            whole = whole and total(st) == 32
+        end
+        return res, steps, whole, st.top.id
+    end
+    local ended, whole, same = true, true, true
+    for _, id in ipairs({ "maumau", "maumau3", "maumau4" }) do
+        for seed = 1, 25 do
+            local res, steps, ok, top = playOut(id, seed)
+            local res2, steps2, _, top2 = playOut(id, seed)
+            ended = ended and (res == 0 or res == 1 or res == 2)
+            whole = whole and ok == true
+            same = same and res == res2 and steps == steps2 and top == top2
+        end
+    end
+    check(ended, "Mau-Mau: jede Partie endet mit einem Sieger oder unentschieden, mit 0, 1 und 2 Bots")
+    check(whole, "dabei bleiben es immer 32 Karten")
+    check(same, "derselbe Startwert und dieselben Züge geben auf beiden Seiten dieselbe Partie")
+
+    local G = MP.games.maumau
+    local st = G.New(1)
+    st.hands[1], st.hands[2], st.top, st.suit = { card(7, 1), card(11, 3), card(9, 4) }, { card(13, 2), card(10, 1) }, card(9, 1), 1
+    check(not G.Legal(st, 1, 21) and G.Legal(st, 1, 321) and G.Legal(st, 1, 27) and not G.Legal(st, 2, 0) and not G.Legal(st, 1, -1) and not G.Legal(st, 1, 15),
+        "legen darf, wer dran ist: was in Farbe oder Wert passt; der Bube nur mit Wunsch; passen erst nach dem Ziehen")
+    local res, nextSeat = G.Apply(st, 1, 1)
+    check(res == nil and nextSeat == 2 and st.pend == 2 and not G.Legal(st, 2, 12) and not G.Legal(st, 2, -1), "nach einer 7 hilft nur eine 7 – oder ziehen")
+    res, nextSeat = G.Apply(st, 2, 0)
+    check(nextSeat == 1 and #st.hands[2] == 4 and st.pend == 0, "wer keine 7 hat, zieht zwei und ist damit fertig")
+    res, nextSeat = G.Apply(st, 1, 221)
+    check(st.suit == 2 and st.top.rank == 11 and nextSeat == 2, "der Bube wünscht eine Farbe")
+    st.hands[2] = { card(10, 2), card(11, 1), card(8, 3) }
+    check(G.Legal(st, 2, 12) and not G.Legal(st, 2, 105) and not G.Legal(st, 2, 18), "danach passt nur die gewünschte Farbe, kein zweiter Bube")
+    G.Apply(st, 2, 12)
+    st.hands[1] = { card(8, 2), card(9, 2) }
+    res, nextSeat = G.Apply(st, 1, 10)
+    check(res == nil and nextSeat == 1, "zu zweit heißt eine 8: gleich noch einmal")
+    res = G.Apply(st, 1, 11)
+    check(res == 1 and st.winner == 1, "wer die letzte Karte legt, gewinnt")
+    st = G.New(2); st.cur = 1
+    local before = #st.hands[1]
+    res, nextSeat = G.Apply(st, 1, 0)
+    check(nextSeat == 1 and #st.hands[1] == before + 1 and st.drew and G.Legal(st, 1, -1) and not G.Legal(st, 1, 0), "ziehen: eine Karte, danach legen oder passen")
+
+    -- mit einem Bot: er antwortet auf die 7, und geht er zuerst aus, gewinnt, wer weniger Karten hat
+    G = MP.games.maumau3
+    st = G.New(3)
+    st.hands[1], st.hands[2], st.top, st.suit = { card(7, 1), card(9, 1) }, { card(7, 3), card(13, 4) }, card(9, 1), 1
+    res, nextSeat = G.Apply(st, 1, 1)
+    check(res == nil and nextSeat == 2 and st.pend == 4 and #st.hands[2] == 1 and st.cur == 3 and st.events[2].kind == "play" and st.events[2].pos == 2,
+        "der Bot legt seine 7 drauf: die zweite Spielerin müsste vier ziehen")
+    st = G.New(3)
+    st.hands[1], st.hands[2], st.top, st.suit = { card(12, 1), card(9, 1) }, { card(10, 1) }, card(9, 1), 1
+    res = G.Apply(st, 1, 6)
+    check(res == 1 and st.winner == 2 and #st.hands[1] == 1 and #st.hands[3] == 5, "geht ein Bot zuerst aus, gewinnt von beiden, wer weniger Karten hat")
+
+    -- am Brett
+    MP._Reset(); flush(); SENT = {}
+    ns.ShowFrame("mp")
+    MP.Invite(JAINA); local sid = MP.session.id
+    from(JAINA, "ACCEPT", sid, 0)
+    check(btn(ns.L["Mau-Mau"]) and btn(ns.L["Mau-Mau with 1 bot"]) and btn(ns.L["Mau-Mau with 2 bots"]), "die Spielwahl bietet Mau-Mau mit 0, 1 und 2 Bots")
+    local last = PastimeDB.lastGame
+    click(btn(ns.L["Mau-Mau with 2 bots"]))
+    local s, g = MP.session, ns.run and ns.run.game
+    check(s.game == "maumau4" and ns.run.def.id == "maumau" and ns.run.mode == "mp" and g.mp == s and ns.gameView:IsShown() and s.board.n == 4, "gewählt: das Mau-Mau-Brett öffnet sich, vier am Tisch")
+    check(#ns.games == 24 and ns.gamesById.maumau.mpOnly and PastimeDB.lastGame == last, "Mau-Mau steht nicht in der Spielauswahl und wird nicht als letztes Spiel gemerkt")
+    if s.turn ~= s.me then
+        from(JAINA, "MOVE", sid, #s.moves + 1, 0)
+        from(JAINA, "MOVE", sid, #s.moves + 1, -1)
+    end
+    local st2 = s.board
+    local mine = st2.hands[st2.human[s.me]]
+    check(s.turn == s.me and g.drawBtn.enabled and g:Info()[1][2] == tostring(#mine) and #g:Info() == 5, "ich bin dran; die Seitenleiste zählt die Karten aller vier und den Stapel")
+    local n, cards = #s.moves, #mine
+    if st2.pend > 0 then g:DrawOrPass() else g:DrawOrPass(); if s.turn == s.me and st2.drew then check(g.drawBtn.text == ns.L["Pass (Space)"], "nach dem Ziehen heißt der Knopf „Passen“"); g:DrawOrPass() end end
+    check(#s.moves > n and #mine > cards and sent(("PT1^MOVE^%s^%d^0"):format(sid, n + 1)), "Ziehen geht als Zug an die Mitspielerin")
+    local shown = 0
+    for _, f in ipairs(g.hand) do if f:IsShown() then shown = shown + 1 end end
+    check(shown == #mine and g.top.card == st2.top, "die Hand zeigt genau meine Karten, in der Mitte liegt die oberste")
+    ns.ShowRules()
+    check(ns.overlay.text.text:find(ns.HELP.maumau, 1, true), "das Regel-Fenster erklärt Mau-Mau")
+    ns.Resume()
+    MP.GiveUp()
+    check(s.state == "over" and ns.run.state == "over" and ns.overlay.title.text == ns.L["Defeat"], "Aufgeben beendet auch Mau-Mau")
+    MP.Pause(); ns.ShowLauncher()
+    PastimeDB.mp.stats = {}
+end
+
 local errs = {}
 for _, e in ipairs(PastimeDB.log) do if e.l == "E" then table.insert(errs, e.c .. ": " .. e.m) end end
 check(#errs == 0, "keine Fehler im Protokoll:\n  " .. table.concat(errs, "\n  "))
