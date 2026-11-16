@@ -1305,7 +1305,7 @@ end
 -- Mehrspieler (Beta): Reiter mit Mitspielerliste und Stand der Sitzung, Anfrage-Fenster,
 -- Brett starten und ein laufendes Einzelspiel so lange parken
 ---------------------------------------------------------------------------
-local MP_ROWS, MP_BUTTONS = 10, 12
+local MP_ROWS, MP_BUTTONS = 10, 16
 local MP_NOTES = {
     declined = L["Your request was declined."],
     ["no answer"] = L["No answer – the request expired."],
@@ -1424,7 +1424,7 @@ function ns.UpdateMPView()
         elseif s.state == "choosing" then
             text = L["You choose the game:"]
             local p = MP.Paused(s.partner)
-            if (p and #p.moves > 0) or (s.theirs or 0) > 0 then add(L["Continue the paused game"], MP.Resume) end
+            if (p and #p.moves > 0) or (s.theirs or 0) > 0 then add(L["Continue game"], MP.Resume) end
             for _, id in ipairs(MP.order) do add(MP.games[id].name or ns.gamesById[id].name, function() MP.Choose(id) end) end
             add(L["Cancel"], MP.Pause)
         elseif s.state == "waiting" then
@@ -1452,7 +1452,15 @@ function ns.UpdateMPView()
     for i, b in ipairs(v.buttons) do
         local spec = buttons[i]
         b:SetShown(spec ~= nil)
-        if spec then b:SetText(spec[1]); b.fn = spec[2] end
+        if spec then
+            b:SetText(spec[1]); b.fn = spec[2]
+            -- wenige Knöpfe untereinander; die Spielwahl mit ihren vielen Spielen in zwei Spalten
+            local two = #buttons > 4
+            b:ClearAllPoints()
+            b:SetWidth(two and 152 or 230)
+            if two then b:SetPoint("TOP", (i % 2 == 1) and -79 or 79, -104 - math.floor((i - 1) / 2) * 26)
+            else b:SetPoint("TOP", 0, -150 - (i - 1) * 30) end
+        end
     end
 end
 

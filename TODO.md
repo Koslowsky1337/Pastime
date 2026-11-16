@@ -74,7 +74,9 @@ Stand: `v1.4.2` ist veröffentlicht (16.11.). Der Mehrspieler steckt abgeschalte
 - [x] Spiele für zwei, Schritt 2 (16.11.): Mau-Mau als neues Spiel nur für den Mehrspieler, in der Spielwahl mit 0, 1 oder 2 Bots (neue Datei `Games/MauMau.lua`: Spiel-Neustart nötig)
 - [ ] Im Spiel ansehen: Mau-Mau-Brett (Hand mit vielen Karten, Farbwahl nach dem Buben, Meldungszeilen), Spielwahl mit acht Knöpfen
 - [x] Spiele für zwei, Schritt 3 (16.11.): Goblin-Poker und Tavernen-Hold'em zu zweit auf einem eigenen Brett (neue Datei `Games/PokerDuel.lua`: Spiel-Neustart nötig)
-- [ ] Spiele für zwei, Schritt 4: Sechsundsechzig
+- [x] Spiele für zwei, Schritt 4 (16.11.): Sechsundsechzig als neues Stichspiel nur für den Mehrspieler (neue Datei `Games/SixtySix.lua`: Spiel-Neustart nötig); Spielwahl in zwei Spalten
+- [ ] Im Spiel ansehen: Sechsundsechzig-Brett, Spielwahl in zwei Spalten (passen die Namen in die Knöpfe?)
+- [ ] Später, falls gewünscht: Sechsundsechzig mit Zudrehen und Tausch der Trumpf-Neun; Tavernenwürfel, Edelsteincode-Duell, Flottenduell, Durak, Rommé
 - [x] Regel-Fenster: Abschnitt „Zu zweit“ für die Mehrspieler-Spiele (16.11.); Vier gewinnt braucht keinen
 - [ ] Im Spiel ansehen: Poker-Brett zu zweit (Karten oben/Mitte/unten, drei Knöpfe, Ergebniszeilen), Länge der Regel-Fenster mit „Zu zweit“
 - [ ] Zu zweit testen: je ein Wettrennen (wer zuerst fertig ist, wartet), Runenpaare-Duell, Spielwahl mit jetzt fünf Spielen

@@ -1013,6 +1013,93 @@ do
     PastimeDB.mp.stats = {}
 end
 
+-- Sechsundsechzig: Stichspiel für zwei
+do
+    local G = MP.games.sixtysix
+    local K = { [9] = 1, [11] = 2, [12] = 3, [13] = 4, [10] = 5, [1] = 6 }
+    local function card(rank, suit) return { rank = rank, suit = suit, k = K[rank], id = (suit - 1) * 6 + K[rank] } end
+    -- ganze Partien mit zufälligen erlaubten Zügen: sie enden mit einem Sieger, es bleiben 24 Karten und 120 Augen
+    local function playOut(seed)
+        local rnd = ns.RNG(seed + 3)
+        local turn = 1 + seed % 2
+        local st, res, steps, whole = G.New(seed, turn), nil, 0, true
+        while res == nil and steps < 100 do
+            steps = steps + 1
+            local moves = {}
+            for _, c in ipairs(st.hands[turn]) do
+                if G.Legal(st, turn, c.id + 100) then moves[#moves + 1] = c.id + 100 elseif G.Legal(st, turn, c.id) then moves[#moves + 1] = c.id end
+            end
+            if #moves == 0 or G.Legal(st, 3 - turn, st.hands[3 - turn][1] and st.hands[3 - turn][1].id or 1) then return nil end
+            local nextSeat
+            res, nextSeat = G.Apply(st, turn, moves[rnd(#moves)])
+            turn = nextSeat or (3 - turn)
+            whole = whole and #st.hands[1] + #st.hands[2] + #st.stock + (st.lead and 1 or 0) + 2 * (st.tricks[1] + st.tricks[2]) == 24
+        end
+        return res, steps, whole, st.pts[1], st.pts[2]
+    end
+    local ended, whole, same = true, true, true
+    for seed = 1, 60 do
+        local res, steps, ok, p1, p2 = playOut(seed)
+        local res2, steps2, _, q1 = playOut(seed)
+        ended = ended and (res == 1 or res == 2) and steps <= 24
+        whole = whole and ok == true and p1 + p2 <= 120 + 100
+        same = same and res == res2 and steps == steps2 and p1 == q1
+    end
+    check(ended, "Sechsundsechzig: jede Partie endet nach höchstens 24 Karten mit einem Sieger")
+    check(whole and same, "es bleiben 24 Karten, und derselbe Startwert gibt dieselbe Partie")
+
+    local st = G.New(1, 1)
+    check(#st.hands[1] == 6 and #st.hands[2] == 6 and #st.stock == 12 and st.stock[1] == st.trumpCard and st.trump == st.trumpCard.suit and st.toAct == 1,
+        "sechs Karten für jeden, zwölf im Stapel, die Trumpfkarte liegt zuunterst")
+    st.trump = 4
+    st.hands[1] = { card(13, 1), card(12, 1), card(1, 2), card(9, 3), card(10, 3), card(11, 4) }
+    st.hands[2] = { card(1, 1), card(10, 1), card(9, 2), card(13, 3), card(9, 4), card(12, 4) }
+    check(G.Legal(st, 1, 104) and G.Legal(st, 1, 103) and not G.Legal(st, 1, 112) and not G.Legal(st, 2, 6), "ein Paar ansagen darf, wer König und Dame der Farbe hält und ausspielt")
+    local res, nextSeat = G.Apply(st, 1, 104)
+    check(st.pts[1] == 20 and st.lead.id == 4 and nextSeat == 2, "das Paar bringt 20 Augen")
+    check(G.Legal(st, 2, 9 + 0) == false and G.Legal(st, 2, 19) and G.Legal(st, 2, 6), "solange der Stapel liegt, darf sie alles zugeben, was sie auf der Hand hat")
+    res, nextSeat = G.Apply(st, 2, 6)
+    check(res == nil and nextSeat == 2 and st.pts[2] == 15 and st.tricks[2] == 1 and #st.hands[1] == 6 and #st.hands[2] == 6 and #st.stock == 10,
+        "das Ass sticht den König: 15 Augen, beide ziehen nach, und sie spielt aus")
+    st.hands[1] = { card(12, 1), card(1, 2), card(9, 3), card(10, 3), card(11, 4) }
+    st.hands[2] = { card(10, 1), card(9, 2), card(13, 3), card(9, 4), card(12, 4) }
+    st.stock = {}
+    G.Apply(st, 2, 5)
+    check(G.Legal(st, 1, 3) and not G.Legal(st, 1, 12) and not G.Legal(st, 1, 20), "ohne Stapel: Farbe bedienen")
+    res, nextSeat = G.Apply(st, 1, 3)
+    check(nextSeat == 2 and st.pts[2] == 28, "die Zehn sticht die Dame")
+    G.Apply(st, 2, 19)
+    check(G.Legal(st, 1, 20) and not G.Legal(st, 1, 12), "Trumpf ausgespielt: wer Trumpf hat, muss ihn zugeben")
+    res, nextSeat = G.Apply(st, 1, 20)
+    check(nextSeat == 1 and st.tricks[1] == 1, "der Bube sticht die Neun")
+    st.pts[1] = 60
+    res = G.Apply(st, 1, 12)
+    res = res or G.Apply(st, 2, 7)
+    check(res == 1 and st.over, "wer 66 Augen erreicht, gewinnt sofort")
+
+    -- am Brett
+    MP._Reset(); flush(); SENT = {}
+    ns.ShowFrame("mp")
+    MP.Invite(JAINA); local sid = MP.session.id
+    from(JAINA, "ACCEPT", sid, 0)
+    click(btn(ns.L["Sixty-Six"]))
+    local s, g = MP.session, ns.run and ns.run.game
+    st = s.board
+    check(s.game == "sixtysix" and ns.run.def.id == "sixtysix" and g.mp == s and g.myCards[6]:IsShown() and g.myCards[1].face:IsShown() and g.oppCards[6].back:IsShown()
+        and g.trumpCard.card == st.trumpCard and #ns.games == 24, "Sechsundsechzig: meine sechs Karten offen, ihre verdeckt, die Trumpfkarte liegt aus")
+    if s.turn ~= s.me then from(JAINA, "MOVE", sid, #s.moves + 1, st.hands[3 - s.me][1].id) end
+    local n = #s.moves
+    g:Click(1)
+    check(#s.moves == n + 1 and sent(("PT1^MOVE^%s^%d^%d"):format(sid, n + 1, s.moves[n + 1])), "ein Klick spielt die Karte; der Zug geht an die Mitspielerin")
+    ns.ShowRules()
+    check(ns.overlay.text.text:find(ns.HELP.sixtysix, 1, true), "das Regel-Fenster erklärt Sechsundsechzig")
+    ns.Resume()
+    MP.GiveUp()
+    check(s.state == "over" and ns.overlay.title.text == ns.L["Defeat"], "Aufgeben beendet auch Sechsundsechzig")
+    MP.Pause(); ns.ShowLauncher()
+    PastimeDB.mp.stats = {}
+end
+
 local errs = {}
 for _, e in ipairs(PastimeDB.log) do if e.l == "E" then table.insert(errs, e.c .. ": " .. e.m) end end
 check(#errs == 0, "keine Fehler im Protokoll:\n  " .. table.concat(errs, "\n  "))

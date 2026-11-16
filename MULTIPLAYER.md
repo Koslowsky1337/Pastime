@@ -109,7 +109,7 @@ Plan für 2.0 (16.11. beschlossen, alle vier Schritte): alle vorhandenen Kartens
 | 2 | Mau-Mau (neu) | fertig | zwei Spieler, in der Spielwahl auch mit 1 oder 2 Bots. 32 Karten; 7: zwei ziehen (oder selbst eine 7 legen), 8: aussetzen, Bube: Wunschfarbe. Geht ein Bot zuerst aus, gewinnt von beiden, wer weniger Karten hat |
 | 3 | Goblin-Poker | fertig | je 1000 Gold, fünf Blätter. Grundeinsatz 20, fünf Karten, einmal tauschen, eine Setzrunde (Erhöhung 40, höchstens drei) |
 | 3 | Tavernen-Hold'em | fertig | je 1000 Gold, zehn Blätter oder bis einer pleite ist. Blinds 10/20, vier Setzrunden (Erhöhung 20, später 40, höchstens drei je Runde) |
-| 4 | Sechsundsechzig (neu) | offen | das klassische Stichspiel für zwei |
+| 4 | Sechsundsechzig (neu) | fertig | Stichspiel für zwei mit 24 Karten: Trumpf, nachziehen, ohne Stapel Farb- und Trumpfzwang, Paar aus König und Dame 20/40 Augen; wer zuerst 66 hat, gewinnt, sonst der letzte Stich. Ohne Zudrehen und ohne Tausch der Trumpf-Neun |
 
 **Nur im Mehrspieler:** Solche Spiele (`mpOnly`) stehen nicht in der Spielauswahl, haben keine Bestenliste und keine Tagesaufgabe. **Bots** ziehen nach festen Regeln innerhalb des Regelwerks, also auf beiden Seiten gleich; gesendet werden nur die Züge der beiden Spieler.
 
@@ -187,6 +187,8 @@ Der Mehrspieler wird erst mit 2.0 im Changelog genannt. Bis dahin steckt er abge
 
 ### Beta 4
 
+- New game, multiplayer only: Sixty-Six, the classic trick game for two.
+- The game choice shows its eleven games in two columns.
 - Goblin Poker and Tavern Hold'em for two: 1,000 gold each, fixed bets, five or ten hands. The rules window has a section “For two” for every multiplayer game.
 - New game, multiplayer only: Mau-Mau for two, optionally with one or two bots at the table.
 - Four more games for two: Higher or Lower, Goblin Blackjack and Solitaire as races (both play the same cards at the same time, the better result wins) and Rune Pairs as a duel on a shared board.
