@@ -194,9 +194,18 @@ function ns.ShowRules()
     if not run then return end
     ns.Pause()
     if run.state ~= "paused" or ns.overlay.kind ~= "pause" then return end      -- Spielende und Ankunft behalten ihren Dialog
-    -- manche Spiele hängen Eigenes an (der Automat seinen Gewinnplan)
-    ns.ShowOverlay("pause", L["Rules"], run.def.desc .. (run.def.rules and ("\n\n" .. run.def.rules()) or "")
-        .. "\n\n|cffffd100" .. run.def.controls .. "|r")
+    -- oben kurz die Steuerung, darunter die Erklärung des Spiels
+    ns.ShowOverlay("pause", L["Rules"], "|cffffd100" .. L["Controls"] .. "|r\n" .. run.def.controls
+        .. "\n\n|cffffd100" .. L["How to play"] .. "|r\n" .. run.def.desc)
+end
+
+-- Was gewinnt: Blattrangfolge, Auszahlungen, Sonderregeln eines Spiels (def.wins liefert den Text)
+function ns.ShowWins()
+    local run = ns.run
+    if not run or not run.def.wins then return end
+    ns.Pause()
+    if run.state ~= "paused" or ns.overlay.kind ~= "pause" then return end
+    ns.ShowOverlay("pause", L["What wins?"], run.def.wins())
 end
 
 function ns.Resume()
@@ -777,6 +786,10 @@ local function CreateGameView(parent)
     side.controls:SetPoint("BOTTOMLEFT", side.flight, "TOPLEFT", 0, 8)
     side.controls:SetPoint("BOTTOMRIGHT", side.flight, "TOPRIGHT", 0, 8)
 
+    -- nur bei Spielen, die ihre Gewinnblätter oder Gewinnkombinationen erklären (def.wins)
+    side.wins = ns.CreateButton(side, L["What wins?"], 206, function() ns.ShowWins() end)
+    side.wins:SetPoint("BOTTOM", 0, 98)
+    ns.SetTooltip(side.wins, L["What wins?"], L["Pauses the game and shows which hands or combinations win."])
     side.rules = ns.CreateButton(side, L["Rules"], 206, function() ns.ShowRules() end)
     side.rules:SetPoint("BOTTOM", 0, 70)
     ns.SetTooltip(side.rules, L["Rules"], L["Pauses the game and explains the goal and the controls."])
@@ -879,6 +892,12 @@ function ns.UpdateSidePanel()
     side.restart:SetText(run.mode ~= "mp" and L["Restart"] or ((ns.MP.session and ns.MP.session.state == "playing") and L["Give up"] or L["Rematch"]))
     side.pause:SetEnabled(run.state ~= "over")
     side.rules:SetEnabled(run.state == "running" or (run.state == "paused" and ns.overlay.kind == "pause"))
+    side.wins:SetShown(def.wins ~= nil)
+    side.wins:SetEnabled(run.state == "running" or (run.state == "paused" and ns.overlay.kind == "pause"))
+    -- mit dem zusätzlichen Knopf rückt die Reisezeile eine Zeile höher
+    side.flight:ClearAllPoints()
+    side.flight:SetPoint("BOTTOMLEFT", 10, def.wins and 128 or 100)
+    side.flight:SetPoint("BOTTOMRIGHT", -10, def.wins and 128 or 100)
 end
 
 ---------------------------------------------------------------------------

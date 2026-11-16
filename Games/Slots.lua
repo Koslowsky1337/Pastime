@@ -469,7 +469,7 @@ local function mult(v)
     return "×" .. s
 end
 
--- Gewinnplan für die Spielregeln: je Symbol die Linien und, wo es Bonussymbol sein kann, die Walzen
+-- Gewinnplan für „Was gewinnt?“: je Symbol die Linien und, wo es Bonussymbol sein kann, die Walzen
 local function Rules()
     local t = { L["Payouts as multiples of your bet. Left: 2 · 3 · 4 · 5 of a kind on a line. Right in gold: the bonus symbol on 3 · 4 · 5 reels in a free spin."] }
     for i = 1, COIN do
@@ -538,7 +538,7 @@ local function Create(host, board)
     local hint = ns.FontString(board, "GameFontDisableSmall", "CENTER")
     hint:SetPoint("TOP", board, "TOP", 0, -351)
     hint:SetWidth(W - 16)
-    hint:SetText(L["All payouts: “Rules” on the right"])
+    hint:SetText(L["All payouts: “What wins?” on the right"])
     return g
 end
 
@@ -554,7 +554,7 @@ ns.RegisterGame({
     scoreLabel = L["Highest gold"],
     width = W, height = H,
     desc = L["Five reels, three rows, five lines: the three rows and the two diagonals. Three or more of a kind from the left win; the rune is wild. Three or four runes pay 2 or 10 times your bet plus 10 or 20 free spins with a bonus symbol that fills whole reels. Your goblin gold carries over between games. When you go broke or cash out, your highest gold counts."],
-    rules = Rules,
+    wins = Rules,
     controls = L["1/2: lower or raise your bet · 3: highest bet · Space: spin · A: auto-spin on or off · %s: cash out"]:format(ns.KEYS.cash),
     controlsShort = L["1/2: bet · Space: spin\nA: auto-spin\n%s: cash out"]:format(ns.KEYS.cash),
     Create = Create,

@@ -294,5 +294,14 @@ ns.RegisterGame({
     desc = L["Put your chips where you like: on single numbers, on a dozen, or on red, black, even, odd, low or high – as many bets as you want. Then the ball rolls. Your goblin gold carries over between games. When you go broke or cash out, your highest gold counts."],
     controls = L["1/2/3: chip of 10, ¼ or ½ of your gold · click: place a chip · right-click: take it back · Space: spin (or repeat your last bets) · %s: cash out"]:format(ns.KEYS.cash),
     controlsShort = L["1–3: chip size\nClick: bet · Space: spin\n%s: cash out"]:format(ns.KEYS.cash),
+    wins = function()
+        return table.concat({
+            L["A single number pays 35 to 1."],
+            L["A dozen (1–12, 13–24, 25–36) pays 2 to 1."],
+            L["Red, black, even, odd, 1–18 and 19–36 pay 1 to 1."],
+            L["On zero all of those lose. Only a chip on the zero itself wins."],
+            L["You may place as many chips as you like; each field is settled on its own."],
+        }, "\n\n")
+    end,
     Create = Create,
 })

@@ -142,5 +142,13 @@ ns.RegisterGame({
     desc = L["Is the next card higher or lower? Every hit multiplies the pot – the less likely your guess, the more. One miss and the pot is gone, so take it in time. Your goblin gold carries over between games. When you go broke or cash out, your highest gold counts."],
     controls = L["1/2: lower or raise your bet · 3: highest bet · Space: deal · then 1 or Up: higher · 2 or Down: lower · 3 or Space: take the pot · %s: cash out"]:format(ns.KEYS.cash),
     controlsShort = L["1: higher · 2: lower\n3: take the pot\n%s: cash out"]:format(ns.KEYS.cash),
+    wins = function()
+        return table.concat({
+            L["The ace is the highest card, the 2 the lowest. The suit does not matter."],
+            L["A card of the same value does not count: another one is drawn."],
+            L["The number on the button is what a hit multiplies your pot by: the less likely your guess, the higher it is."],
+            L["One miss and the pot is gone. Taking the pot ends the round and it is yours."],
+        }, "\n\n")
+    end,
     Create = Create,
 })

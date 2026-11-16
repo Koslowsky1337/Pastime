@@ -664,6 +664,27 @@ dump = ns.copyFrame.text or ""
 check(dump:find("PLAIN TEXT", 1, true) and dump:find('UnitName(player): "Thokk"', 1, true), "Daten-Auszug: mit „klar“ im Klartext, mit Warnhinweis")
 ns.copyFrame:Hide()
 
+-- „Was gewinnt?“: eigener Knopf bei den Karten- und Goldspielen
+ns.StartGame(ns.gamesById.holdem)
+local side = ns.gameView.side
+check(side.wins:IsShown() and side.wins:IsEnabled(), "Hold'em: der Knopf „Was gewinnt?“ ist da")
+side.wins.scripts.OnClick(side.wins)
+local wt = ns.overlay.text.text
+check(ns.run.state == "paused" and ns.overlay.title.text == ns.L["What wins?"] and wt:find("1. |cffffd100" .. ns.Cards.HANDS[9], 1, true)
+    and wt:find("9. |cffffd100" .. ns.Cards.HANDS[1], 1, true) and wt:find(ns.L["Your best five out of seven cards count. Equal hands split the pot."], 1, true),
+    "Hold'em: die Rangfolge vom Straight Flush bis zur höchsten Karte, dazu die Hold'em-Regel")
+local function place(i) return wt:find("|cffffd100" .. ns.Cards.HANDS[i] .. "|r", 1, true) end
+check(place(5) < place(4) and place(4) < place(3) and place(3) < place(2),
+    "Straße steht vor Drilling, Drilling vor zwei Paaren, zwei Paare vor einem Paar")
+ns.Resume()
+for _, id in ipairs({ "drawpoker", "blackjack", "higherlower", "roulette", "slots" }) do
+    ns.StartGame(ns.gamesById[id])
+    check(side.wins:IsShown() and #ns.gamesById[id].wins() > 40, id .. ": erklärt, was gewinnt")
+end
+ns.StartGame(ns.gamesById.snake)
+check(not side.wins:IsShown(), "Windnatter: kein solcher Knopf")
+ns.ShowLauncher()
+
 -- Reiter „Einstellungen“: dieselben Schalter wie im Addon-Menü
 ns.ShowFrame("settings")
 local sv = ns.settingsView

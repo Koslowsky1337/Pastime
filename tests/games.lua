@@ -1118,7 +1118,7 @@ check(g.gold == before + 2 and g.sub.text == (ns.L["%d gold back"]):format(2) an
     "Automat: ein kleiner Treffer bringt einen Teil des Einsatzes zurück und wird ehrlich als Minus gezeigt: " .. g.msg.text)
 reach("bet")
 -- der Gewinnplan steht in den Spielregeln, als Vielfaches des Einsatzes
-local rules = ns.gamesById.slots.rules()
+local rules = ns.gamesById.slots.wins()
 check(rules:find("– · ×0[.,]8 · ×1[.,]2 · ×2") and rules:find("×0[.,]2 · ×1 · ×1[.,]6") and rules:find("×0[.,]2 · ×0[.,]6 · ×3") and rules:find("×40", 1, true),
     "Automat: die Spielregeln zeigen den Gewinnplan als Vielfaches des Einsatzes")
 -- Fester Einsatz: einmal einstellen, dann nur noch drehen; Auto-Spin

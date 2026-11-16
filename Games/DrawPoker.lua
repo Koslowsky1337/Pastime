@@ -186,5 +186,6 @@ ns.RegisterGame({
     desc = L["You and the goblin each get five cards. Hold what you like and swap the rest once. Then decide: raise by your ante and see his hand, or fold and lose only the ante. The goblin swaps too, and the better hand wins – he keeps a tenth of what you win. Your goblin gold carries over between games. When you go broke or cash out, your highest gold counts."],
     controls = L["1/2: lower or raise your ante · 3: highest ante · Space: deal · then 1–5 or click a card: hold · Space: draw · 1: raise · 2: fold · %s: cash out"]:format(ns.KEYS.cash),
     controlsShort = L["1–5: hold · Space: draw\n1: raise · 2: fold\n%s: cash out"]:format(ns.KEYS.cash),
+    wins = function() return Cards.Ranking(L["The better hand wins. Equal hands: you get your bet back."]) end,
     Create = Create,
 })

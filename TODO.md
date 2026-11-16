@@ -59,4 +59,5 @@ Stand: `v1.3.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 - [ ] Jede Beta mit einem zweiten Spieler nach der Prüfliste in `MULTIPLAYER.md` testen
 
 ## 4. Später
+- [ ] Ausführlichere Spielerklärung für alle 24 Spiele im Regel-Fenster (oben Steuerung, darunter „So geht's“): Texte je Spiel schreiben, Englisch und Deutsch
 - [x] Arbeitsordner heißt jetzt `Pastime` (15.11.)

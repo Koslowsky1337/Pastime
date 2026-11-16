@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.0-beta4
+
+- New button “What wins?” in the card and gold games. Tavern Hold'em and Goblin Poker list the poker hands from strongest to weakest with a short explanation of each; Goblin Blackjack, Higher or Lower and Goblin Roulette explain what wins and what it pays; Goblin Slots show their pay table there.
+- The rules window now starts with the controls and explains the game below.
+
 ## 2.0.0-beta3
 
 Multiplayer, third test version: fixes from the first test with two players.

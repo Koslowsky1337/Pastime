@@ -141,6 +141,23 @@ end
 Cards.HANDS = { L["High Card"], L["Pair"], L["Two Pair"], L["Three of a Kind"], L["Straight"], L["Flush"],
     L["Full House"], L["Four of a Kind"], L["Straight Flush"] }
 
+-- Rangfolge der Pokerblätter als Text, das stärkste zuerst (für „Was gewinnt?“). extra: Zeilen, die nur
+-- für ein Spiel gelten.
+local HAND_HELP = { L["none of these: the highest card counts"], L["two cards of the same value"], L["two different pairs"],
+    L["three cards of the same value"], L["five in a row, any suits"], L["five cards of one suit"], L["three of a kind and a pair"],
+    L["four cards of the same value"], L["five in a row, all one suit"] }
+function Cards.Ranking(extra)
+    local t = { L["From strongest to weakest:"] }
+    for i = #Cards.HANDS, 1, -1 do
+        t[#t + 1] = ("%d. |cffffd100%s|r – %s"):format(#Cards.HANDS + 1 - i, Cards.HANDS[i], HAND_HELP[i])
+    end
+    t[#t + 1] = ""
+    t[#t + 1] = L["Same kind of hand: the higher values win, then the remaining cards."]
+    t[#t + 1] = L["The ace is high (10-J-Q-K-A) and also low in the smallest straight (A-2-3-4-5)."]
+    if extra then t[#t + 1] = extra end
+    return table.concat(t, "\n")
+end
+
 local function straightTop(has)
     for hi = 14, 5, -1 do
         local ok = true

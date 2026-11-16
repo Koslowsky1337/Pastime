@@ -131,6 +131,14 @@ ns.EndTrip(true)
 scan("Ankunft mit langem Zielnamen")
 ns.ShowLauncher()      -- die lange Strecke bleibt: Liste und Titel der Reiserekorde kürzen die Namen
 
+-- 4b. „Was gewinnt?“ in den Karten- und Goldspielen: der Text muss ins Fenster passen
+for _, id in ipairs({ "holdem", "drawpoker", "blackjack", "higherlower", "roulette", "slots" }) do
+    ns.StartGame(ns.gamesById[id])
+    ns.ShowWins()
+    scan("Was gewinnt " .. id)
+    ns.ShowLauncher()
+end
+
 -- 5. Reiserekorde
 ns.ShowFrame("records")
 scan("Reiserekorde")
