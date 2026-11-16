@@ -58,6 +58,8 @@ Stand: `v1.4.0` ist veröffentlicht (16.11.). Der Mehrspieler steckt abgeschalte
 - [ ] Beta 5: Flottenduell (neues Spiel)
 - [ ] Jede Beta mit einem zweiten Spieler nach der Prüfliste in `MULTIPLAYER.md` testen
 
+- [x] Die Vorab-Releases und Tags `v2.0.0-beta1` bis `-beta3` sind entfernt (16.11.): ihr Inhalt steckt abgeschaltet in 1.4.0. Getestet wird mit den normalen Versionen und `/pastime mp`. Die Namen nicht wiederverwenden, solange auf CurseForge Dateien dazu liegen
+
 ## 4. Später
 - [x] Ausführliche Spielerklärung für alle 24 Spiele im Regel-Fenster (oben Steuerung, darunter „So geht's“), Englisch und Deutsch (16.11.)
 - [x] Solitär: Tipp (Knopf oder H) und Erkennung „kein Zug mehr“ (16.11.)
