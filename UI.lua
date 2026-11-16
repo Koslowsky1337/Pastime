@@ -225,14 +225,28 @@ ns.HELP = {
     holdem = L["You buy in and sit at a table of four; everyone starts with the same chips. Each hand you get two cards of your own. Five shared cards are revealed in three steps, with a round of betting before each: fold, call, raise or go all in. The best five out of seven cards win the pot. Whoever runs out of chips is out, and the blinds double every five hands. Between hands you can leave and take your chips as gold."],
 }
 
+
+-- Wie ein Spiel zu zweit läuft: steht im Regel-Fenster unter „Zu zweit“ (bei Spielen nur für den Mehrspieler allein)
+ns.HELP_MP = {
+    higherlower = L["Both of you get the same cards and play five rounds, each with 1,000 gold that belongs to this duel only. Whoever has more gold at the end wins. Your goblin gold and the jackpot are not touched."],
+    solitaer = L["Both of you get the same deal and five minutes. Every card on the foundations scores 100 points; whoever clears everything gets the seconds left on top. The higher score wins."],
+    runepairs = L["You share one board with 15 pairs and take turns turning over two cards. A pair is yours and you go again. Whoever finds more pairs wins."],
+    drawpoker = L["Both start with 1,000 gold and play five hands. Every hand costs an ante of 20. You get five cards and swap as many as you like once. Then you bet in turn: check, raise by 40, call or fold – three raises at most. The better hand wins what both have bet. Whoever has more gold after five hands, or takes it all, wins."],
+    holdem = L["Both start with 1,000 gold and play ten hands. The dealer pays 10, the other player 20. You get two cards of your own; five shared cards follow in three steps (three, one, one). Before each step and at the end you bet in turn: check, raise (by 20, later by 40), call or fold – three raises at most per round. Your best five out of seven cards count. Whoever has more gold after ten hands, or takes it all, wins."],
+}
+ns.HELP_MP.blackjack = ns.HELP_MP.higherlower
+
 function ns.ShowRules()
     local run = ns.run
     if not run then return end
     ns.Pause()
     if run.state ~= "paused" or ns.overlay.kind ~= "pause" then return end      -- Spielende und Ankunft behalten ihren Dialog
+    local text = ns.HELP[run.def.id] or run.def.desc
+    local two = run.mode == "mp" and run.game.mp and ns.HELP_MP[run.game.mp.game]
+    if two then text = run.def.mpOnly and two or (text .. "\n\n|cffffd100" .. L["For two"] .. "|r\n" .. two) end
     -- oben kurz die Steuerung, darunter die Erklärung des Spiels
     ns.ShowOverlay("pause", L["Rules"], "|cffffd100" .. L["Controls"] .. "|r\n" .. run.def.controls
-        .. "\n\n|cffffd100" .. L["How to play"] .. "|r\n" .. (ns.HELP[run.def.id] or run.def.desc))
+        .. "\n\n|cffffd100" .. L["How to play"] .. "|r\n" .. text)
 end
 
 -- Was gewinnt: Blattrangfolge, Auszahlungen, Sonderregeln eines Spiels (def.wins liefert den Text)

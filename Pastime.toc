@@ -47,3 +47,4 @@ Games\Holdem.lua
 Games\TavernDice.lua
 Games\Solitaire.lua
 Games\MauMau.lua
+Games\PokerDuel.lua

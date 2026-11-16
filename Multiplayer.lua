@@ -24,7 +24,7 @@ local INVITE_TTL, CHOOSE_TTL, IDLE_TTL, PAUSE_TTL = 60, 120, 600, 600
 local MAX_INVITES, CHUNK = 3, 40
 
 -- Regelwerk eines Spiels:
---   New(seed)                 -> Zustand
+--   New(seed, first)          -> Zustand (first: der Platz, der beginnt)
 --   Legal(state, seat, value) -> darf Platz seat (1 oder 2) diesen Zug machen?
 --   Apply(state, seat, value) -> nil: weiter · 0: unentschieden · 1/2: dieser Platz hat gewonnen;
 --                                zweiter Rückgabewert: wer als Nächster dran ist (sonst der andere)
@@ -111,7 +111,7 @@ local function begin(game, seed, first, me, expect)
     local s = MP.session
     s.prior = paused(s.partner)      -- die eigene Mitschrift, falls es eine gibt: zum Abgleich nach dem Nachspielen
     s.game, s.seed, s.first, s.me = game, seed, first, me
-    s.board, s.moves, s.turn = MP.games[game].New(seed), {}, first
+    s.board, s.moves, s.turn = MP.games[game].New(seed, first), {}, first
     s.state, s.expect, s.replaying, s.fresh = "playing", expect, expect > 0, expect > 0
     s.result, s.t = nil, GetTime()
     save()

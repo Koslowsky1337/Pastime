@@ -891,6 +891,128 @@ do
     PastimeDB.mp.stats = {}
 end
 
+-- Poker zu zweit: Goblin-Poker (tauschen, eine Setzrunde) und Tavernen-Hold'em
+do
+    local FOLD, CALL, RAISE, DEAL, SWAP = 1, 2, 3, 4, 100
+    -- ganze Partien mit zufälligen erlaubten Zügen: sie enden, das Gold bleibt zusammen 2000, beide Seiten sehen dasselbe
+    local function playOut(id, seed)
+        local G, rnd = MP.games[id], ns.RNG(seed + 7)
+        local turn = 1 + seed % 2
+        local st, res, steps, whole = G.New(seed, turn), nil, 0, true
+        while res == nil and steps < 2000 do
+            steps = steps + 1
+            local moves = {}
+            for _, v in ipairs({ FOLD, CALL, CALL, CALL, RAISE, RAISE, DEAL, SWAP + rnd(32) - 1 }) do
+                if G.Legal(st, turn, v) then moves[#moves + 1] = v end
+            end
+            if #moves == 0 or G.Legal(st, 3 - turn, CALL) then return nil end
+            local nextSeat
+            res, nextSeat = G.Apply(st, turn, moves[rnd(#moves)])
+            turn = nextSeat or (3 - turn)
+            whole = whole and st.chips[1] + st.chips[2] == 2000 and st.chips[1] >= 0 and st.chips[2] >= 0
+        end
+        return res, steps, whole, st.chips[1], st.hand
+    end
+    local ended, whole, same, hands = true, true, true, true
+    for _, id in ipairs({ "drawpoker", "holdem" }) do
+        for seed = 1, 40 do
+            local res, steps, ok, chips, hand = playOut(id, seed)
+            local res2, steps2, _, chips2 = playOut(id, seed)
+            ended = ended and (res == 0 or res == 1 or res == 2) and res == (chips == 1000 and 0 or (chips > 1000 and 1 or 2))
+            whole = whole and ok == true
+            same = same and res == res2 and steps == steps2 and chips == chips2
+            hands = hands and hand ~= nil and hand <= (id == "holdem" and 10 or 5)
+        end
+    end
+    check(ended, "Poker zu zweit: jede Partie endet, und es gewinnt, wer mehr Gold hat")
+    check(whole, "das Gold der beiden bleibt zusammen immer 2000, keiner fällt unter null")
+    check(same and hands, "derselbe Startwert gibt dieselbe Partie; Goblin-Poker geht über höchstens fünf, Hold'em über höchstens zehn Blätter")
+
+    -- Goblin-Poker: Grundeinsatz, tauschen, eine Setzrunde
+    local G = MP.games.drawpoker
+    local st = G.New(11, 1)
+    check(st.phase == "swap" and st.dealer == 2 and st.put[1] == 20 and st.put[2] == 20 and #st.cards[1] == 5 and G.Legal(st, 1, SWAP) and not G.Legal(st, 1, CALL) and not G.Legal(st, 2, SWAP),
+        "Goblin-Poker: beide zahlen 20, zuerst tauscht, wer nicht gibt")
+    local a, b, c = st.cards[1][1], st.cards[1][2], st.cards[1][3]
+    local res, nextSeat = G.Apply(st, 1, SWAP + 3)
+    check(st.cards[1][1] ~= a and st.cards[1][2] ~= b and st.cards[1][3] == c and st.swapN[1] == 2 and nextSeat == 2, "getauscht werden genau die markierten Karten")
+    res, nextSeat = G.Apply(st, 2, SWAP)
+    check(st.phase == "bet" and nextSeat == 1 and G.Legal(st, 1, RAISE), "nach dem Tauschen wird gesetzt")
+    G.Apply(st, 1, RAISE); G.Apply(st, 2, RAISE); G.Apply(st, 1, RAISE)
+    check(st.put[1] == 140 and st.put[2] == 100 and not G.Legal(st, 2, RAISE) and G.Legal(st, 2, CALL), "höchstens drei Erhöhungen je Runde")
+    res, nextSeat = G.Apply(st, 2, CALL)
+    local w = st.last.winner
+    check(res == nil and st.phase == "done" and st.last.why == "show" and st.chips[1] == (w == 1 and 1140 or (w == 2 and 860 or 1000)) and nextSeat == 1 and G.Legal(st, 1, DEAL) and not G.Legal(st, 1, CALL),
+        "mitgehen führt zum Aufdecken: das bessere Blatt gewinnt, was beide gesetzt haben; dann gibt der nächste Geber")
+    res, nextSeat = G.Apply(st, 1, DEAL)
+    check(st.hand == 2 and st.dealer == 1 and nextSeat == 2 and st.phase == "swap", "das nächste Blatt: der Geber wechselt")
+    local before = st.chips[2]
+    G.Apply(st, 2, SWAP); G.Apply(st, 1, SWAP)
+    G.Apply(st, 2, RAISE)
+    G.Apply(st, 1, FOLD)
+    check(st.chips[2] == before + 20 and st.last.why == "fold" and st.last.winner == 2, "wer aussteigt, verliert nur, was er schon gesetzt hat")
+
+    -- Hold'em: Blinds, vier Setzrunden, fünf gemeinsame Karten
+    G = MP.games.holdem
+    st = G.New(5, 1)
+    check(st.dealer == 1 and st.put[1] == 10 and st.put[2] == 20 and #st.cards[1] == 2 and #st.board == 0 and st.toAct == 1, "Hold'em: der Geber zahlt 10, der andere 20, und der Geber beginnt")
+    res, nextSeat = G.Apply(st, 1, CALL)
+    check(nextSeat == 2 and st.round == 1, "nach dem Mitgehen darf der andere noch erhöhen")
+    res, nextSeat = G.Apply(st, 2, CALL)
+    check(st.round == 2 and #st.board == 3 and nextSeat == 2, "danach liegen drei gemeinsame Karten, und es beginnt, wer nicht gibt")
+    G.Apply(st, 2, CALL); G.Apply(st, 1, CALL)
+    G.Apply(st, 2, RAISE)
+    check(#st.board == 4 and st.put[2] == 60, "in den späten Runden wird um 40 erhöht")
+    G.Apply(st, 1, CALL); G.Apply(st, 2, CALL)
+    res = G.Apply(st, 1, CALL)
+    check(st.phase == "done" and #st.board == 5 and st.last.why == "show" and st.chips[1] + st.chips[2] == 2000 and math.abs(st.chips[1] - 1000) % 60 == 0, "nach der letzten Runde wird aufgedeckt")
+    -- wer nicht mehr mithalten kann, setzt alles; der Rest wird ohne Setzen ausgeteilt
+    st = G.New(6, 1)
+    st.chips = { 30, 1970 }
+    G.Apply(st, 1, RAISE)
+    res = G.Apply(st, 2, CALL)
+    check(st.phase == "done" and #st.board == 5 and st.chips[1] + st.chips[2] == 2000 and (st.chips[1] == 60 or st.chips[1] == 30 or (st.chips[1] == 0 and res == 2)),
+        "alles gesetzt: es geht um höchstens das, was der Ärmere hat, und wer leer ausgeht, hat verloren")
+
+    -- am Brett
+    MP._Reset(); flush(); SENT = {}
+    ns.ShowFrame("mp")
+    MP.Invite(JAINA); local sid = MP.session.id
+    from(JAINA, "ACCEPT", sid, 0)
+    check(btn(ns.gamesById.drawpoker.name) and btn(ns.gamesById.holdem.name), "die Spielwahl bietet Goblin-Poker und Tavernen-Hold'em")
+    click(btn(ns.gamesById.drawpoker.name))
+    local s, g = MP.session, ns.run and ns.run.game
+    st = s.board
+    check(s.game == "drawpoker" and ns.run.def.id == "pokerduel" and g.mp == s and g.myCards[5]:IsShown() and g.myCards[1].face:IsShown()
+        and g.oppCards[1].back:IsShown() and not g.boardCards[1]:IsShown(), "Goblin-Poker zu zweit: meine fünf Karten offen, ihre verdeckt")
+    if s.turn ~= s.me then from(JAINA, "MOVE", sid, #s.moves + 1, SWAP) end
+    g:Click(2)
+    check(g.mark[2] and g.btn[2].text == (ns.L["Swap %d (Space)"]):format(1) and g.myCards[2].sel:IsShown(), "eine angeklickte Karte ist zum Tauschen markiert")
+    local old = st.cards[s.me][2]
+    g:Main()
+    check(st.cards[s.me][2] ~= old and sent(("PT1^MOVE^%s^%d^%d"):format(sid, #s.moves, SWAP + 2)), "die Leertaste tauscht sie; der Zug geht an die Mitspielerin")
+    while s.state == "playing" and st.phase ~= "done" do
+        if s.turn == s.me then g:Main() else from(JAINA, "MOVE", sid, #s.moves + 1, st.phase == "swap" and SWAP or CALL) end
+    end
+    check(st.last and st.last.why == "show" and g.oppCards[1].face:IsShown() and g.log.text ~= "" and g.btn[2].text == ns.L["Next hand (Space)"], "nach dem Aufdecken liegen ihre Karten offen, und das Ergebnis steht da")
+    ns.ShowRules()
+    check(ns.overlay.text.text:find(ns.HELP_MP.drawpoker, 1, true) and not ns.overlay.text.text:find(ns.L["For two"], 1, true), "das Regel-Fenster erklärt Goblin-Poker zu zweit")
+    ns.Resume()
+    if s.turn == s.me then g:Main() else from(JAINA, "MOVE", sid, #s.moves + 1, DEAL) end
+    check(st.hand == 2 and g:Info()[1][2] == "2/5", "das nächste Blatt ist gegeben")
+    MP.GiveUp()
+    check(s.state == "over" and ns.overlay.title.text == ns.L["Defeat"], "Aufgeben beendet auch die Pokerpartie")
+    MP.Pause(); ns.ShowLauncher()
+    -- Regel-Fenster im Wettrennen: das Spiel selbst, darunter „Zu zweit“
+    MP.Invite(JAINA); sid = MP.session.id
+    from(JAINA, "ACCEPT", sid, 0); MP.Choose("blackjack")
+    ns.ShowRules()
+    check(ns.overlay.text.text:find(ns.L["For two"], 1, true) and ns.overlay.text.text:find(ns.HELP_MP.blackjack, 1, true), "im Wettrennen steht unter den Regeln ein Abschnitt „Zu zweit“")
+    ns.Resume()
+    MP.GiveUp(); MP.Pause(); ns.ShowLauncher()
+    PastimeDB.mp.stats = {}
+end
+
 local errs = {}
 for _, e in ipairs(PastimeDB.log) do if e.l == "E" then table.insert(errs, e.c .. ": " .. e.m) end end
 check(#errs == 0, "keine Fehler im Protokoll:\n  " .. table.concat(errs, "\n  "))

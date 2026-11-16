@@ -73,9 +73,10 @@ Stand: `v1.4.2` ist veröffentlicht (16.11.). Der Mehrspieler steckt abgeschalte
 - [x] Spiele für zwei, Schritt 1 (16.11.): Wettrennen für Höher oder Tiefer, Goblin-Blackjack und Solitär (gleiches Blatt, Ergebnis wird verglichen), Runenpaare-Duell auf gemeinsamem Brett
 - [x] Spiele für zwei, Schritt 2 (16.11.): Mau-Mau als neues Spiel nur für den Mehrspieler, in der Spielwahl mit 0, 1 oder 2 Bots (neue Datei `Games/MauMau.lua`: Spiel-Neustart nötig)
 - [ ] Im Spiel ansehen: Mau-Mau-Brett (Hand mit vielen Karten, Farbwahl nach dem Buben, Meldungszeilen), Spielwahl mit acht Knöpfen
-- [ ] Spiele für zwei, Schritt 3: Goblin-Poker und Tavernen-Hold'em zu zweit
+- [x] Spiele für zwei, Schritt 3 (16.11.): Goblin-Poker und Tavernen-Hold'em zu zweit auf einem eigenen Brett (neue Datei `Games/PokerDuel.lua`: Spiel-Neustart nötig)
 - [ ] Spiele für zwei, Schritt 4: Sechsundsechzig
-- [ ] Regel-Fenster: Abschnitt „Zu zweit“ für jedes Mehrspieler-Spiel
+- [x] Regel-Fenster: Abschnitt „Zu zweit“ für die Mehrspieler-Spiele (16.11.); Vier gewinnt braucht keinen
+- [ ] Im Spiel ansehen: Poker-Brett zu zweit (Karten oben/Mitte/unten, drei Knöpfe, Ergebniszeilen), Länge der Regel-Fenster mit „Zu zweit“
 - [ ] Zu zweit testen: je ein Wettrennen (wer zuerst fertig ist, wartet), Runenpaare-Duell, Spielwahl mit jetzt fünf Spielen
 
 ## 4. Später
