@@ -20,7 +20,7 @@ Jeder bestimmt selbst, wo er als Mitspieler erscheint:
 |---|---|---|
 | Gruppe und Schlachtzug | an | Meldung im Gruppenkanal |
 | Freunde | an | unsichtbare Nachfrage an Freunde, die gerade online sind |
-| Gilde | aus | Meldung im Gildenkanal |
+| Gilde | an | Meldung im Gildenkanal |
 
 Wer einen Kreis abschaltet, erscheint dort bei niemandem und sieht dort auch niemanden. Spieler auf der Ignorierliste werden nie angezeigt und können nichts schicken.
 
@@ -125,10 +125,12 @@ Weitere Ideen für später, nur im Mehrspieler: Reversi, Dame, Mühle, Käsekäs
 | Mehrspieler (Hauptschalter; aus: nichts wird gemeldet, niemand sieht dich) | an |
 | Sichtbar für Gruppe und Schlachtzug | an |
 | Sichtbar für Freunde | an |
-| Sichtbar für die Gilde | aus |
+| Sichtbar für die Gilde | an |
 | Meine Bilanz mitschicken | an |
 | Ton bei einer Anfrage | an |
 | Keine Anfragen in Instanzen und Schlachtzügen | an |
+
+**Erste Frage:** Beim ersten Öffnen mit Mehrspieler fragt ein Fenster, wer einen sehen darf (Hauptschalter und die drei Kreise, vorgeschlagen ist alles an). Solange die Frage offen ist, meldet Pastime nichts und nimmt keine Anfragen an.
 
 Der Update-Hinweis aus 1.3 bleibt davon unabhängig.
 

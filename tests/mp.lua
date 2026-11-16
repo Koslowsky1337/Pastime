@@ -31,7 +31,17 @@ from(JAINA, "INVITE", "s1")
 check(next(MP.invites) == nil, "ausgeschaltet kommt keine Anfrage an")
 
 SlashCmdList.PASTIME("mp")
-check(MP.On() and PastimeDB.mpBeta == true, "/pastime mp schaltet die Beta frei")
+local ask = ns.mpAskFrame
+check(PastimeDB.mpBeta == true and not MP.On() and ask and ask.shown and #ask.checks == 4, "/pastime mp schaltet die Beta frei und fragt zuerst, wer einen sehen darf")
+C.Announce(); flush()
+local early = 0
+for _, m in ipairs(SENT) do if m.msg:find("^PT1%^HELLO%^0%^1") then early = early + 1 end end
+check(early == 0 and MP.Invite(JAINA) == false, "solange die Frage offen ist, wird nichts gemeldet und nichts angefragt")
+check(ask.checks[4]:GetChecked() == true and ask.checks[4].key == "mpGuild", "vorgeschlagen ist alles an, auch die Gilde")
+ask.checks[4]:SetChecked(false)
+ask.save.scripts.OnClick(ask.save)
+check(MP.On() and PastimeDB.mpAsked == true and not ask.shown and PastimeDB.settings.mpGuild == false and PastimeDB.settings.mpParty == true,
+    "Speichern übernimmt die Wahl; erst dann ist der Mehrspieler an")
 SENT = {}
 
 -- Regelwerk Vier gewinnt

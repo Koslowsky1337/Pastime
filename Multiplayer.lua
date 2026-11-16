@@ -33,9 +33,10 @@ function MP.Register(id, rules)
     MP.order[#MP.order + 1] = id
 end
 
--- Eingeschaltet? In 1.x nur über den Schalter für Betatests (/pastime mp), dazu die Einstellung
+-- Eingeschaltet? Bis 2.0 nur über den Schalter für Betatests (/pastime mp). Außerdem muss der Spieler
+-- einmal gewählt haben, wer ihn sehen darf (ns.MPAsk): vorher wird nichts gemeldet und nichts angenommen.
 function MP.On()
-    return Comm.ENABLED and ns.DB and ns.DB.settings.mp and true or false
+    return Comm.ENABLED and ns.DB and ns.DB.mpAsked and ns.DB.settings.mp and true or false
 end
 
 local function changed()

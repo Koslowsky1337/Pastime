@@ -1398,6 +1398,63 @@ function ns.Unpark()
     ns.Pause()
 end
 
+-- Erste Frage an den Spieler: wer darf ihn im Mehrspieler sehen? Solange sie offen ist, meldet Pastime
+-- nichts. Die Antwort lässt sich später im Reiter „Einstellungen“ ändern.
+local MP_ASK = {
+    { "mp", L["Multiplayer"], L["Other players with Pastime can ask you for a game. Off: nobody sees you and you see nobody."] },
+    { "mpFriends", L["Visible to your friends"], L["Friends who have you on their friend list see you in their multiplayer list."] },
+    { "mpParty", L["Visible to your group"], L["Players in your party or raid see you in their multiplayer list."] },
+    { "mpGuild", L["Visible to your guild"], L["Guild members see you in their multiplayer list."] },
+}
+
+function ns.MPAsk()
+    local f = ns.mpAskFrame
+    if not f then
+        f = CreateFrame("Frame", "PastimeMPAskFrame", UIParent, "BackdropTemplate")
+        f:SetBackdrop(BACKDROP_DIALOG_32_32 or ns.TOOLTIP_BACKDROP)
+        ns.TintDialog(f)
+        f:SetSize(460, 330)
+        f:SetPoint("CENTER", 0, 40)
+        f:SetFrameStrata("DIALOG")
+        f:EnableMouse(true)
+        local title = ns.FontString(f, "GameFontNormalLarge", "CENTER")
+        title:SetPoint("TOP", 0, -20)
+        title:SetText(L["Pastime: multiplayer"])
+        local text = ns.FontString(f, "GameFontHighlight", "CENTER")
+        text:SetPoint("TOP", title, "BOTTOM", 0, -10)
+        text:SetWidth(410)
+        text:SetText(L["You can now play against other players. Choose who may see you as a player. Nothing appears in chat, and you can change this any time in the Settings tab."])
+        f.checks = {}
+        for i, o in ipairs(MP_ASK) do
+            local c = ns.CreateCheck(f, o[2])
+            c:SetPoint("TOPLEFT", 28, -92 - (i - 1) * 44)
+            ns.SetTooltip(c, o[2], o[3])
+            local tip = ns.FontString(f, "GameFontDisableSmall", "LEFT")
+            tip:SetPoint("TOPLEFT", f, "TOPLEFT", 58, -92 - (i - 1) * 44 - 22)
+            tip:SetWidth(380)
+            tip:SetWordWrap(false)
+            tip:SetText(o[3])
+            c.key = o[1]
+            f.checks[i] = c
+        end
+        f.save = ns.CreateButton(f, L["Save"], 160, function()
+            ns.PlaySound("click")
+            for _, c in ipairs(f.checks) do ns.DB.settings[c.key] = c:GetChecked() and true or false end
+            ns.DB.mpAsked = true
+            f:Hide()
+            ns.Comm.Announce()
+            if ns.RefreshSettings then ns.RefreshSettings() end
+            ns.UpdateUI()
+        end)
+        f.save:SetPoint("BOTTOM", 0, 18)
+        f:Hide()      -- ein neuer Rahmen gilt als sichtbar
+        ns.mpAskFrame = f
+    end
+    if f:IsShown() then return end
+    for _, c in ipairs(f.checks) do c:SetChecked(true) end      -- Vorschlag: alles an
+    f:Show()
+end
+
 -- Reiter „Mehrspieler“ gibt es nur, solange der Mehrspieler freigeschaltet ist
 local function LayoutTabs()
     local prev
@@ -1418,6 +1475,8 @@ function ns.MPSync()
     if s and s.state == "playing" and not (ns.run and ns.run.mode == "mp" and ns.run.game.mp == s) then ns.MPShowBoard() end
     if ns.run and ns.run.mode == "mp" and ns.run.game.Sync then ns.run.game:Sync() end
     InvitePopup()
+    -- freigeschaltet, aber noch nicht gewählt, wer einen sehen darf: beim Öffnen des Fensters fragen
+    if ns.Comm.ENABLED and not ns.DB.mpAsked and ns.frame and ns.frame:IsShown() then ns.MPAsk() end
     if ns.frame then
         LayoutTabs()
         if ns.view == "mp" and not ns.Comm.ENABLED then return ns.ShowView("launcher") end

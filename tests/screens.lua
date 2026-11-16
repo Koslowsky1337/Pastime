@@ -140,7 +140,10 @@ ns.ShowFrame("settings")
 scan("Einstellungen")
 
 -- 7. Mehrspieler (freigeschaltet): Reiter mit Liste und Spielwahl, Einstellungen mit den drei Schaltern
+ns.ShowFrame()
 SlashCmdList.PASTIME("mp")
+scan("Mehrspieler erste Frage")
+ns.mpAskFrame.save.scripts.OnClick(ns.mpAskFrame.save)
 ns.Comm.peers["Jaina Prachtmeer"] = { v = 0, mp = 1, t = GetTime(), channel = "PARTY" }
 ns.Comm.peers["Thrall"] = { v = 0, mp = 1, t = GetTime(), channel = "PARTY" }
 PastimeDB.mp.stats["Jaina Prachtmeer"] = { fourinarow = { w = 12, l = 7, d = 1 } }

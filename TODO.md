@@ -50,7 +50,7 @@ Stand: `v1.3.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 - [x] Erster Test zu zweit mit Beta 2 (16.11.): Anfrage, Spielwahl und eine ganze Partie Vier gewinnt liefen; behoben für Beta 3: Revanche kam nicht an, gleiche Farbe auf beiden Seiten, Protokoll voller fremder Addon-Nachrichten, Freund nicht gesehen
 - [x] Befund (16.11.): Die Freundesliste im Spiel ist leer, gemeint sind Battle.net-Freunde; die fragt Pastime noch nicht ab
 - [ ] `/pastime debug dump` ausführen, während ein Battle.net-Freund mit Pastime online ist: der Auszug zeigt, wie dessen Charakter dasteht; danach den Kreis „Freunde“ auf Battle.net umbauen
-- [ ] Entscheiden: „Sichtbar für die Gilde“ als Standard an? (Zwei Gildenmitglieder sehen sich sonst nur, wenn beide den Schalter umlegen)
+- [x] „Sichtbar für die Gilde“ ist Standard an; beim ersten Öffnen fragt ein Fenster, wer einen sehen darf (16.11.)
 - [ ] **Test zu zweit mit Beta 3** nach der Prüfliste in `MULTIPLAYER.md` (ab Teil 2: Liste, Revanche, Unterbrechen, Offline) (beide: Beta installieren, WoW neu starten, `/pastime mp`, in eine Gruppe gehen); danach beide `/pastime report` schicken
 - [x] Verbindungstest aus 1.3 ausgewertet (15.11.): ein anderer Spieler hat direkt geantwortet, direkte Nachrichten kommen an. `PING`/`PONG` sind wieder entfernt
 - [ ] Beta 3: Tavernenwürfel und Runenpaare-Duell, Bilanz „laut eigener Angabe“

@@ -233,13 +233,14 @@ end
 ---------------------------------------------------------------------------
 local DEFAULTS = {
     settings = { autoOpen = true, landAlarm = true, hideInCombat = true, sound = true,
-        mp = true, mpParty = true, mpFriends = true, mpGuild = false },      -- Mehrspieler: Hauptschalter und wo man gesehen wird
+        mp = true, mpParty = true, mpFriends = true, mpGuild = true },       -- Mehrspieler: Hauptschalter und wo man gesehen wird
     scores = {}, stats = {}, routes = {}, minimap = {}, collapsed = {}, modes = {},
     frame = false, lastGame = false, debug = false, log = {}, logSession = 0,
     blackjack = { gold = 1000, peak = 1000 },   -- Goblin-Gold bleibt zwischen Partien erhalten
     purses = {},                              -- dasselbe für die übrigen Glücksspiele: purses[id] = { gold, peak }
     jackpot = 10000,                          -- gemeinsamer Topf aller Glücksspiele (ns.Gamble)
     mp = { stats = {}, paused = {} },         -- Mehrspieler: Bilanz je Gegner und Spiel, angehaltene Partien
+    mpAsked = false,                          -- der Spieler hat gewählt, wer ihn im Mehrspieler sehen darf (vorher wird nichts gemeldet)
     mpBeta = false,                           -- Mehrspieler für Betatests freigeschaltet (/pastime mp)
     newest = 0,                               -- höchste Pastime-Version, die ein anderer Spieler gemeldet hat (Comm)
     daily = {},                               -- Tagesaufgabe: { last = Tag der letzten erledigten, streak = Serie }
@@ -982,6 +983,7 @@ function ns.HandleSlash(msg)
         if not ns.DB.mpBeta and ns.MP.session then ns.MP.Pause() end
         ns.Print(ns.DB.mpBeta and L["Multiplayer beta |cff80ff80on|r."] or L["Multiplayer beta |cffff6060off|r."])
         ns.Comm.Announce()
+        if ns.DB.mpBeta and not ns.DB.mpAsked and ns.MPAsk then ns.MPAsk() end      -- gleich fragen, wer einen sehen darf
         if ns.UpdateUI then ns.UpdateUI() end
     elseif cmd == "debug" and ({ dump = true, daten = true })[arg:match("^%S*")] then
         -- /pastime debug dump [klar]: was der Client über Gruppe, Gilde und Freunde liefert
