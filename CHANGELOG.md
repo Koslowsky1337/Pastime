@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.2
+
+- Groundwork for a later version; nothing changes in the games themselves.
+
 ## 1.4.1
 
 - `/pastime debug dump` and `/pastime report` show more of what the addon hears from other players' copies, to help with testing.
