@@ -497,6 +497,10 @@ local function click(b) b.scripts.OnClick(b) end
 MP._Reset(); PastimeDB.mp.paused = {}; PastimeDB.mp.stats = {}
 ns.ShowFrame("mp")
 local v = ns.mpView
+-- der sichtbare Knopf mit dieser Aufschrift
+local function btn(text)
+    for _, b in ipairs(v.buttons) do if b:IsShown() and b.text == text then return b end end
+end
 check(v:IsShown() and ns.frame.tabs[3]:IsShown() and ns.frame.tabs[3].key == "mp", "freigeschaltet gibt es den Reiter „Mehrspieler“")
 check(v.rows[1]:IsShown() and v.rows[1].name.text:find(JAINA, 1, true) == 1 and v.rows[1].name.text:find("(P)", 1, true) and not v.rows[2]:IsShown() and not v.empty:IsShown(),
     "die Liste zeigt die Mitspielerin, dahinter das Kürzel für die Gruppe")
@@ -506,11 +510,11 @@ check(MP.session and MP.session.state == "asking" and v.title.text == JAINA and 
     and v.buttons[1].text == ns.L["Cancel"] and not v.rows[1].btn:IsEnabled(), "Anfragen: der Reiter zeigt, dass auf die Antwort gewartet wird")
 sid = MP.session.id
 from(JAINA, "ACCEPT", sid, 0)
-check(v.text.text == ns.L["You choose the game:"] and v.buttons[1].text == ns.gamesById.fourinarow.name and v.buttons[2].text == ns.L["Cancel"],
+check(v.text.text == ns.L["You choose the game:"] and btn(ns.gamesById.fourinarow.name) and btn(ns.gamesById.blackjack.name) and btn(ns.gamesById.runepairs.name) and v.buttons[#MP.order + 1].text == ns.L["Cancel"],
     "angenommen: die Mehrspieler-Spiele stehen zur Wahl")
 MP.last = nil
 math.randomseed(11)
-click(v.buttons[1])
+click(btn(ns.gamesById.fourinarow.name))
 local g = ns.run and ns.run.game
 s = MP.session
 check(ns.run and ns.run.mode == "mp" and ns.run.def.id == "fourinarow" and ns.gameView:IsShown() and g.mp == s and PastimeDB.modes.fourinarow ~= "mp",
@@ -540,7 +544,7 @@ check(MP.session == s and s.again and s.state == "over" and ns.run ~= nil and ns
 from(JAINA, "AGAIN", s.id)
 check(MP.session == s and s.role ~= role and (s.state == "waiting" or s.state == "choosing") and v:IsShown() and ns.run == nil,
     "stimmt sie auch zu, geht es bei der Spielwahl weiter – mit getauschten Rollen")
-click(v.buttons[#MP.order + (s.state == "choosing" and 1 or 0) + (s.state == "choosing" and 0 or 1)])
+click(btn(ns.L["Cancel"]))
 check(MP.session == nil and v.text.text == ns.L["Pick a player on the left and ask them for a game. They have to accept first."], "Abbrechen beendet die Sitzung")
 
 -- Nach der Partie: die Revanche des anderen kommt an, obwohl mein Brett noch offen ist
@@ -664,6 +668,120 @@ ns.ShowFrame("mp")
 SlashCmdList.PASTIME("mp")
 check(not MP.On() and not ns.frame.tabs[3]:IsShown() and not v:IsShown() and ns.launcher:IsShown(), "/pastime mp noch einmal: Mehrspieler aus, der Reiter ist weg")
 SlashCmdList.PASTIME("mp")
+
+-- Wettrennen: beide spielen gleichzeitig dasselbe Blatt und melden ein Ergebnis
+do
+    MP._Reset(); flush(); SENT = {}
+    ns.ShowFrame("mp")
+    local r1, r2, same, inRange = ns.RNG(77), ns.RNG(77), true, true
+    for _ = 1, 50 do local x, y = r1(52), r2(52); same = same and x == y; inRange = inRange and x >= 1 and x <= 52 end
+    local d1, d2 = ns.Cards.Shuffle(ns.Cards.NewDeck(), ns.RNG(5)), ns.Cards.Shuffle(ns.Cards.NewDeck(), ns.RNG(5))
+    for i = 1, 52 do same = same and d1[i].rank == d2[i].rank and d1[i].suit == d2[i].suit end
+    check(same and inRange, "derselbe Startwert gibt auf beiden Seiten dieselbe Zufallsfolge und dasselbe Blatt")
+
+    -- Blackjack-Duell: ich bin zuerst fertig
+    local gold, jackpot = PastimeDB.blackjack.gold, PastimeDB.jackpot
+    MP.Invite(JAINA); local sid = MP.session.id
+    from(JAINA, "ACCEPT", sid, 0)
+    MP.Choose("blackjack")
+    local s, g = MP.session, ns.run.game
+    check(ns.run.def.id == "blackjack" and ns.run.mode == "mp" and g.mp == s and g.gold == 1000 and g.left == 5 and not g.cashBtn:IsShown()
+        and g.sub.text == (ns.L["Duel: round %d of %d – the most gold wins."]):format(1, 5),
+        "Blackjack-Duell: eigenes Gold für diese Partie, fünf Runden, kein „Kasse machen“")
+    for _ = 1, 5 do
+        g:Play()
+        if g.state == "play" then g:Stand() end
+        for _ = 1, 40 do if g.state == "dealer" then g:Update(0.6) end end
+        g:NextHand()
+    end
+    check(ns.run.state == "over" and s.state == "playing" and s.board.score[s.me] == g.gold and sent(("PT1^MOVE^%s^1^%d"):format(sid, g.gold))
+        and ns.overlay.text.text:find((ns.L["Your result: %d. Waiting for %s …"]):format(g.gold, JAINA), 1, true),
+        "nach fünf Runden geht mein Goldstand an die Mitspielerin; das Brett wartet auf ihren")
+    check(PastimeDB.blackjack.gold == gold and PastimeDB.jackpot == jackpot and PastimeDB.mp.paused[JAINA] == nil,
+        "das Duell rührt weder mein Goblingold noch den Jackpot an und hat keine Mitschrift")
+    ns.Restart()
+    check(s.state == "playing", "solange sie noch spielt, gibt der Knopf nicht versehentlich auf")
+    ns.ShowView("mp")
+    check(v.text.text == (ns.L["Your result: %d. Waiting for %s …"]):format(g.gold, JAINA) and not btn(ns.L["Show the board"]), "auch der Reiter sagt, dass mein Ergebnis steht")
+    ns.ShowView("game")
+    from(JAINA, "MOVE", sid, 1, math.max(0, g.gold - 10))
+    check(s.state == "over" and s.result == 2 and ns.overlay.title.text == ns.L["Victory!"]
+        and ns.overlay.text.text:find((ns.L["You: %d · %s: %d"]):format(g.gold, JAINA, math.max(0, g.gold - 10)), 1, true)
+        and ns.overlay.text.text:find(ns.L["Rematch? Both of you have to agree."], 1, true),
+        "kommt ihr Ergebnis, steht der Sieger fest – mit beiden Ergebnissen und der Revanche-Frage")
+
+    -- Revanche, diesmal wählt sie: Höher oder Tiefer, und sie ist zuerst fertig
+    MP.Again(); from(JAINA, "AGAIN", sid)
+    from(JAINA, "START", sid, "higherlower", 4711, 1, 1, 0)
+    g = ns.run and ns.run.game
+    check(ns.run and ns.run.def.id == "higherlower" and g.mp == s and g.gold == 1000 and ns.gameView:IsShown(), "ihre Spielwahl öffnet bei mir das Brett für Höher oder Tiefer")
+    from(JAINA, "MOVE", sid, 1, 5000)
+    check(s.state == "playing" and ns.run.state == "running", "ihr Ergebnis liegt schon vor, ich spiele weiter")
+    for _ = 1, 5 do
+        g:Play()
+        if g.state == "guess" then g:Guess(ns.gamesById.higherlower.Create and g.card.rank ~= 1 and g.card.rank < 8) end
+        if g.state == "guess" then g:Take() end
+        g:Next()
+    end
+    check(s.state == "over" and s.result == (g.gold > 5000 and 2 or 0) and ns.overlay.title.text == (g.gold > 5000 and ns.L["Victory!"] or ns.L["Defeat"])
+        and (PastimeDB.purses.higherlower == nil or PastimeDB.purses.higherlower.gold ~= g.gold or g.gold == 1000),
+        "bin ich fertig, steht das Ergebnis sofort fest")
+    MP.Pause(); ns.ShowLauncher()
+
+    -- Solitär: fünf Minuten, gezählt werden die abgelegten Karten
+    MP.Invite(JAINA); sid = MP.session.id
+    from(JAINA, "ACCEPT", sid, 0); MP.Choose("solitaer")
+    s, g = MP.session, ns.run.game
+    check(ns.run.def.id == "solitaer" and g.started and g:Info()[1][2] == "5:00", "Solitär-Wettrennen: die Uhr läuft von fünf Minuten herunter")
+    from(JAINA, "PAUSE", sid)
+    check(MP.session == nil and ns.run.state == "over" and ns.overlay.title.text == ns.L["Interrupted"], "hält sie an, endet das Wettrennen als unterbrochen")
+    ns.ShowLauncher()
+    MP.Invite(JAINA); sid = MP.session.id
+    from(JAINA, "ACCEPT", sid, 0); MP.Choose("solitaer")
+    s, g = MP.session, ns.run.game
+    g.time = 299; g:Update(2)
+    check(ns.run.state == "over" and s.board.score[s.me] == g:Placed() * 100 and ns.overlay.title.text == ns.L["Time is up"], "nach fünf Minuten ist Schluss: 100 Punkte je abgelegter Karte")
+    from(JAINA, "MOVE", sid, 1, g:Placed() * 100)
+    check(s.state == "over" and s.result == 1 and ns.overlay.title.text == ns.L["Draw"], "gleiches Ergebnis: unentschieden")
+    MP.Pause(); ns.ShowLauncher()
+end
+
+-- Runenpaare-Duell: ein gemeinsames Brett, wer ein Paar findet, ist noch einmal dran
+do
+    MP._Reset(); flush(); SENT = {}
+    MP.Invite(JAINA); local sid = MP.session.id
+    from(JAINA, "ACCEPT", sid, 0); MP.Choose("runepairs")
+    local s, g = MP.session, ns.run.game
+    local function free() for j, c in ipairs(g.cards) do if not c.done then return j end end end
+    local function mate(i) for j, c in ipairs(g.cards) do if j ~= i and c.icon == g.cards[i].icon then return j end end end
+    local function other(i) for j, c in ipairs(g.cards) do if not c.done and j ~= i and c.icon ~= g.cards[i].icon then return j end end end
+    local function she(i) from(JAINA, "MOVE", sid, #s.moves + 1, i) end
+    check(#g.cards == 30 and g.cards == s.board.cards and g:Info()[1][1] == ns.L["Your pairs"], "Duell: 30 Karten auf einem gemeinsamen Brett")
+    if s.turn ~= s.me then local a = free(); she(a); she(other(a)) end
+    check(s.turn == s.me, "nach ihrem Fehlgriff bin ich dran")
+    local a = free()
+    g:Flip(a)
+    check(s.board.open == a and s.turn == s.me and g.cards[a].up, "meine erste Karte liegt offen, ich decke noch eine auf")
+    g:Flip(mate(a))
+    check(s.board.pairs[s.me] == 1 and s.turn == s.me and g.cards[a].done, "ein Paar: es gehört mir und ich bin noch einmal dran")
+    a = free(); local b = other(a)
+    g:Flip(a); g:Flip(b)
+    check(s.turn ~= s.me and g.lockT ~= nil and g.cards[a].up and g.cards[b].up, "kein Paar: beide Karten bleiben kurz offen, dann ist sie dran")
+    local n = #s.moves
+    g:Flip(free())
+    check(#s.moves == n, "solange sie dran ist, deckt mein Klick nichts auf")
+    g:Update(2)
+    check(not g.cards[a].up and not g.cards[b].up, "danach liegen die beiden wieder verdeckt")
+    she(a); she(a)
+    check(s.board.open == a and #s.moves == n + 1, "dieselbe Karte zweimal ist kein Zug")
+    she(mate(a))
+    while s.state == "playing" do a = free(); she(a); she(mate(a)) end
+    check(s.state == "over" and s.result == 0 and s.board.pairs[3 - s.me] == 14 and ns.overlay.title.text == ns.L["Defeat"]
+        and ns.overlay.text.text:find((ns.L["You found %d pairs, %s found %d."]):format(1, JAINA, 14), 1, true),
+        "sind alle Paare gefunden, gewinnt, wer mehr hat")
+    MP.Pause(); ns.ShowLauncher()
+    PastimeDB.mp.stats = {}
+end
 
 local errs = {}
 for _, e in ipairs(PastimeDB.log) do if e.l == "E" then table.insert(errs, e.c .. ": " .. e.m) end end

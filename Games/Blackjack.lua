@@ -14,7 +14,7 @@ Game.__index = Game
 
 -- Fester Einsatz wie in den anderen Glücksspielen (ns.Gamble): einstellen, dann geben lassen
 Game.Ladder, Game.Wager, Game.Stake, Game.Jackpot = ns.Gamble.Ladder, ns.Gamble.Wager, ns.Gamble.Stake, ns.Gamble.Jackpot
-function Game:Purse() return ns.DB.blackjack end
+function Game:Purse() return self.mp and self.duel or ns.DB.blackjack end
 
 function Game.Total(hand)
     local t, aces = 0, 0
@@ -31,20 +31,21 @@ end
 local function isBlackjack(hand) return #hand == 2 and Game.Total(hand) == 21 end
 
 function Game:Draw()
-    if #self.deck < 15 then self.deck = Cards.Shuffle(Cards.NewDeck()) end
+    if #self.deck < 15 then self.deck = Cards.Shuffle(Cards.NewDeck(), self.rnd) end
     return table.remove(self.deck)
 end
 
 -- Kontostand sofort sichern: wer mitten in der Hand geht, verliert den Einsatz
 function Game:Save()
-    local b = ns.DB.blackjack
+    local b = self:Purse()
     b.gold, b.peak = self.gold, self.peak
 end
 
 function Game:Start()
-    local b = ns.DB.blackjack
+    if self.mp then ns.Gamble.DuelPurse(self) end      -- Duell: eigenes Gold nur für diese Partie
+    local b = self:Purse()
     if (tonumber(b.gold) or 0) < MIN_BET then b.gold, b.peak = START_GOLD, START_GOLD end
-    self.deck = Cards.Shuffle(Cards.NewDeck())
+    self.deck = Cards.Shuffle(Cards.NewDeck(), self.rnd)
     self.gold = b.gold
     self.wager = tonumber(b.wager) or MIN_BET
     self.peak = math.max(tonumber(b.peak) or 0, self.gold)
@@ -52,7 +53,7 @@ function Game:Start()
     self.player, self.dealer = {}, {}
     self.state, self.bet, self.jackWon = "bet", 0, nil
     self.msg:SetText(L["Place your bet!"])
-    self.sub:SetText((L["Best this run: %d gold"]):format(self.peak))
+    self.sub:SetText(self.mp and ns.Gamble.DuelNote(self) or (L["Best this run: %d gold"]):format(self.peak))
     self:Render()
 end
 
@@ -130,7 +131,7 @@ function Game:Settle()
     else
         win, text = 0, (L["You lose – %d against %d."]):format(p, d)
     end
-    if win < self.bet then ns.Gamble.Feed(self.bet - win) end
+    if self.mp then self.left = self.left - 1 elseif win < self.bet then ns.Gamble.Feed(self.bet - win) end
     self.gold = self.gold + win
     self.peak = math.max(self.peak, self.gold)
     self.score = self.peak
@@ -164,6 +165,7 @@ end
 
 function Game:NextHand()
     if self.state ~= "result" then return end
+    if ns.Gamble.DuelDone(self) then return end
     if self.gold < MIN_BET then
         -- Pleite: der Lauf ist vorbei, gewertet wird der höchste Goldstand
         self.state = "over"
@@ -178,14 +180,14 @@ function Game:NextHand()
     self.state, self.jackWon = "bet", nil
     self.player, self.dealer, self.bet = {}, {}, 0
     self.msg:SetText(L["Place your bet!"])
-    self.sub:SetText((L["Best this run: %d gold"]):format(self.peak))
+    self.sub:SetText(self.mp and ns.Gamble.DuelNote(self) or (L["Best this run: %d gold"]):format(self.peak))
     self:Render()
 end
 
 -- Kasse machen: den Lauf freiwillig beenden – zwischen zwei Händen und nur mit Gewinn.
 -- Gewertet wird wie bei der Pleite der höchste Goldstand; so kann ein Lauf auch als Sieg enden.
 function Game:CashOut()
-    if self.state ~= "bet" or self.gold <= START_GOLD then return end
+    if self.mp or self.state ~= "bet" or self.gold <= START_GOLD then return end
     self.state = "over"
     self:Render()
     local peak, gold = self.peak, self.gold
@@ -239,7 +241,7 @@ function Game:Render()
     self.doubleBtn:SetShown(playing)
     self.doubleBtn:SetEnabled(playing and #self.player == 2 and (self.gold or 0) >= (self.bet or 0))
     self.nextBtn:SetShown(self.state == "result")
-    self.cashBtn:SetShown(betting)
+    self.cashBtn:SetShown(betting and not self.mp)
     self.cashBtn:SetEnabled(betting and (self.gold or 0) > START_GOLD)
 end
 
@@ -334,5 +336,7 @@ ns.RegisterGame({
             L["Doubling doubles your bet for exactly one more card."],
         }, "\n\n")
     end,
+    race = true,
     Create = Create,
 })
+ns.MP.Race("blackjack")

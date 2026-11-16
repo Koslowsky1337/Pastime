@@ -131,6 +131,8 @@ function ns.EndRun()
     if not run then return end
     if run.state ~= "over" then ns.Log("D", "spiel", "Abort %s (not scored)", run.def.id) end
     if run.game.Stop then run.game:Stop() end
+    -- ein Wettrennen mittendrin verlassen: die Partie hält an und zählt nicht
+    if run.mode == "mp" and run.def.race and run.state ~= "over" and ns.MP.session and ns.MP.session == run.game.mp then ns.MP.Pause() end
     ns.run = nil
 end
 
@@ -153,7 +155,10 @@ function ns.StartGame(def, mode)
     ns.run = { def = def, mode = mode, game = def._game, state = "running", t = 0,
         tripId = trip.active and trip.id or nil }
     ns.SetCountdown(nil)
-    def._game:Start(mode)          -- erst starten, dann anzeigen (die Seitenleiste fragt sofort ab)
+    -- Mehrspieler: das Spiel kennt die Sitzung und zieht aus ihrer Zufallsfolge (beide bekommen dasselbe Blatt)
+    def._game.mp = mode == "mp" and ns.MP.session or nil
+    def._game.rnd = def._game.mp and ns.RNG(def._game.mp.seed) or nil
+    def._game:Start(mode ~= "mp" and mode or (def.race and ns.DefaultMode(def) or mode))          -- erst starten, dann anzeigen (die Seitenleiste fragt sofort ab)
     ns.frame:Show()
     ns.ShowView("game")
     ns.HideOverlay()
@@ -170,6 +175,7 @@ function ns.Restart()
     if not run then return end
     if run.mode == "mp" then
         -- im Mehrspieler: während der Partie aufgeben, danach Revanche
+        if run.state == "over" and ns.MP.session and ns.MP.session.state == "playing" then return end      -- Wettrennen: mein Ergebnis steht, der andere spielt noch
         if ns.MP.session and ns.MP.session.state == "playing" then return ns.MP.GiveUp() end
         return ns.MP.Again()
     end
@@ -260,6 +266,20 @@ function ns.GameOver(res)
     if not run or run.state == "over" then return end
     if ns.staging then run.state = "over"; return end      -- gestellte Szene (/pastime shots): nichts werten
     res = res or {}
+    if run.mode == "mp" and run.def.race then
+        -- Wettrennen: mein Ergebnis geht an den Mitspieler; das Ende kommt mit seinem (ns.MPSync)
+        local s = run.game.mp
+        local score = math.max(0, math.min(100000, math.floor(tonumber(res.score) or 0)))
+        run.state, run.overAt, run.raceScore = "over", GetTime(), score
+        run.overTitle = res.title or L["Finished"]
+        run.overText = (res.text and (res.text .. "\n") or "") .. (L["Your result: %d. Waiting for %s …"]):format(score, s and s.partner or "?")
+        ns.ShowOverlay("over", run.overTitle, run.overText)
+        ns.PlaySound("over")
+        ns.UpdateKeyboard()
+        ns.UpdateSidePanel()
+        if s and ns.MP.session == s then ns.MP.Move(score) end
+        return
+    end
     run.state = "over"
     run.overAt = GetTime()
     local def = run.def
@@ -377,7 +397,7 @@ function ns.ShowOverlay(kind, title, text, cards)
         o.btn1:SetScript("OnClick", function() ns.Restart() end)
         -- Revanche geht nur, solange die Sitzung offen ist und man noch nicht zugestimmt hat
         if mp then o.btn1:SetEnabled(s ~= nil and s.state == "over" and not s.again) end
-        o.btn2:SetText(mp and L["No, thanks"] or L["Back to games"])
+        o.btn2:SetText(mp and s and s.state == "over" and L["No, thanks"] or L["Back to games"])
     end
     local th = o.text:GetStringHeight() or 40
     local extra = math.max(0, (o.title:GetStringHeight() or 0) - 24)      -- zweizeiliger Titel
@@ -1271,7 +1291,7 @@ end
 -- Mehrspieler (Beta): Reiter mit Mitspielerliste und Stand der Sitzung, Anfrage-Fenster,
 -- Brett starten und ein laufendes Einzelspiel so lange parken
 ---------------------------------------------------------------------------
-local MP_ROWS, MP_BUTTONS = 10, 6
+local MP_ROWS, MP_BUTTONS = 10, 12
 local MP_NOTES = {
     declined = L["Your request was declined."],
     ["no answer"] = L["No answer – the request expired."],
@@ -1342,8 +1362,8 @@ local function CreateMPView(parent)
             ns.PlaySound("click")
             if self.fn then self.fn() end
         end)
-        b:SetHeight(24)
-        b:SetPoint("TOP", 0, -150 - (i - 1) * 30)
+        b:SetHeight(22)
+        b:SetPoint("TOP", 0, -104 - (i - 1) * 25)
         v.buttons[i] = b
     end
     return v
@@ -1400,9 +1420,13 @@ function ns.UpdateMPView()
             text = L["Fetching the paused game …"]
             add(L["Cancel"], MP.Pause)
         elseif s.state == "playing" then
-            text = L["The game is running."]
-            add(L["Show the board"], ns.MPShowBoard)
-            add(L["Give up"], MP.GiveUp)
+            if MP.games[s.game].race and s.board.score[s.me] then
+                text = (L["Your result: %d. Waiting for %s …"]):format(s.board.score[s.me], s.partner)
+            else
+                text = L["The game is running."]
+                add(L["Show the board"], ns.MPShowBoard)
+                add(L["Give up"], MP.GiveUp)
+            end
         else
             text = (s.result == 2 and L["You won."] or (s.result == 0 and L["You lost."] or L["Draw."])) .. "\n\n" .. ns.MPRematchLine()
             if not s.again then add(L["Rematch"], MP.Again) end
@@ -1463,6 +1487,7 @@ function ns.MPShowBoard()
     local s = ns.MP.session
     if not (s and s.state == "playing") then return end
     if ns.run and ns.run.mode == "mp" and ns.run.game.mp == s then return ns.ShowView("game") end
+    if ns.MP.games[s.game].race and s.board.score[s.me] then return end      -- Wettrennen: mein Ergebnis steht schon
     if InCombatLockdown() then return end      -- nach dem Kampf holt MPSync es nach
     local def, run = ns.gamesById[s.game], ns.run
     if run and run.state ~= "over" and run.mode ~= "mp" and run.def ~= def then
@@ -1578,8 +1603,29 @@ function ns.MPSync()
     if s and s.state == "playing" and not (ns.run and ns.run.mode == "mp" and ns.run.game.mp == s) then ns.MPShowBoard() end
     if ns.run and ns.run.mode == "mp" and ns.run.game.Sync then ns.run.game:Sync() end
     local run = ns.run
+    if run and run.mode == "mp" and run.def.race then
+        local g = run.game.mp
+        local gone = ns.MP.session ~= g
+        if run.state ~= "over" and (gone or g.state == "over") then
+            -- von außen beendet, während ich noch spiele: der andere hat angehalten oder aufgegeben
+            run.state, run.overAt = "over", GetTime()
+            run.overTitle, run.overText = L["Interrupted"], L["The game was interrupted and does not count."]
+            ns.ShowOverlay("over", run.overTitle, run.overText)
+            ns.UpdateKeyboard()
+        end
+        if run.state == "over" and not gone and g.state == "over" and not run.raceFinal then
+            run.raceFinal = true
+            local sc = g.board.score
+            local why = g.why == "gave up" and L["You gave up."] or (g.why == "partner gave up" and L["Your opponent gave up."] or nil)
+            run.overTitle = g.result == 2 and L["Victory!"] or (g.result == 0 and L["Defeat"] or L["Draw"])
+            run.overText = why or (L["You: %d · %s: %d"]):format(sc[g.me] or 0, g.partner, sc[3 - g.me] or 0)
+            ns.ShowOverlay("over", run.overTitle, run.overText)
+            ns.PlaySound(g.result == 2 and "big" or "over")
+        end
+        ns.UpdateSidePanel()
+    end
     if run and run.mode == "mp" and run.state == "over" and run.overText then
-        if s and run.game.mp == s and s.state ~= "over" then
+        if s and run.game.mp == s and (s.state == "choosing" or s.state == "waiting") then
             -- beide wollen noch einmal: das alte Brett räumt das Feld, weiter geht es bei der Spielwahl
             ns.run = nil
             ns.HideOverlay()

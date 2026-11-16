@@ -33,6 +33,34 @@ function MP.Register(id, rules)
     MP.order[#MP.order + 1] = id
 end
 
+-- Wettrennen: Beide spielen gleichzeitig dasselbe Spiel mit demselben Startwert (gleiches Blatt) und
+-- melden am Ende genau eine Zahl, ihr Ergebnis. Das höhere gewinnt. Es gibt keine Zugfolge und keine
+-- Mitschrift: ein angehaltenes Wettrennen lässt sich nicht fortsetzen.
+function MP.Race(id)
+    MP.Register(id, {
+        race = true,
+        New = function() return { score = {} } end,
+        Legal = function(st, seat, v)
+            return type(v) == "number" and v == math.floor(v) and v >= 0 and v <= 100000 and st.score[seat] == nil
+        end,
+        Apply = function(st, seat, v)
+            st.score[seat] = v
+            local a, b = st.score[1], st.score[2]
+            if a and b then return a == b and 0 or (a > b and 1 or 2) end
+        end,
+    })
+end
+
+-- Gleiche Zufallsfolge auf beiden Seiten: rnd(n) liefert 1..n (Park-Miller, passt in die Zahlen von Lua)
+function ns.RNG(seed)
+    local x = seed % 2147483647
+    if x <= 0 then x = 1 end
+    return function(n)
+        x = x * 16807 % 2147483647
+        return x % n + 1
+    end
+end
+
 -- Eingeschaltet? Bis 2.0 nur über den Schalter für Betatests (/pastime mp). Außerdem muss der Spieler
 -- einmal gewählt haben, wer ihn sehen darf (ns.MPAsk): vorher wird nichts gemeldet und nichts angenommen.
 function MP.On()
@@ -72,6 +100,7 @@ MP.Paused = paused
 
 local function save()
     local s = MP.session
+    if MP.games[s.game].race then store().paused[s.partner] = nil; return end      -- ein Wettrennen hat keine Mitschrift
     store().paused[s.partner] = { game = s.game, seed = s.seed, first = s.first, me = s.me, moves = { unpack(s.moves) }, t = time() }
 end
 
@@ -210,7 +239,9 @@ end
 
 function MP.Move(value)
     local s = MP.session
-    if not (s and s.state == "playing" and not s.replaying and s.turn == s.me) then return false end
+    if not (s and s.state == "playing" and not s.replaying) then return false end
+    local race = MP.games[s.game].race
+    if not race and s.turn ~= s.me then return false end
     if not MP.games[s.game].Legal(s.board, s.me, value) then return false end      -- bleibt am Zug, bis er etwas Erlaubtes tut
     send("MOVE", #s.moves + 1, value)
     apply(s.me, value)
@@ -413,6 +444,12 @@ end
 
 H.MOVE = function(_, f)
     local s = MP.session
+    if s.state == "playing" and not s.replaying and MP.games[s.game].race then
+        -- Wettrennen: sein Ergebnis kommt, wann immer er fertig ist
+        if not MP.games[s.game].Legal(s.board, 3 - s.me, f[3]) then return end
+        apply(3 - s.me, f[3])
+        return changed()
+    end
     if s.state ~= "playing" or s.replaying or s.turn == s.me or f[2] ~= #s.moves + 1 then
         return ns.Log("D", "mp", "move %d ignored (state %s, turn %s)", f[2], tostring(s.state), tostring(s.turn))
     end

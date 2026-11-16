@@ -77,6 +77,7 @@ end
 
 function Game:Start(mode)
     local m = MODE_BY_ID[mode or ""] or MODES[1]
+    if self.mp then m = MODE_BY_ID.mittel end      -- Duell: 15 Paare, also nie unentschieden
     self.m = m
     for _, s in pairs(self.sets) do s.frame:Hide() end
     self.sets[m.id] = self.sets[m.id] or self:BuildSet(m)
@@ -91,14 +92,63 @@ function Game:Start(mode)
     for i = #deck, 2, -1 do local j = math.random(i); deck[i], deck[j] = deck[j], deck[i] end
     self.cards = {}
     for i = 1, n do self.cards[i] = { icon = deck[i], up = false, done = false } end
+    if self.mp then self.cards = self.mp.board.cards end      -- das Brett gehört der Sitzung
+    self.mpDone, self.seen, self.wasMine = nil, 0, nil
     self.open, self.lockT = {}, nil
     self.moves, self.pairs, self.total = 0, 0, n / 2
     self.time, self.started, self.score, self.won = 0, false, 0, false
     for i = 1, n do self:Draw(i) end
+    if self.mp then self:Sync() end
+end
+
+-- Mehrspieler: Stand der Sitzung aufs Brett bringen (nach jedem Zug, bei Ende und Unterbrechung)
+function Game:Sync()
+    local s = self.mp
+    if not s or self.mpDone then return end
+    if ns.MP.session ~= s then
+        self.mpDone, self.won = true, true
+        return self.host:Over({ submit = false, title = L["Interrupted"],
+            text = L["The game is paused and does not count. Ask the same player again within ten minutes to continue it."] })
+    end
+    local st = s.board
+    -- ein neues falsches Paar bleibt kurz offen liegen, für beide
+    if st.n ~= self.seen then
+        self.seen = st.n
+        if self.lockT then self:CoverOpen() end
+        if st.miss then self.open, self.lockT = { st.miss[1], st.miss[2] }, 1.5 end
+        self.host:Sound(st.miss and "click" or "point")
+    end
+    for i, c in ipairs(self.cards) do
+        c.up = i == st.open or (self.lockT ~= nil and (i == self.open[1] or i == self.open[2]))
+        self:Draw(i)
+    end
+    self.pairs, self.total = st.pairs[s.me], #self.cards / 2
+    if s.state == "over" then
+        self.mpDone, self.won = true, true
+        local why = s.why == "gave up" and L["You gave up."] or (s.why == "partner gave up" and L["Your opponent gave up."] or nil)
+        return self.host:Over({ submit = false, won = s.result == 2, title = s.result == 0 and L["Defeat"] or (s.result == 1 and L["Draw"] or nil),
+            text = why or (L["You found %d pairs, %s found %d."]):format(st.pairs[s.me], s.partner, st.pairs[3 - s.me]) })
+    end
+    local mine = s.turn == s.me and not s.replaying
+    if mine and self.wasMine == false then self.host:Sound("point") end
+    self.wasMine = mine
+    self.host:Refresh()
+end
+
+-- Das Brett wird verlassen: eine laufende Mehrspieler-Partie hält an
+function Game:Stop()
+    local s = self.mp
+    self.mpDone = true
+    if s and ns.MP.session == s and s.state == "playing" then ns.MP.Pause() end
 end
 
 function Game:Flip(i)
     if self.won then return end
+    if self.mp then
+        -- nur wer dran ist, deckt auf; gesendet wird die Karte
+        if ns.MP.Move(i) then self.host:Sound("click") end
+        return
+    end
     -- falsches Paar liegt noch offen: sofort zudecken statt warten
     if self.lockT then self:CoverOpen() end
     local c = self.cards[i]
@@ -133,7 +183,10 @@ end
 
 function Game:CoverOpen()
     self.lockT = nil
-    for _, i in ipairs(self.open) do self.cards[i].up = false; self:Draw(i) end
+    for _, i in ipairs(self.open) do
+        self.cards[i].up = self.mp ~= nil and self.mp.board.open == i
+        self:Draw(i)
+    end
     self.open = {}
 end
 
@@ -146,6 +199,14 @@ function Game:Update(dt)
 end
 
 function Game:Info()
+    local s = self.mp
+    if s and s.board then
+        return {
+            { L["Your pairs"], tostring(s.board.pairs[s.me]) },
+            { s.partner, tostring(s.board.pairs[3 - s.me]) },
+            { L["Turn"], s.state ~= "playing" and "–" or (s.turn == s.me and L["You"] or s.partner) },
+        }
+    end
     return {
         { L["Pairs"], ("%d/%d"):format(self.pairs or 0, self.total or 8) },
         { L["Moves"], tostring(self.moves or 0) },
@@ -160,6 +221,38 @@ local function Create(host, board)
     ns.Paint(bg, 0.1, 0.08, 0.06, 1)
     return g
 end
+
+-- Regelwerk für den Mehrspieler: ein gemeinsames Brett mit 15 Paaren. Wer dran ist, deckt zwei Karten auf
+-- (zwei Züge, gesendet wird jeweils die Karte); ein Paar gehört ihm und er ist noch einmal dran.
+ns.MP.Register("runepairs", {
+    New = function(seed)
+        local rnd = ns.RNG(seed)
+        local pool, deck, cards = {}, {}, {}
+        for _, ic in ipairs(ICONS) do pool[#pool + 1] = ic end
+        for i = #pool, 2, -1 do local j = rnd(i); pool[i], pool[j] = pool[j], pool[i] end
+        for p = 1, 15 do deck[#deck + 1] = pool[p]; deck[#deck + 1] = pool[p] end
+        for i = #deck, 2, -1 do local j = rnd(i); deck[i], deck[j] = deck[j], deck[i] end
+        for i = 1, 30 do cards[i] = { icon = deck[i], up = false, done = false } end
+        return { cards = cards, pairs = { 0, 0 }, n = 0 }
+    end,
+    Legal = function(st, _, i)
+        local c = type(i) == "number" and st.cards[i]
+        return c ~= nil and c ~= false and not c.done and st.open ~= i
+    end,
+    Apply = function(st, seat, i)
+        if not st.open then st.open = i; return nil, seat end
+        local a, b = st.cards[st.open], st.cards[i]
+        st.n = st.n + 1
+        if a.icon ~= b.icon then
+            st.miss, st.open = { st.open, i }, nil
+            return nil
+        end
+        a.done, b.done, st.open, st.miss = true, true, nil, nil
+        st.pairs[seat] = st.pairs[seat] + 1
+        if st.pairs[1] + st.pairs[2] == 15 then return st.pairs[1] > st.pairs[2] and 1 or 2 end
+        return nil, seat
+    end,
+})
 
 ns.RegisterGame({
     id = "runepairs",

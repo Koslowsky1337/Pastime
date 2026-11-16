@@ -25,9 +25,11 @@ function Cards.NewDeck()
     return deck
 end
 
-function Cards.Shuffle(t)
+-- rnd: eigene Zufallsfolge (Mehrspieler: beide bekommen dasselbe Blatt)
+function Cards.Shuffle(t, rnd)
+    rnd = rnd or math.random
     for i = #t, 2, -1 do
-        local j = math.random(i)
+        local j = rnd(i)
         t[i], t[j] = t[j], t[i]
     end
     return t
@@ -317,6 +319,7 @@ end
 -- Der Jackpot fällt: sofort aufs Gold, der Topf beginnt von vorn. Die Anzeige oben links meldet
 -- den Gewinn, bis wieder gesetzt wird.
 function Gamble:Jackpot()
+    if self.mp then return end      -- im Duell gibt es keinen Jackpot
     local pot = math.floor((tonumber(ns.DB.jackpot) or JACKPOT_START) + 0.5)
     ns.DB.jackpot = JACKPOT_START
     self.gold = self.gold + pot
@@ -345,7 +348,29 @@ function Gamble.ShowJackpot(self)
         or (L["Jackpot: |cffffffff%d|r"]):format(math.floor((tonumber(ns.DB.jackpot) or JACKPOT_START) + 0.5)))
 end
 
+-- Duell (Mehrspieler-Wettrennen): eigenes Gold nur für diese Partie, DUEL_HANDS Runden, dann zählt der Goldstand
+Gamble.DUEL_HANDS = 5
+function Gamble.DuelPurse(self)
+    self.duel = { gold = START_GOLD, peak = START_GOLD, wager = 100 }
+    self.left = Gamble.DUEL_HANDS
+    return self.duel
+end
+
+function Gamble.DuelNote(self)
+    return (L["Duel: round %d of %d – the most gold wins."]):format(math.min(Gamble.DUEL_HANDS, Gamble.DUEL_HANDS - self.left + 1), Gamble.DUEL_HANDS)
+end
+
+-- Nach einer Runde im Duell: true, wenn es damit zu Ende ist (das Ergebnis geht an den Mitspieler)
+function Gamble.DuelDone(self)
+    if not self.mp or (self.left > 0 and self.gold >= MIN_BET) then return false end
+    self.state = "over"
+    self:Render()
+    self.host:Over({ score = self.gold, text = (L["You finish with %d gold."]):format(self.gold) })
+    return true
+end
+
 function Gamble:Purse()
+    if self.mp then return self.duel end
     local p = ns.DB.purses[self.id]
     if type(p) ~= "table" then p = {}; ns.DB.purses[self.id] = p end
     return p
@@ -358,6 +383,7 @@ function Gamble:Save()
 end
 
 function Gamble:OpenRun()
+    if self.mp then Gamble.DuelPurse(self) end
     local p = self:Purse()
     if (tonumber(p.gold) or 0) < MIN_BET then p.gold, p.peak = START_GOLD, START_GOLD end
     self.gold = p.gold
@@ -371,7 +397,7 @@ function Gamble:Betting()
     self.state, self.bet, self.jackWon = "bet", 0, nil
     if self.Clear then self:Clear() end
     self.msg:SetText(L["Place your bet!"])
-    self.sub:SetText((L["Best this run: %d gold"]):format(self.peak))
+    self.sub:SetText(self.mp and Gamble.DuelNote(self) or (L["Best this run: %d gold"]):format(self.peak))
     self:Render()
 end
 
@@ -392,7 +418,7 @@ end
 -- Hand abrechnen: win ist die Auszahlung einschließlich Einsatz. wait = Sekunden bis zur
 -- nächsten Hand (false: erst auf Tastendruck)
 function Gamble:Pay(win, text, wait)
-    if win < self.bet then Gamble.Feed(self.bet - win) end
+    if self.mp then self.left = self.left - 1 elseif win < self.bet then Gamble.Feed(self.bet - win) end
     self.gold = self.gold + win
     self.peak = math.max(self.peak, self.gold)
     self.score = self.peak
@@ -426,6 +452,7 @@ end
 
 function Gamble:Next()
     if self.state ~= "result" then return end
+    if Gamble.DuelDone(self) then return end
     if self.gold < MIN_BET then
         return self:EndRun({ title = L["Broke!"], text = L["The goblin took your last coin."] })
     end
@@ -434,7 +461,7 @@ end
 
 -- Kasse machen: den Lauf freiwillig beenden – zwischen zwei Händen und nur mit Gewinn
 function Gamble:CashOut()
-    if self.state ~= "bet" or self.gold <= START_GOLD then return end
+    if self.mp or self.state ~= "bet" or self.gold <= START_GOLD then return end
     return self:EndRun({ won = true, text = (L["You leave the table with %d gold."]):format(self.gold) })
 end
 
@@ -470,7 +497,7 @@ function Gamble:BaseRender()
         end
     end
     self.nextBtn:SetShown(self.state == "result")
-    self.cashBtn:SetShown(betting)
+    self.cashBtn:SetShown(betting and not self.mp)
     self.cashBtn:SetEnabled(betting and (self.gold or 0) > START_GOLD)
 end
 

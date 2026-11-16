@@ -18,8 +18,10 @@ end
 local Game = {}
 Game.__index = Game
 
+local RACE_TIME = 300      -- Mehrspieler: so lange läuft das Wettrennen
+
 function Game:Start()
-    local deck = Cards.Shuffle(Cards.NewDeck())
+    local deck = Cards.Shuffle(Cards.NewDeck(), self.rnd)
     self.tab, self.found, self.stock, self.waste = {}, { {}, {}, {}, {} }, {}, {}
     for i = 1, 7 do
         self.tab[i] = {}
@@ -30,7 +32,7 @@ function Game:Start()
         end
     end
     for _, c in ipairs(deck) do c.up = false; table.insert(self.stock, c) end
-    self.sel, self.moves, self.time, self.started, self.done = nil, 0, 0, false, false
+    self.sel, self.moves, self.time, self.started, self.done = nil, 0, 0, self.mp ~= nil, false
     self.auto, self.score, self.hint = nil, 0, nil
     self:Render()
 end
@@ -216,7 +218,17 @@ function Game:Placed()
     return n
 end
 
+-- Wettrennen: 100 Punkte je abgelegter Karte; wer alle ablegt, bekommt die restlichen Sekunden dazu
+function Game:RaceEnd(title, text)
+    self.done, self.auto, self.hint = true, nil, nil
+    local n = self:Placed()
+    self:Render()
+    return self.host:Over({ score = n * 100 + (n == 52 and math.max(0, math.floor(RACE_TIME - self.time)) or 0), title = title,
+        text = text or (L["%d of 52 cards were played."]):format(n) })
+end
+
 function Game:CheckEnd()
+    if self.mp and self:Placed() == 52 then return self:RaceEnd(nil, L["All cards played!"]) end
     if self:Placed() == 52 then
         self.done = true
         self.auto = nil
@@ -232,6 +244,7 @@ function Game:CheckEnd()
     end
     -- Kein Zug mehr, der weiterhilft: die Partie ist verloren
     if not self.auto and not self:FindMove() then
+        if self.mp then return self:RaceEnd(L["No moves left"]) end
         self.done, self.hint = true, nil
         self:Render()
         return self.host:Over({ submit = false, title = L["No moves left"],
@@ -344,6 +357,7 @@ function Game:Update(dt)
     if self.started and not self.done then
         self.time = self.time + dt
         self.score = self.time         -- große Anzeige zählt mit; gewertet wird erst das gelöste Spiel
+        if self.mp and self.time >= RACE_TIME then return self:RaceEnd(L["Time is up"]) end
     end
     if self.drag then self:DragMove() end
     if self.hint then
@@ -445,7 +459,7 @@ end
 
 function Game:Info()
     return {
-        { L["Time"], fmtTime(self.time) },
+        { L["Time"], fmtTime(self.mp and math.max(0, RACE_TIME - (self.time or 0)) or self.time) },
         { L["Moves"], tostring(self.moves or 0) },
         { L["Played"], ("%d/52"):format(self.found and self:Placed() or 0) },
     }
@@ -536,5 +550,7 @@ ns.RegisterGame({
     desc = L["The classic: build all cards up by suit from ace to king. In the columns, stack downwards in alternating red and black; only kings may fill an empty column. Your time is your score."],
     controls = L["Drag a card onto its target (or click it, then the target) · Click a fitting card: onto its suit pile · Stock or Space: draw · H: tip"],
     controlsShort = L["Drag card to target\nClick: onto suit pile\nSpace: draw · H: tip"],
+    race = true,
     Create = Create,
 })
+ns.MP.Race("solitaer")

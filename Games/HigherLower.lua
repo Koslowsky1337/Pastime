@@ -23,7 +23,7 @@ function Game.Factor(card, up)
 end
 
 function Game:Draw()
-    if #self.deck < 10 then self.deck = Cards.Shuffle(Cards.NewDeck()) end
+    if #self.deck < 10 then self.deck = Cards.Shuffle(Cards.NewDeck(), self.rnd) end
     return table.remove(self.deck)
 end
 
@@ -32,7 +32,7 @@ function Game:Clear()
 end
 
 function Game:Start()
-    self.deck = Cards.Shuffle(Cards.NewDeck())
+    self.deck = Cards.Shuffle(Cards.NewDeck(), self.rnd)
     self:OpenRun()
 end
 
@@ -50,7 +50,7 @@ function Game:Guess(up)
     if not f then return end
     local old, new = value(self.card), value(self:Draw())
     while new == old do new = value(self:Draw()) end      -- gleicher Wert: neue Karte
-    self.card = { rank = new == 14 and 1 or new, suit = math.random(4) }
+    self.card = { rank = new == 14 and 1 or new, suit = (self.rnd or math.random)(4) }
     if (new > old) == up then
         self.pot = math.floor(self.pot * f)
         self.streak = self.streak + 1
@@ -150,5 +150,7 @@ ns.RegisterGame({
             L["One miss and the pot is gone. Taking the pot ends the round and it is yours."],
         }, "\n\n")
     end,
+    race = true,
     Create = Create,
 })
+ns.MP.Race("higherlower")
