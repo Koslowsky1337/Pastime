@@ -5,9 +5,11 @@
 Multiplayer, third test version: fixes from the first test with two players.
 
 - A rematch request now arrives. After a game the other player's finished board kept them “busy”, so the request was dropped and the asker waited forever.
+- Ending a session now reaches the other side: withdrawing a request removes its window, a request to someone who is busy is turned down at once, and a message for a session the other side does not have ends it instead of leaving one player waiting.
 - If both players ask each other at the same moment, one of the two requests wins automatically instead of both waiting.
 - Four in a Row: the colours are the same on both screens. The player who invited plays red, the invited player blue, and the board says which one you are.
 - Friends: if the friend list only knows a first name, the full name is looked up in the guild list, because direct messages need it.
+- For testing: `/pastime debug dump` shows what the game reports about your group, guild, friends and Battle.net friends, with all text masked; `/pastime debug dump klar` shows it in plain text.
 - The log no longer fills up with messages of other addons, so `/pastime report` shows the course of a multiplayer test.
 
 ## 2.0.0-beta2

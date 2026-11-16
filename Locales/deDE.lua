@@ -737,3 +737,4 @@ L["Request sent to %s. The Multiplayer tab shows what happens; /pastime report h
 L["That is not possible right now (in combat, or a session is already running)."] = "Das geht gerade nicht (im Kampf, oder es läuft schon eine Sitzung)."
 L["You play red."] = "Du spielst Rot."
 L["You play blue."] = "Du spielst Blau."
+L["Pastime data dump"] = "Pastime-Datenauszug"

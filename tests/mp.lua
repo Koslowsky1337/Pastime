@@ -418,6 +418,31 @@ check(MP.session.id == "a0" and MP.session.role == "guest" and MP.session.state 
     "gekreuzte Anfragen: ihre hat die kleinere Nummer – ich nehme sie von selbst an")
 MP.Pause()
 
+-- Abbau: zieht der Anfragende zurück, verschwindet seine Anfrage bei mir
+from(JAINA, "INVITE", "w1")
+check(ns.inviteFrame.shown, "ihre Anfrage steht da")
+from(JAINA, "BYE", "w1")
+check(not ns.inviteFrame.shown and MP.invites[JAINA] == nil, "bricht sie ab, verschwindet die Anfrage sofort")
+-- eine Nachricht zu einer Sitzung, die es hier nicht gibt, wird einmal mit BYE zurückgewiesen
+flush(); SENT = {}
+from(JAINA, "MOVE", "ghost", 3, 4)
+from(JAINA, "MOVE", "ghost", 4, 4)
+flush()
+check(#SENT == 1 and SENT[1].msg == "PT1^BYE^ghost" and SENT[1].target == JAINA, "ein Zug zu einer unbekannten Sitzung: sie erfährt einmal, dass hier nichts läuft")
+-- besetzt: wer anfragt, während ich spiele, bekommt sofort eine Absage
+MP.Invite(JAINA); sid = MP.session.id
+from(JAINA, "ACCEPT", sid, 0)
+flush(); SENT = {}
+from("Thrall", "INVITE", "busy1")
+flush()
+check(#SENT == 1 and SENT[1].msg == "PT1^DECLINE^busy1" and SENT[1].target == "Thrall" and MP.invites.Thrall == nil,
+    "besetzt: der Anfragende bekommt sofort eine Absage statt 60 Sekunden zu warten")
+-- und umgekehrt: weist die andere Seite meine Sitzung zurück, endet sie auch bei mir
+MP.last = nil; MP.Choose("fourinarow")
+from(JAINA, "BYE", sid)
+check(MP.session == nil or MP.session.state == "over", "weist sie die Sitzung zurück, läuft sie auch bei mir nicht weiter")
+MP.Pause(); ns.ShowLauncher()
+
 -- Anfrage-Fenster und Parken: ich spiele gerade Windnatter und werde eingeladen
 ns.StartGame(ns.gamesById.snake)
 from(JAINA, "INVITE", "p1")

@@ -575,6 +575,137 @@ function ns.SelfTest(what)
 end
 
 ---------------------------------------------------------------------------
+-- Daten-Auszug (/pastime debug dump [klar]): was der Client über den eigenen Charakter, Gruppe, Gilde,
+-- Freunde und Battle.net-Freunde liefert – die Grundlage für die Mitspielerliste. Ohne Zusatz sind alle
+-- Texte maskiert (Buchstaben werden zu x); mit „klar“ steht alles im Klartext da, auch Namen anderer.
+---------------------------------------------------------------------------
+function ns.DataDump(plain)
+    local out = {}
+    local function show(v)
+        if type(v) ~= "string" then return tostring(v) end
+        if plain then return '"' .. v .. '"' end
+        return '"' .. (v:gsub("[\128-\255]+", "x"):gsub("%a", "x"):gsub("%d", "9")) .. '"'
+    end
+    local function add(text) out[#out + 1] = text end
+    local function list(...)
+        local t = {}
+        for i = 1, select("#", ...) do t[i] = show((select(i, ...))) end
+        return table.concat(t, ", ")
+    end
+    -- eine Tabelle Feld für Feld, verschachtelte eingerückt
+    local function fields(t, indent, depth)
+        local keys = {}
+        for k in pairs(t) do keys[#keys + 1] = k end
+        table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+        for _, k in ipairs(keys) do
+            local v = t[k]
+            if type(v) == "table" and depth < 3 then
+                add(indent .. tostring(k) .. ":")
+                fields(v, indent .. "  ", depth + 1)
+            else
+                add(indent .. tostring(k) .. " = " .. show(v))
+            end
+        end
+    end
+    local function call(label, fn, ...)
+        if type(fn) ~= "function" then return add(label .. ": (function missing)") end
+        local r = { pcall(fn, ...) }
+        if not r[1] then return add(label .. ": error " .. tostring(r[2])) end
+        add(label .. ": " .. list(unpack(r, 2, table.maxn(r))))
+    end
+
+    add(plain and "Pastime data dump – PLAIN TEXT. It contains names of other players: do not post it publicly."
+        or "Pastime data dump – masked (letters are x, digits 9; spaces, dashes and lengths are real).")
+    add("")
+    add("== You ==")
+    call("UnitName(player)", UnitName, "player")
+    call("GetUnitName(player, true)", GetUnitName, "player", true)
+    call("GetUnitName(player, false)", GetUnitName, "player", false)
+    call("UnitFullName(player)", UnitFullName, "player")
+    call("GetRealmName()", GetRealmName)
+    call("GetNormalizedRealmName()", GetNormalizedRealmName)
+    call("UnitFactionGroup(player)", UnitFactionGroup, "player")
+    add("WOW_PROJECT_ID = " .. tostring(WOW_PROJECT_ID))
+    local names = {}
+    for n in pairs(ns.Comm.selfNames) do names[#names + 1] = show(n) end
+    add("names Pastime sends under: " .. table.concat(names, ", "))
+
+    add("")
+    add("== Group ==")
+    local n = GetNumGroupMembers and GetNumGroupMembers() or 0
+    add("GetNumGroupMembers() = " .. n .. " · IsInGroup " .. tostring(IsInGroup and IsInGroup()) .. " · IsInRaid " .. tostring(IsInRaid and IsInRaid()))
+    for i = 1, math.min(n, 10) do
+        local unit = (IsInRaid and IsInRaid()) and ("raid" .. i) or ("party" .. i)
+        if UnitExists and UnitExists(unit) then
+            call(unit .. " UnitName", UnitName, unit)
+            call(unit .. " GetUnitName(true)", GetUnitName, unit, true)
+            call(unit .. " UnitIsConnected", UnitIsConnected, unit)
+        end
+    end
+
+    add("")
+    add("== Guild ==")
+    local total = GetNumGuildMembers and GetNumGuildMembers() or 0
+    add("GetNumGuildMembers() = " .. list(GetNumGuildMembers and GetNumGuildMembers()))
+    local shown = 0
+    for i = 1, total do
+        local name, _, _, _, _, _, _, _, on = GetGuildRosterInfo(i)
+        if on and shown < 6 then
+            shown = shown + 1
+            call("online member " .. shown .. " GetGuildRosterInfo", GetGuildRosterInfo, i)
+        end
+    end
+
+    add("")
+    add("== Friend list (in game) ==")
+    local F = C_FriendList
+    local nf = F and F.GetNumFriends and F.GetNumFriends() or 0
+    add("C_FriendList.GetNumFriends() = " .. tostring(nf))
+    for i = 1, math.min(nf, 10) do
+        local info = F.GetFriendInfoByIndex(i)
+        add("friend " .. i .. ":")
+        if type(info) == "table" then fields(info, "  ", 1) else add("  " .. show(info)) end
+    end
+
+    add("")
+    add("== Battle.net friends ==")
+    call("BNConnected()", BNConnected)
+    call("BNGetNumFriends()", BNGetNumFriends)
+    local B = C_BattleNet
+    local nb = BNGetNumFriends and BNGetNumFriends() or 0
+    for i = 1, math.min(tonumber(nb) or 0, 12) do
+        add("Battle.net friend " .. i .. ":")
+        if B and B.GetFriendAccountInfo then
+            local ok, info = pcall(B.GetFriendAccountInfo, i)
+            if ok and type(info) == "table" then fields(info, "  ", 1) else add("  GetFriendAccountInfo: " .. show(info)) end
+        end
+        local accounts = B and B.GetFriendNumGameAccounts and B.GetFriendNumGameAccounts(i) or 0
+        add("  GetFriendNumGameAccounts = " .. tostring(accounts))
+        for j = 1, tonumber(accounts) or 0 do
+            local ok, acc = pcall(B.GetFriendGameAccountInfo, i, j)
+            add("  game account " .. j .. ":")
+            if ok and type(acc) == "table" then fields(acc, "    ", 1) else add("    " .. show(acc)) end
+        end
+    end
+
+    add("")
+    add("== Pastime users heard in this session ==")
+    local any = false
+    for name, p in pairs(ns.Comm.peers) do
+        any = true
+        local seen = {}
+        for channel, e in pairs(p.seen or {}) do seen[#seen + 1] = ("%s level %s, %d s ago"):format(channel, tostring(e.mp), GetTime() - (e.t or 0)) end
+        add(("%s (%s): version %s · %s"):format(show(name), ns.NameId(name), tostring(p.v), table.concat(seen, "; ")))
+    end
+    if not any then add("none") end
+    add("multiplayer on: " .. tostring(ns.MP.On()) .. " · visible to friends " .. tostring(ns.DB.settings.mpFriends) .. " · group "
+        .. tostring(ns.DB.settings.mpParty) .. " · guild " .. tostring(ns.DB.settings.mpGuild))
+
+    local text = table.concat(out, "\n")
+    ns.ShowCopy(L["Pastime data dump"], plain and text or ns.Anonymize(text))
+end
+
+---------------------------------------------------------------------------
 -- Layout-Prüfer (/pastime layout, nur mit Debug): meldet abgeschnittene,
 -- überstehende und überlappende Texte/Knöpfe als Warnung „layout“ im Protokoll
 ---------------------------------------------------------------------------

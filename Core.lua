@@ -983,6 +983,10 @@ function ns.HandleSlash(msg)
         ns.Print(ns.DB.mpBeta and L["Multiplayer beta |cff80ff80on|r."] or L["Multiplayer beta |cffff6060off|r."])
         ns.Comm.Announce()
         if ns.UpdateUI then ns.UpdateUI() end
+    elseif cmd == "debug" and ({ dump = true, daten = true })[arg:match("^%S*")] then
+        -- /pastime debug dump [klar]: was der Client über Gruppe, Gilde und Freunde liefert
+        local how = arg:match("^%S+%s+(%S+)")
+        if ns.DataDump then ns.DataDump(how == "klar" or how == "plain" or how == "klartext") end
     elseif cmd == "debug" and ({ user = true, spieler = true })[arg:match("^%S*")] then
         -- /pastime debug user Vorname Nachname: diesen Spieler direkt anfragen, ohne dass er in der Liste steht.
         -- Zum Testen des Mehrspielers; der Verlauf steht im Protokoll (/pastime report).

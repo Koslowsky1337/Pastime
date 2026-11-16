@@ -654,6 +654,16 @@ check(ns.selfTest ~= nil, "Selbsttest: lässt sich danach neu starten")
 RunTimers()
 ns.selfFrame:Hide(); ns.copyFrame:Hide()
 
+-- Daten-Auszug: maskiert, mit „klar“ im Klartext
+SlashCmdList.PASTIME("debug dump")
+local dump = ns.copyFrame.text or ""
+check(ns.copyFrame.shown and ns.copyFrame.title.text == ns.L["Pastime data dump"] and dump:find("== Battle.net friends ==", 1, true)
+    and dump:find("masked", 1, true) and not dump:find("Thokk", 1, true), "Daten-Auszug: maskiert steht kein Name darin")
+SlashCmdList.PASTIME("debug dump klar")
+dump = ns.copyFrame.text or ""
+check(dump:find("PLAIN TEXT", 1, true) and dump:find('UnitName(player): "Thokk"', 1, true), "Daten-Auszug: mit „klar“ im Klartext, mit Warnhinweis")
+ns.copyFrame:Hide()
+
 -- Reiter „Einstellungen“: dieselben Schalter wie im Addon-Menü
 ns.ShowFrame("settings")
 local sv = ns.settingsView

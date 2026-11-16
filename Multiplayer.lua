@@ -247,6 +247,16 @@ local function openInvites()
     return n
 end
 
+-- Abbau wie bei einer Netzwerkverbindung: Wer eine Nachricht zu einer Sitzung bekommt, die es bei ihm
+-- nicht (mehr) gibt, sagt das dem Absender einmal mit BYE; der beendet dann seine Seite. Ohne das wartete
+-- einer auf den anderen, bis eine Frist abläuft.
+local refused = {}      -- [Sitzungsnummer] = true: schon einmal zurückgewiesen
+local function refuse(sender, id, kind)
+    if refused[id] or kind == "BYE" or kind == "PAUSE" or kind == "RESULT" or kind == "DECLINE" then return end
+    refused[id] = true
+    Comm.Send(kind == "INVITE" and "DECLINE" or "BYE", "WHISPER", sender, id)
+end
+
 function Comm.Gate(kind, fields, sender, channel)
     if kind == "HELLO" then return true end
     if not MP.On() then return false, "multiplayer off" end
@@ -257,11 +267,24 @@ function Comm.Gate(kind, fields, sender, channel)
         -- Eine beendete Partie hält niemanden besetzt (sonst käme die Revanche nie an). Fragen sich beide
         -- gleichzeitig an, kommt die Anfrage des anderen ebenfalls durch; INVITE entscheidet dann, wer einlädt.
         local crossing = s and s.state == "asking" and s.partner == sender
-        if s and s.state ~= "over" and not crossing then return false, "busy" end
+        if s and s.state ~= "over" and not crossing then
+            refuse(sender, fields[1], kind)      -- besetzt: der Anfragende erfährt es sofort
+            return false, "busy"
+        end
         if not MP.invites[sender] and openInvites() >= MAX_INVITES then return false, "too many invites" end
         return true
     end
-    if not (s and s.partner == sender and s.id == fields[1]) then return false, "not in session" end
+    if not (s and s.partner == sender and s.id == fields[1]) then
+        -- der Anfragende hat abgebrochen, bevor geantwortet wurde: seine Anfrage verschwindet
+        local inv = MP.invites[sender]
+        if kind == "BYE" and inv and inv.id == fields[1] then
+            MP.invites[sender] = nil
+            changed()
+            return false, "invite withdrawn"
+        end
+        refuse(sender, fields[1], kind)
+        return false, "not in session"
+    end
     return true
 end
 
@@ -520,6 +543,7 @@ end
 -- Nur zum Testen
 function MP._Reset()
     MP.session, MP.note, MP.last = nil, nil, nil
+    wipe(refused)
     rosterAt, refreshed = -100, -100
     wipe(MP.invites)
 end
