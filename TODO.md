@@ -40,6 +40,7 @@ Stand: `v1.4.2` ist veröffentlicht (16.11.). Der Mehrspieler steckt abgeschalte
 - [ ] Tagesziele nach ein paar Tagen Spielen nachjustieren (`ns.DAILY` in `Core.lua`; Werte sind geschätzt)
 
 ## 3. Version 2.0: Mehrspieler
+**Bedingung für 2.0 (16.11.):** Der Test zu zweit mit 1.4.2 klappt (Liste, Revanche-Frage, `/pastime invite`) und die neuen Spiele für zwei sind drin. Dann wird 2.0 veröffentlicht und der Mehrspieler im Changelog genannt.
 - [x] Definition in `MULTIPLAYER.md` bestätigt (15.11.)
 - [x] Beta 1, Schritt 1: Sitzungslogik `Multiplayer.lua` (Anfrage, Annehmen, Spielwahl, Züge, Aufgeben, Anhalten und Fortsetzen, Bilanz, Fristen) und Regelwerk Vier gewinnt, mit Tests `tests/mp.lua`
 - [x] Beta 1, Schritt 2: Reiter „Mehrspieler“ (Mitspielerliste, Anfragen, Anfrage-Fenster, Spielwahl), Mehrspieler-Schalter im Reiter „Einstellungen“
