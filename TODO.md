@@ -1,6 +1,6 @@
 # Pastime – ToDo
 
-Stand: `v1.3.0` ist veröffentlicht (15.11.); 1.4 ist vorbereitet (Changelog steht, Tag auf Ansage). Der Mehrspieler steckt abgeschaltet darin und wird erst mit 2.0 im Changelog genannt. Die Prüflisten bis 1.0 sind erledigt und stehen in der Git-Historie.
+Stand: `v1.4.0` ist veröffentlicht (16.11.). Der Mehrspieler steckt abgeschaltet darin und wird erst mit 2.0 im Changelog genannt. Die Prüflisten bis 1.0 sind erledigt und stehen in der Git-Historie.
 (Diese Datei kommt nicht ins Addon-Zip: `.pkgmeta` lässt `TODO.md` weg.)
 
 ## 1. Von Hand (GitHub)
