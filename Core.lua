@@ -30,6 +30,14 @@ local function trim(log)
     for _ = 1, math.max(0, extra) do table.remove(log, 1) end
 end
 
+-- Kennung für einen Spielernamen (Prüfsumme): im Protokoll und in Berichten stehen fremde Namen nie
+-- im Klartext, aber man sieht, ob zwei Zeilen denselben Spieler meinen
+function ns.NameId(name)
+    local h = 5381
+    for i = 1, #tostring(name) do h = (h * 33 + tostring(name):byte(i)) % 16777216 end
+    return ("#%06x"):format(h)
+end
+
 function ns.Print(text)
     local frame = DEFAULT_CHAT_FRAME or ChatFrame1
     if frame then frame:AddMessage("|cffffd100Pastime:|r " .. tostring(text)) end
@@ -975,6 +983,21 @@ function ns.HandleSlash(msg)
         ns.Print(ns.DB.mpBeta and L["Multiplayer beta |cff80ff80on|r."] or L["Multiplayer beta |cffff6060off|r."])
         ns.Comm.Announce()
         if ns.UpdateUI then ns.UpdateUI() end
+    elseif cmd == "debug" and ({ user = true, spieler = true })[arg:match("^%S*")] then
+        -- /pastime debug user Vorname Nachname: diesen Spieler direkt anfragen, ohne dass er in der Liste steht.
+        -- Zum Testen des Mehrspielers; der Verlauf steht im Protokoll (/pastime report).
+        local name = ns.Trim((rest:match("^%S+%s+(.+)$") or ""):gsub('["“”„]', ""))
+        if name == "" then
+            ns.Print(L["Usage: /pastime debug user First Last"])
+        elseif not ns.MP.On() then
+            ns.Print(L["Multiplayer is not switched on. Type /pastime mp first."])
+        elseif ns.MP.Invite(name) then
+            ns.Log("I", "mp", "debug invite to %s", ns.NameId(name))
+            ns.Print((L["Request sent to %s. The Multiplayer tab shows what happens; /pastime report has the details."]):format(name))
+            ns.ShowFrame("mp")
+        else
+            ns.Print(L["That is not possible right now (in combat, or a session is already running)."])
+        end
     elseif cmd == "debug" and ({ test = true, testlauf = true, selftest = true, selbsttest = true })[arg:match("^%S*")] then
         -- /pastime debug test [schnell|klang]: ohne Zusatz fragt ein Fenster, was getestet werden soll
         local what = arg:match("^%S+%s+(%S+)")

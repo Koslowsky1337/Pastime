@@ -244,6 +244,90 @@ PastimeDB.settings.mp = false
 check(#MP.Players() == 0 and MP.Invite(JAINA) == false, "Hauptschalter aus: niemand zu sehen, keine Anfragen")
 PastimeDB.settings.mp, PastimeDB.settings.mpGuild = true, false
 
+-- Wer gerade da ist, sagt der Client: Gruppen-, Gilden- und Freundesliste
+local partyOnline = true
+GetNumGroupMembers = function() return 2 end
+GetUnitName = function(unit) return unit == "party1" and JAINA or (unit == "player" and "Thokk Eisenfaust" or nil) end
+UnitIsConnected = function() return partyOnline end
+local guildOnline = { Rexxar = true }
+GetNumGuildMembers = function() return 2 end
+GetGuildRosterInfo = function(i) local n = i == 1 and "Rexxar" or JAINA; return n, nil, nil, nil, nil, nil, nil, nil, guildOnline[n] end
+local function names() local t = {}; NOW = NOW + 4; for _, p in ipairs(MP.Players()) do t[p.name] = p.circle end; return t end
+PastimeDB.settings.mpGuild = true
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 0, 1, 5), "GUILD", JAINA)
+NOW = NOW + 2000
+check(names()[JAINA] == "mpParty" and names().Rexxar == "mpGuild", "online laut Client: auch nach langer Zeit noch in der Liste")
+partyOnline = false
+check(names()[JAINA] == nil, "offline in der Gruppe und in der Gilde: sofort aus der Liste")
+guildOnline[JAINA] = true
+check(names()[JAINA] == "mpGuild", "in der Gilde online: über die Gilde zu sehen")
+guildOnline.Rexxar = nil
+check(names().Rexxar == nil, "aus der Gilde ausgeloggt: weg")
+partyOnline, guildOnline.Rexxar = true, true
+-- Abmelden: wer sich für die Gruppe unsichtbar macht, sagt es dort einmal
+C.Announce(); flush(); SENT = {}
+PastimeDB.settings.mpParty = false
+C.Announce(); flush()
+local bye
+for _, m in ipairs(SENT) do if m.channel == "PARTY" then bye = m.msg end end
+check(bye == "PT1^HELLO^0^0^" .. C.tag, "unsichtbar für die Gruppe: einmal mit Stufe 0 abgemeldet (" .. tostring(bye) .. ")")
+SENT = {}; C.Announce(); flush()
+bye = nil
+for _, m in ipairs(SENT) do if m.channel == "PARTY" then bye = m.msg end end
+check(bye == nil, "danach meldet ein Betastand dort nichts mehr")
+PastimeDB.settings.mpParty = true
+-- Freunde: wer laut Freundesliste online ist, bekommt einmal eine direkte Meldung
+local SYL = "Sylvanas Windläufer"
+local friends = { { name = SYL, connected = true }, { name = "Garrosh", connected = false } }
+C_FriendList = { GetNumFriends = function() return #friends end, GetFriendInfoByIndex = function(i) return friends[i] end }
+SENT = {}; C.GreetFriends(); flush()
+check(#SENT == 1 and SENT[1].channel == "WHISPER" and SENT[1].target == SYL and SENT[1].msg == "PT1^HELLO^0^1^" .. C.tag,
+    "eine Freundin, die online ist, bekommt die Meldung direkt; wer offline ist, nichts")
+C.GreetFriends(); flush()
+check(#SENT == 1, "jeder Freund wird nur einmal je Sitzung gegrüßt")
+check(names()[SYL] == nil, "solange sie nicht antwortet, steht sie nicht in der Liste")
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 0, 1, 8), "WHISPER", SYL); flush()
+check(names()[SYL] == "mpFriends" and #SENT == 1, "antwortet sie, steht sie als Freundin in der Liste; es geht nichts noch einmal zurück")
+friends[1].connected = false
+check(names()[SYL] == nil, "loggt sie aus, verschwindet sie")
+friends[1].connected = true
+-- ein Fremder, der mich als Freund hat, meldet sich direkt: einmal antworten, aber er steht nicht in meiner Liste
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 0, 1, 9), "WHISPER", "Varian Wrynn"); flush()
+check(#SENT == 2 and SENT[2].target == "Varian Wrynn" and SENT[2].channel == "WHISPER" and names()["Varian Wrynn"] == nil,
+    "wer mich als Freund hat, bekommt eine Antwort und kann mich anfragen; in meiner Liste steht er nicht")
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 0, 1, 9), "WHISPER", "Varian Wrynn"); flush()
+check(#SENT == 2, "geantwortet wird nur einmal")
+-- die Schalter ändern, was Freunde erfahren
+PastimeDB.settings.mpFriends = false
+C.GreetFriends(); flush()
+check(#SENT == 3 and SENT[3].target == SYL and SENT[3].msg == "PT1^HELLO^0^0^" .. C.tag, "unsichtbar für Freunde: die schon Gegrüßte erfährt es")
+PastimeDB.settings.mpFriends = true
+-- Debug: einen Spieler direkt per Namen anfragen
+MP._Reset(); SENT = {}
+SlashCmdList.PASTIME('debug user "Brezzo Ozzerb"')
+local inv = MP.session and sent("PT1^INVITE^" .. MP.session.id)
+check(MP.session and MP.session.partner == "Brezzo Ozzerb" and inv and inv.target == "Brezzo Ozzerb" and inv.channel == "WHISPER",
+    "/pastime debug user fragt den genannten Spieler direkt an, Groß- und Kleinschreibung bleibt")
+local trace = {}
+for _, e in ipairs(PastimeDB.log) do if e.c == "mp" then trace[#trace + 1] = e.m end end
+local text = table.concat(trace, "\n")
+check(text:find("out INVITE to " .. ns.NameId("Brezzo Ozzerb"), 1, true) and not text:find("Brezzo", 1, true),
+    "der Verlauf steht im Protokoll, mit Kennung statt Name")
+from("Brezzo Ozzerb", "DECLINE", MP.session.id)
+from("Brezzo Ozzerb", "MOVE", "zzz", 1, 1)
+trace = {}
+for _, e in ipairs(PastimeDB.log) do if e.c == "mp" then trace[#trace + 1] = e.m end end
+text = table.concat(trace, "\n")
+check(text:find("in  DECLINE from " .. ns.NameId("Brezzo Ozzerb"), 1, true) and text:find("dropped (not in session)", 1, true),
+    "auch Eingehendes und Verworfenes steht im Protokoll")
+SlashCmdList.PASTIME("debug user")
+check(MP.session == nil, "ohne Namen passiert nichts")
+GetNumGroupMembers, GetUnitName, UnitIsConnected, GetNumGuildMembers, GetGuildRosterInfo, C_FriendList = nil, nil, nil, nil, nil, nil
+C.peers[SYL], C.peers["Varian Wrynn"], C.peers.Rexxar = nil, nil, nil
+PastimeDB.settings.mpGuild = false
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 0, 1, 5), "PARTY", JAINA)
+MP._Reset()
+
 -- Oberfläche: Reiter „Mehrspieler“, Anfrage-Fenster, Brett, geparktes Einzelspiel -------------------
 local function click(b) b.scripts.OnClick(b) end
 MP._Reset(); PastimeDB.mp.paused = {}; PastimeDB.mp.stats = {}
@@ -337,7 +421,8 @@ check(C.FilterOffline(nil, nil, ERR_CHAT_PLAYER_NOT_FOUND_S:format(JAINA)) == tr
 -- Einstellungen: die Mehrspieler-Schalter
 ns.ShowFrame("settings")
 local sv = ns.settingsView
-check(sv.checks[6]:IsShown() and sv.checks[8]:GetChecked() == false and sv.checks[7]:GetChecked() == true, "Einstellungen: Mehrspieler-Schalter sichtbar, Gruppe an, Gilde aus")
+check(#sv.checks == 9 and sv.checks[6]:IsShown() and sv.checks[7]:GetChecked() == true and sv.checks[8]:GetChecked() == true and sv.checks[9]:GetChecked() == false,
+    "Einstellungen: Mehrspieler-Schalter sichtbar; Freunde und Gruppe an, Gilde aus")
 sv.checks[6]:SetChecked(false); click(sv.checks[6])
 check(PastimeDB.settings.mp == false and #MP.Players() == 0, "Hauptschalter aus: niemand mehr zu sehen")
 sv.checks[6]:SetChecked(true); click(sv.checks[6])

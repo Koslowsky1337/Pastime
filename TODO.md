@@ -46,11 +46,12 @@ Stand: `v1.3.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 - [x] Beta 1, Schritt 3: Vier gewinnt als Mehrspieler-Brett, laufendes Einzelspiel parken, Offline-Zeile ausblenden
 - [x] Allein im Spiel geprüft (15.11.): Reiter „Mehrspieler“ und die drei Schalter in den Einstellungen passen
 - [x] `v2.0.0-beta1` getaggt (16.11.), Vorab-Release auf GitHub mit Zip
-- [ ] **Test zu zweit** nach der Prüfliste in `MULTIPLAYER.md` (beide: Beta installieren, WoW neu starten, `/pastime mp`, in eine Gruppe gehen); danach beide `/pastime report` schicken
+- [x] Beta 2 (16.11.): Online-Status aus Gruppen-, Gilden- und Freundesliste, Abmelden, Kreis „Freunde“, Kürzel (F)/(P)/(G), `/pastime debug user Vorname Nachname`
+- [ ] **Test zu zweit mit `v2.0.0-beta2`** nach der Prüfliste in `MULTIPLAYER.md` (beide: Beta installieren, WoW neu starten, `/pastime mp`, in eine Gruppe gehen); danach beide `/pastime report` schicken
 - [x] Verbindungstest aus 1.3 ausgewertet (15.11.): ein anderer Spieler hat direkt geantwortet, direkte Nachrichten kommen an. `PING`/`PONG` sind wieder entfernt
-- [ ] Beta 2: Tavernenwürfel und Runenpaare-Duell
-- [ ] Beta 3: Edelsteincode-Duell und Blackjack-Duell
-- [ ] Beta 4: Flottenduell (neues Spiel)
+- [ ] Beta 3: Tavernenwürfel und Runenpaare-Duell, Bilanz „laut eigener Angabe“
+- [ ] Beta 4: Edelsteincode-Duell und Blackjack-Duell
+- [ ] Beta 5: Flottenduell (neues Spiel)
 - [ ] Jede Beta mit einem zweiten Spieler nach der Prüfliste in `MULTIPLAYER.md` testen
 
 ## 4. Später

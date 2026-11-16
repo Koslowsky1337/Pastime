@@ -404,16 +404,76 @@ function Comm.MPLevel(channel)
     return MP.On() and ns.DB.settings[CIRCLE[channel] or ""] and MP.LEVEL or 0
 end
 
+-- Wer laut Client gerade online ist, je Kreis: { mpParty = { [Name] = true }, mpGuild = …, mpFriends = … }.
+-- Kennt der Client eine Abfrage nicht, fehlt der Kreis; dann gilt, wer sich in der letzten
+-- Viertelstunde gemeldet hat. Namen (im Client geprüft): Gilde und GetUnitName(…, true) liefern den
+-- vollen Namen wie der Absender einer Nachricht; die Freundesliste womöglich nur den Vornamen.
+local rosterAt, roster = -100, {}
+local function online()
+    if GetTime() - rosterAt < 3 then return roster end
+    rosterAt, roster = GetTime(), {}
+    if GetNumGroupMembers and GetUnitName then
+        local t, raid = {}, IsInRaid and IsInRaid()
+        for i = 1, GetNumGroupMembers() do
+            local unit = raid and ("raid" .. i) or ("party" .. i)
+            local n = GetUnitName(unit, true)
+            if type(n) == "string" and (not UnitIsConnected or UnitIsConnected(unit)) then t[n] = true end
+        end
+        roster.mpParty = t
+    end
+    if GetNumGuildMembers and GetGuildRosterInfo then
+        local t = {}
+        for i = 1, GetNumGuildMembers() do
+            local n, _, _, _, _, _, _, _, on = GetGuildRosterInfo(i)
+            if type(n) == "string" and on then t[n] = true end
+        end
+        roster.mpGuild = t
+    end
+    local F = C_FriendList
+    if F and F.GetNumFriends and F.GetFriendInfoByIndex then
+        local t = {}
+        local ok, n = ns.Try("C_FriendList.GetNumFriends", F.GetNumFriends)
+        for i = 1, ok and tonumber(n) or 0 do
+            local ok2, info = ns.Try("C_FriendList.GetFriendInfoByIndex", F.GetFriendInfoByIndex, i)
+            if ok2 and type(info) == "table" and type(info.name) == "string" and info.connected then t[info.name] = true end
+        end
+        roster.mpFriends = t
+    end
+    return roster
+end
+
+local function isOnline(set, name)
+    if set[name] then return true end
+    local first = name:match("^(%S+) ")
+    return first ~= nil and set[first] == true
+end
+
+-- Beim Öffnen des Reiters: Gildenliste auffrischen lassen und Freunde grüßen, die inzwischen online sind
+local refreshed = -100
+function MP.Refresh()
+    if not MP.On() or GetTime() - refreshed < 20 then return end
+    refreshed = GetTime()
+    if C_GuildInfo and C_GuildInfo.GuildRoster then ns.Try("C_GuildInfo.GuildRoster", C_GuildInfo.GuildRoster)
+    elseif GuildRoster then ns.Try("GuildRoster", GuildRoster) end
+    Comm.GreetFriends()
+end
+
 function MP.Players()
     local list = {}
     if not MP.On() then return list end
+    local here = online()
     for name, p in pairs(Comm.peers) do
         local seen = p.seen or { [p.channel or ""] = { t = p.t, mp = p.mp } }
         local circle
         for _, c in ipairs(PRIORITY) do
             for i = 2, #c do
                 local e = seen[c[i]]
-                if not circle and e and (e.mp or 0) >= 1 and GetTime() - (e.t or 0) < 900 and ns.DB.settings[c[1]] then circle = c[1] end
+                if not circle and e and (e.mp or 0) >= 1 and ns.DB.settings[c[1]] then
+                    local set = here[c[1]]
+                    local there
+                    if set then there = isOnline(set, name) else there = GetTime() - (e.t or 0) < 900 end
+                    if there then circle = c[1] end
+                end
             end
         end
         if circle then
@@ -444,5 +504,6 @@ end
 -- Nur zum Testen
 function MP._Reset()
     MP.session, MP.note, MP.last = nil, nil, nil
+    rosterAt, refreshed = -100, -100
     wipe(MP.invites)
 end

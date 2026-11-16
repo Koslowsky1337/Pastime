@@ -1132,7 +1132,7 @@ local function CreateSettingsView(parent)
         text:SetText(tip)
         text:SetTextColor(0.75, 0.75, 0.75)
         v.checks[#v.checks + 1] = c
-        y = y - 50
+        y = y - 48
         return c, text
     end
     for _, o in ipairs(ns.OPTIONS or {}) do
@@ -1157,10 +1157,11 @@ local function CreateSettingsView(parent)
         v.mpRows[#v.mpRows + 1] = text
     end
     mpRow("mp", L["Multiplayer"], L["Other players with Pastime can ask you for a game. Off: nobody sees you and you see nobody."])
+    mpRow("mpFriends", L["Visible to your friends"], L["Friends who have you on their friend list see you in their multiplayer list."])
     mpRow("mpParty", L["Visible to your group"], L["Players in your party or raid see you in their multiplayer list."])
     mpRow("mpGuild", L["Visible to your guild"], L["Guild members see you in their multiplayer list."])
     v.report = ns.CreateButton(box, L["Create bug report"], 200, function() ns.ShowReport() end)
-    v.report:SetPoint("BOTTOMLEFT", 14, 14)
+    v.report:SetPoint("TOPRIGHT", -14, -10)      -- oben rechts: unten stehen die Mehrspieler-Schalter
     ns.SetTooltip(v.report, L["Create bug report"], L["Opens a report with the recent log to copy into a GitHub issue. Character names are replaced."])
     local version = ns.FontString(box, "GameFontDisableSmall", "RIGHT")
     version:SetPoint("BOTTOMRIGHT", -14, 18)
@@ -1208,7 +1209,7 @@ local function CreateMPView(parent)
     v.empty = ns.FontString(list, "GameFontDisable", "LEFT")
     v.empty:SetPoint("TOPLEFT", 12, -36)
     v.empty:SetWidth(312)
-    v.empty:SetText(L["Nobody here yet. Players appear when they are in your group or guild, have Pastime and have multiplayer switched on."])
+    v.empty:SetText(L["Nobody here yet. Players appear when they are online, are your friend or in your group or guild, have Pastime and have multiplayer switched on."])
     local legend = ns.FontString(list, "GameFontDisableSmall", "LEFT")
     legend:SetPoint("BOTTOMLEFT", 12, 10)
     legend:SetText(MP_TAGS.mpFriends .. " " .. L["Friend"] .. "   " .. MP_TAGS.mpParty .. " " .. L["Group"] .. "   " .. MP_TAGS.mpGuild .. " " .. L["Guild"])
@@ -1274,6 +1275,7 @@ function ns.UpdateMPView()
     if not (v and v:IsShown()) then return end
     local MP = ns.MP
     local s = MP.session
+    MP.Refresh()
     local players = MP.Players()
     v.empty:SetShown(#players == 0)
     for i, row in ipairs(v.rows) do

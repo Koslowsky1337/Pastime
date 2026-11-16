@@ -274,11 +274,7 @@ local SOUND_GAP = 5      -- Sekunden zwischen zwei Klängen im Selbsttest
 
 -- Namen im Testbericht stehen als Kennung da (eine Prüfsumme des Namens): so sieht man, ob zwei
 -- Zeilen denselben Spieler meinen und ob man es selbst war, ohne dass ein Name im Bericht steht.
-local function mask(name)
-    local h = 5381
-    for i = 1, #tostring(name) do h = (h * 33 + tostring(name):byte(i)) % 16777216 end
-    return ("#%06x"):format(h)
-end
+local mask = ns.NameId
 
 -- Wofür jeder Klang steht: der Selbsttest zeigt es an, während er läuft
 local SOUND_INFO = {

@@ -195,9 +195,13 @@ end
 function Comm.OnMessage(prefix, text, channel, sender)
     local kind, fields, who = Comm.Accept(prefix, text, channel, sender)
     if not kind then
-        ns.Log("D", "comm", "dropped (%s)", tostring(fields))
+        -- verworfene Sitzungsnachrichten sind beim Testen die wichtigste Spur
+        local direct = channel == "WHISPER" and prefix == Comm.PREFIX
+        ns.Log(direct and "I" or "D", direct and "mp" or "comm", "dropped (%s)", tostring(fields))
         return
     end
+    -- der Verlauf einer Sitzung steht im Protokoll, mit Kennung statt Name
+    if kind ~= "HELLO" then ns.Log("I", "mp", "in  %s from %s", kind, ns.NameId(who)) end
     local h = Comm.handlers[kind]
     if h then ns.Safe("comm-" .. kind, h, who, fields, channel) end
 end
@@ -231,6 +235,8 @@ function Comm.Flush()
         if item.tries < 5 then return end      -- später erneut versuchen
     end
     if code ~= RESULT_OK then ns.Log("D", "comm", "send result %s", tostring(code)) end
+    local kind = item.msg:match("^[^%^]+%^([^%^]+)")
+    if kind ~= "HELLO" then ns.Log("I", "mp", "out %s to %s, result %s", tostring(kind), ns.NameId(item.target), tostring(code)) end
     table.remove(queue, 1)
 end
 
@@ -262,16 +268,41 @@ end
 -- Es gibt keine Nachricht von Spieler zu Spieler: gemeldet wird immer nur in Gilde, Gruppe
 -- oder Schlachtzug.
 local lastHello = {}      -- [Kanal] = Zeitpunkt der letzten Meldung
-local function hello(channel)
+local lastLevel = {}      -- [Kanal oder Spieler] = zuletzt gemeldete Mehrspieler-Stufe
+-- target: bei einer direkten Meldung an einen Freund sein Name
+local function hello(channel, target)
     local mine = Comm.VersionNumber(ns.VERSION)
     local level = Comm.MPLevel and Comm.MPLevel(channel) or 0      -- 0, solange der Mehrspieler aus ist oder man hier nicht gesehen werden will
-    if not Comm.registered or not (mine or level > 0) then return end
-    lastHello[channel] = GetTime()
-    Comm.Send("HELLO", channel, nil, mine or 0, level, Comm.tag)
+    local key = target or channel
+    -- Betastände ohne Mehrspieler haben nichts zu melden – außer dass sie eben noch zu sehen waren (Abmelden)
+    if not Comm.registered or not (mine or level > 0 or (lastLevel[key] or 0) > 0) then return end
+    lastHello[key], lastLevel[key] = GetTime(), level
+    Comm.Send("HELLO", channel, target, mine or 0, level, Comm.tag)
+end
+
+-- Freunde haben keinen Kanal: wer laut Freundesliste online ist, bekommt einmal je Sitzung eine direkte
+-- Meldung (und eine weitere, wenn sich die eigene Sichtbarkeit ändert). Wer Pastime hat, antwortet einmal.
+local greeted = {}
+function Comm.GreetFriends()
+    local F = C_FriendList
+    if not (Comm.registered and F and F.GetNumFriends and F.GetFriendInfoByIndex) then return end
+    local level = Comm.MPLevel and Comm.MPLevel("WHISPER") or 0
+    local ok, n = ns.Try("C_FriendList.GetNumFriends", F.GetNumFriends)
+    for i = 1, ok and tonumber(n) or 0 do
+        local ok2, info = ns.Try("C_FriendList.GetFriendInfoByIndex", F.GetFriendInfoByIndex, i)
+        local name = ok2 and type(info) == "table" and info.connected and info.name
+        if type(name) == "string" and name ~= "" and not Comm.selfNames[name] then
+            if (not greeted[name] and level > 0) or (greeted[name] and lastLevel[name] ~= level) then
+                greeted[name] = true
+                hello("WHISPER", name)
+            end
+        end
+    end
 end
 
 -- group = nur an die Gruppe (beim Beitritt)
 function Comm.Announce(group)
+    if not group then Comm.GreetFriends() end
     if not group and IsInGuild and IsInGuild() then hello("GUILD") end
     if IsInRaid and IsInRaid() then hello("RAID")
     elseif IsInGroup and IsInGroup() then hello("PARTY") end
@@ -297,6 +328,11 @@ Comm.handlers.HELLO = function(sender, fields, channel)
     if fields[2] > 0 and not known and channel ~= "WHISPER" and Comm.MPLevel and Comm.MPLevel(channel) > 0
         and GetTime() - (lastHello[channel] or -60) >= 60 then
         hello(channel)
+    end
+    -- direkt gemeldet (er hat mich als Freund): einmal direkt antworten, wenn ich für Freunde sichtbar bin
+    if channel == "WHISPER" and fields[2] > 0 and not greeted[sender] and Comm.MPLevel and Comm.MPLevel("WHISPER") > 0 then
+        greeted[sender] = true
+        hello("WHISPER", sender)
     end
     if not mine or theirs == 0 then return end
     if theirs > mine then
@@ -358,5 +394,5 @@ end
 function Comm._Reset()
     wipe(perSender); total = nil; wipe(queue); lastSend = 0
     if ns.MP then ns.MP._Reset() end
-    wipe(lastHello); wipe(Comm.peers); wipe(Comm.selfNames); Comm.noticed = nil; Comm.grouped = nil
+    wipe(lastHello); wipe(lastLevel); wipe(greeted); wipe(Comm.peers); wipe(Comm.selfNames); Comm.noticed = nil; Comm.grouped = nil
 end

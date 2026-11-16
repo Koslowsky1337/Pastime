@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.0-beta2
+
+Multiplayer, second test version. Still switched off until both players type `/pastime mp`.
+
+- The player list now follows who is really online: it asks the game's own group, guild and friend lists instead of remembering players for a quarter of an hour. Someone who logs out or leaves the group disappears at once.
+- Friends are a third circle. Friends who are online and have Pastime with multiplayer appear in the list; there is a new switch “Visible to your friends”.
+- After each name a coloured tag shows where you know the player from: (F) friend, (P) party, (G) guild. Friend comes before party, party before guild.
+- Switching multiplayer off or hiding from a circle tells the others once, so you no longer show up as available.
+- For testing: `/pastime debug user First Last` asks a player for a game directly, even if they are not in the list. `/pastime report` then contains the course of the session, with player ids instead of names.
+- `/pastime debug test` asks whether to run quickly or with all sounds; closing its window cancels it.
+
 ## 2.0.0-beta1
 
 Multiplayer, first test version. It is switched off until both players type `/pastime mp`.

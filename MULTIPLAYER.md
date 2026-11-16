@@ -24,7 +24,7 @@ Jeder bestimmt selbst, wo er als Mitspieler erscheint:
 
 Wer einen Kreis abschaltet, erscheint dort bei niemandem und sieht dort auch niemanden. Spieler auf der Ignorierliste werden nie angezeigt und können nichts schicken.
 
-### Wer gerade da ist (ab Beta 2)
+### Wer gerade da ist (seit Beta 2)
 
 - **Nachrichten klären nur, wer Pastime mit Mehrspieler hat.** Ob jemand gerade online ist, sagt der Client: Gruppen-, Gilden- und Freundesliste führen den Online-Status. Es gibt keinen wiederkehrenden Ping.
 - **In der Liste steht,** wer sich in dieser Sitzung mit Mehrspieler gemeldet hat und laut Client online ist. Verlässt jemand die Gruppe oder loggt aus, verschwindet er sofort. Die 15-Minuten-Frist der Beta 1 entfällt.
@@ -99,11 +99,11 @@ Vorschlag für 2.0, in der Reihenfolge, in der sie gebaut werden:
 | Stufe | Spiel | Gibt es schon? | So läuft das Duell |
 |---|---|---|---|
 | Beta 1 | Vier gewinnt | ja | abwechselnd Steine, gesendet wird die Spalte. Kreise in Beta 1: Gruppe und Gilde; Freunde ab Beta 2 |
-| Beta 2 | Tavernenwürfel | ja | abwechselnd würfeln und eintragen, höhere Summe gewinnt |
-| Beta 2 | Runenpaare-Duell | ja | ein gemeinsames Feld, abwechselnd zwei Karten; wer ein Paar findet, darf noch einmal |
-| Beta 3 | Edelsteincode-Duell | ja | jeder legt dem anderen einen Code; wer ihn in weniger Versuchen knackt, gewinnt |
-| Beta 3 | Blackjack-Duell | ja | beide spielen dieselben Karten gegen den Goblin, über fünf Hände; wer mehr Gold hat, gewinnt |
-| Beta 4 | Flottenduell (neu) | nein | jeder versteckt Schiffe auf seinem Feld, abwechselnd wird geschossen |
+| Beta 3 | Tavernenwürfel | ja | abwechselnd würfeln und eintragen, höhere Summe gewinnt |
+| Beta 3 | Runenpaare-Duell | ja | ein gemeinsames Feld, abwechselnd zwei Karten; wer ein Paar findet, darf noch einmal |
+| Beta 4 | Edelsteincode-Duell | ja | jeder legt dem anderen einen Code; wer ihn in weniger Versuchen knackt, gewinnt |
+| Beta 4 | Blackjack-Duell | ja | beide spielen dieselben Karten gegen den Goblin, über fünf Hände; wer mehr Gold hat, gewinnt |
+| Beta 5 | Flottenduell (neu) | nein | jeder versteckt Schiffe auf seinem Feld, abwechselnd wird geschossen |
 
 Weitere Ideen für später, nur im Mehrspieler: Reversi, Dame, Mühle, Käsekästchen, Fünf in einer Reihe, Würfelduell um die höchste Zahl, Galgenraten mit selbst gewähltem Wort.
 
@@ -137,6 +137,7 @@ Der Update-Hinweis aus 1.3 bleibt davon unabhängig.
 - Bis 2.0 ist der Mehrspieler abgeschaltet und wird für Tests mit `/pastime mp` freigeschaltet (bei beiden Spielern).
 - Tags `v2.0.0-beta1`, `-beta2` … gehen als Vorabversionen an GitHub und CurseForge.
 - Betastände melden die Versionsnummer 0 und fordern niemanden zum Aktualisieren auf, zeigen sich aber gegenseitig als Mitspieler.
+- Zum Testen ohne Liste: `/pastime debug user Vorname Nachname` fragt einen Spieler direkt an. Der Verlauf (gesendet, empfangen, verworfen) steht mit Kennung statt Name im Protokoll und damit in `/pastime report`.
 - Getestet wird mit einem zweiten Spieler. Prüfliste je Beta:
   1. Beide sehen sich im Reiter „Mehrspieler“ (Gruppe, Freunde, Gilde je nach Einstellung).
   2. Anfrage, Annehmen, Ablehnen, Verfall nach 60 Sekunden.
