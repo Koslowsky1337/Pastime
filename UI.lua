@@ -171,7 +171,7 @@ function ns.Restart()
     if run.mode == "mp" then
         -- im Mehrspieler: während der Partie aufgeben, danach Revanche
         if ns.MP.session and ns.MP.session.state == "playing" then return ns.MP.GiveUp() end
-        return ns.MPRematch()
+        return ns.MP.Again()
     end
     ns.StartGame(run.def, run.mode)
 end
@@ -286,8 +286,15 @@ function ns.GameOver(res)
         table.insert(lines, routeRank == 1 and (L["|cff80ff80Route record %s!|r"]):format(ns.RouteLabel(route))
             or (L["Route %s: rank %d"]):format(ns.RouteLabel(route), routeRank))
     end
-    table.insert(lines, L["|cffbbbbbbSpace: play again · Esc: back to games|r"])
-    ns.ShowOverlay("over", res.won and L["Victory!"] or (res.title or L["Game over"]), table.concat(lines, "\n"))
+    local title = res.won and L["Victory!"] or (res.title or L["Game over"])
+    if run.mode == "mp" then
+        -- Mehrspieler: statt „nochmal“ steht hier die Revanche-Frage; MPSync hält sie aktuell
+        run.overTitle, run.overText = title, table.concat(lines, "\n")
+        table.insert(lines, ns.MPRematchLine())
+    else
+        table.insert(lines, L["|cffbbbbbbSpace: play again · Esc: back to games|r"])
+    end
+    ns.ShowOverlay("over", title, table.concat(lines, "\n"))
     ns.PlaySound(rank == 1 and "record" or (res.won and "big" or "over"))
     ns.UpdateKeyboard()
     ns.UpdateSidePanel()
@@ -344,6 +351,7 @@ function ns.ShowOverlay(kind, title, text, cards)
     o.title:SetText(title or "")
     o.text:SetText(text or "")
     o.btn2:SetScript("OnClick", function() ns.ShowLauncher() end)
+    o.btn1:SetEnabled(true)
     -- Pause und Ankunft verdecken das Feld ganz: niemand plant in der Pause den nächsten Zug
     if kind == "pause" then
         o.shade:SetColorTexture(0.04, 0.04, 0.05, 1)
@@ -363,9 +371,13 @@ function ns.ShowOverlay(kind, title, text, cards)
         end
     else
         o.shade:SetColorTexture(0, 0, 0, 0.35)
-        o.btn1:SetText(L["Play again"])
+        local mp = ns.run and ns.run.mode == "mp"
+        local s = ns.MP and ns.MP.session
+        o.btn1:SetText(mp and L["Rematch"] or L["Play again"])
         o.btn1:SetScript("OnClick", function() ns.Restart() end)
-        o.btn2:SetText(L["Back to games"])
+        -- Revanche geht nur, solange die Sitzung offen ist und man noch nicht zugestimmt hat
+        if mp then o.btn1:SetEnabled(s ~= nil and s.state == "over" and not s.again) end
+        o.btn2:SetText(mp and L["No, thanks"] or L["Back to games"])
     end
     local th = o.text:GetStringHeight() or 40
     local extra = math.max(0, (o.title:GetStringHeight() or 0) - 24)      -- zweizeiliger Titel
@@ -930,6 +942,7 @@ function ns.UpdateSidePanel()
     side.pause:SetText(run.state == "paused" and L["Resume"] or L["Pause"])
     side.restart:SetText(run.mode ~= "mp" and L["Restart"] or ((ns.MP.session and ns.MP.session.state == "playing") and L["Give up"] or L["Rematch"]))
     side.pause:SetEnabled(run.state ~= "over")
+    side.restart:SetEnabled(run.mode ~= "mp" or (ns.MP.session ~= nil and not ns.MP.session.again))
     side.rules:SetEnabled(run.state == "running" or (run.state == "paused" and ns.overlay.kind == "pause"))
     side.wins:SetShown(def.wins ~= nil)
     side.wins:SetEnabled(run.state == "running" or (run.state == "paused" and ns.overlay.kind == "pause"))
@@ -1270,6 +1283,7 @@ local MP_NOTES = {
     ["unknown game"] = L["Your opponent chose a game this version does not know."],
     offline = L["That player is not online."],
     away = L["That player is not taking requests right now. By default they only arrive while travelling or resting."],
+    ["no rematch"] = L["No rematch – the session has ended. Send a new request to play again."],
 }
 
 -- Woher man einen Spieler kennt: farbiges Kürzel hinter dem Namen (Freund rosa, Gruppe blau, Gilde grün)
@@ -1335,18 +1349,14 @@ local function CreateMPView(parent)
     return v
 end
 
--- Revanche: dieselbe Paarung noch einmal anfragen
-function ns.MPRematch()
+-- Die Revanche-Frage nach einer Partie, je nach Stand: beide müssen zustimmen
+function ns.MPRematchLine()
     local MP = ns.MP
-    local partner = MP.session and MP.session.partner or (ns.run and ns.run.game.mp and ns.run.game.mp.partner)
-    if ns.run and ns.run.mode == "mp" then
-        if ns.run.state ~= "over" then ns.EndRun() end
-        ns.run = nil
-        ns.HideOverlay()
-    end
-    MP.Pause()
-    if partner then MP.Invite(partner) end
-    ns.ShowView("mp")
+    local s = MP.session
+    if not (s and s.state == "over") then return MP.note == "no rematch" and MP_NOTES["no rematch"] or "" end
+    if s.again then return (L["You want a rematch. Waiting for %s …"]):format(s.partner) end
+    if s.theirAgain then return (L["%s wants a rematch. Do you?"]):format(s.partner) end
+    return L["Rematch? Both of you have to agree."]
 end
 
 function ns.UpdateMPView()
@@ -1378,7 +1388,7 @@ function ns.UpdateMPView()
             text = L["Waiting for an answer …"]
             add(L["Cancel"], MP.Pause)
         elseif s.state == "choosing" then
-            text = L["Accepted! Choose a game:"]
+            text = L["You choose the game:"]
             local p = MP.Paused(s.partner)
             if (p and #p.moves > 0) or (s.theirs or 0) > 0 then add(L["Continue the paused game"], MP.Resume) end
             for _, id in ipairs(MP.order) do add(ns.gamesById[id].name, function() MP.Choose(id) end) end
@@ -1394,9 +1404,9 @@ function ns.UpdateMPView()
             add(L["Show the board"], ns.MPShowBoard)
             add(L["Give up"], MP.GiveUp)
         else
-            text = s.result == 2 and L["You won."] or (s.result == 0 and L["You lost."] or L["Draw."])
-            add(L["Rematch"], ns.MPRematch)
-            add(L["Done"], MP.Pause)
+            text = (s.result == 2 and L["You won."] or (s.result == 0 and L["You lost."] or L["Draw."])) .. "\n\n" .. ns.MPRematchLine()
+            if not s.again then add(L["Rematch"], MP.Again) end
+            add(L["No, thanks"], MP.Pause)
         end
     end
     v.title:SetText(title)
@@ -1567,6 +1577,17 @@ function ns.MPSync()
     local s = ns.MP.session
     if s and s.state == "playing" and not (ns.run and ns.run.mode == "mp" and ns.run.game.mp == s) then ns.MPShowBoard() end
     if ns.run and ns.run.mode == "mp" and ns.run.game.Sync then ns.run.game:Sync() end
+    local run = ns.run
+    if run and run.mode == "mp" and run.state == "over" and run.overText then
+        if s and run.game.mp == s and s.state ~= "over" then
+            -- beide wollen noch einmal: das alte Brett räumt das Feld, weiter geht es bei der Spielwahl
+            ns.run = nil
+            ns.HideOverlay()
+            ns.ShowView("mp")
+        elseif ns.overlay and ns.overlay.kind == "over" and ns.overlay:IsShown() then
+            ns.ShowOverlay("over", run.overTitle, run.overText .. "\n" .. ns.MPRematchLine())
+        end
+    end
     InvitePopup()
     -- freigeschaltet, aber noch nicht gewählt, wer einen sehen darf: beim Öffnen des Fensters fragen
     if ns.Comm.ENABLED and ns.MPAskOpen() and ns.frame and ns.frame:IsShown() then ns.MPAsk() end
@@ -1655,6 +1676,7 @@ function ns.CreateMainFrame()
     end)
     f:SetScript("OnHide", function()
         if ns.run and ns.run.state == "running" then ns.Pause() end
+        if ns.MP.session and ns.MP.session.state == "over" then ns.MP.Pause() end      -- Fenster zu: keine Revanche
         ns.UpdateKeyboard()
     end)
     local acc = 0

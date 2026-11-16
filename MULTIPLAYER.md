@@ -41,6 +41,7 @@ Wer einen Kreis abschaltet, erscheint dort bei niemandem und sieht dort auch nie
 | `HERE` | an den Absender eines `HELLO` | Mehrspieler-Stufe, Kanal des `HELLO` | Antwort auf jedes `HELLO` mit Mehrspieler-Stufe, höchstens alle 50 Sekunden je Absender. So finden sich zwei, auch wenn einer das `HELLO` des anderen verpasst hat |
 | `INVITE` | an den Mitspieler | Sitzungsnummer | Klick auf „Anfragen“ |
 | `ACCEPT` / `DECLINE` | an den Mitspieler | Sitzungsnummer | Antwort des Eingeladenen |
+| `AGAIN` | an den Mitspieler | Sitzungsnummer | Nach der Partie: Zustimmung zur Revanche. Haben beide zugestimmt, läuft dieselbe Sitzung weiter und der wählt das Spiel, der es zuletzt nicht gewählt hat. `BYE` an dieser Stelle heißt „keine Revanche“ und beendet die Sitzung für beide |
 | `AWAY` | an den Anfragenden | Sitzungsnummer | Der Angefragte nimmt dort, wo er gerade ist, keine Anfragen an (siehe 8) |
 | `START` | an den Mitspieler | Sitzungsnummer, Spiel, Startwert | Der Einladende hat ein Spiel gewählt |
 | `MOVE` | an den Mitspieler | Sitzungsnummer, laufende Nummer, Zug | Jeder Zug |
@@ -148,7 +149,7 @@ Der Update-Hinweis aus 1.3 bleibt davon unabhängig.
 - Bis 2.0 ist der Mehrspieler abgeschaltet und wird für Tests mit `/pastime mp` freigeschaltet (bei beiden Spielern). Seit 1.4 steckt er so in den normalen Versionen; eigene Beta-Tags braucht es zum Testen nicht mehr.
 - Tags `v2.0.0-beta1`, `-beta2` … gehen als Vorabversionen an GitHub und CurseForge.
 - Betastände melden die Versionsnummer 0 und fordern niemanden zum Aktualisieren auf, zeigen sich aber gegenseitig als Mitspieler.
-- Zum Testen ohne Liste: `/pastime debug user Vorname Nachname` fragt einen Spieler direkt an. Der Verlauf (gesendet, empfangen, verworfen) steht mit Kennung statt Name im Protokoll und damit in `/pastime report`.
+- Zum Testen ohne Liste: `/pastime invite Vorname Nachname` (auch `einladen`) fragt einen Spieler direkt an. Der Verlauf (gesendet, empfangen, verworfen) steht mit Kennung statt Name im Protokoll und damit in `/pastime report`.
 - Getestet wird mit einem zweiten Spieler. Prüfliste je Beta:
   1. Beide sehen sich im Reiter „Mehrspieler“ (Gruppe, Freunde, Gilde je nach Einstellung).
   2. Anfrage, Annehmen, Ablehnen, Verfall nach 60 Sekunden.
@@ -175,6 +176,9 @@ Der Mehrspieler wird erst mit 2.0 im Changelog genannt. Bis dahin steckt er abge
 
 ### Beta 4
 
+- Rematch is a question to both players: after a game both are asked and both have to agree. Then the same session continues and the player who did not choose last time picks the game. Saying no, closing the window or not answering for two minutes ends the session for both; after that it takes a new request.
+- `/pastime invite First Last` asks a player directly (it was `/pastime debug user` during testing).
+- Players who answered the first-run question in an earlier build are asked once more, because it has new rows.
 - Players find each other reliably: every announcement is answered directly, so two players no longer miss each other after logging in at the same moment. Needs this version on both sides; 1.4.0 does not answer.
 - Friends now include Battle.net friends who are online in this game, on your realm and in your faction.
 - New settings for when requests reach you: while travelling, in inns and cities, anywhere. By default only the first two; otherwise the asking player is told that you are not taking requests right now. A rematch or a paused game always gets through.

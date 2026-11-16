@@ -67,6 +67,7 @@ Comm.TYPES = {
     INVITE = { SESSION },                                       -- Anfrage
     ACCEPT = { SESSION, int(0, 500) },                          -- angenommen; Züge der angehaltenen Partie mit diesem Spieler (0 = keine)
     DECLINE = { SESSION },
+    AGAIN  = { SESSION },                                       -- nach der Partie: ich will noch einmal (Revanche)
     AWAY   = { SESSION },                                       -- der Angefragte nimmt gerade keine Anfragen an
     -- Spiel, Startwert, Platz (1/2), der beginnt, Platz des Absenders, Züge, die als Mitschrift folgen (0 = neue Partie)
     START  = { SESSION, word(16), int(1, 2147483647), int(1, 2), int(1, 2), int(0, 500) },

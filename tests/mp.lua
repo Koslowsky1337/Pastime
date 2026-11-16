@@ -152,7 +152,43 @@ check(MP.session.first == 2, "Revanche: die Verliererin beginnt")
 check(MP.GiveUp() and MP.session.result == 0 and sent(("PT1^BYE^%s"):format(sid)), "Aufgeben: verloren, der Mitspieler erfährt es")
 w, l = MP.Record(JAINA)
 check(w == 1 and l == 1, "Bilanz 1:1")
-MP.Pause()
+-- Revanche: beide werden gefragt, beide müssen zustimmen; dann wählt die andere das Spiel
+from(JAINA, "AGAIN", sid)
+check(MP.session.state == "over" and MP.session.theirAgain and not MP.session.again, "sie will eine Revanche: es fehlt noch meine Zustimmung")
+SENT = {}
+check(MP.Again() and MP.session.id == sid and MP.session.role == "guest" and MP.session.state == "waiting", "beide wollen: dieselbe Sitzung geht weiter, diesmal wählt sie")
+flush()
+check(sent(("PT1^AGAIN^%s"):format(sid)) and not MP.Again(), "meine Zustimmung geht genau einmal raus")
+from(JAINA, "START", sid, "fourinarow", 5, 1, 1, 0)
+check(MP.session.state == "playing" and MP.session.me == 2, "ihre Spielwahl startet die nächste Partie")
+MP.GiveUp()
+MP.Again()
+from(JAINA, "BYE", sid)
+check(MP.session == nil and MP.note == "no rematch", "lehnt sie ab, ist die Sitzung für beide zu Ende")
+-- andersherum: ich zuerst, dann sie – dann wähle ich
+MP.Invite(JAINA); sid = MP.session.id
+from(JAINA, "START", sid, "fourinarow", 5, 1, 1, 0)
+check(MP.session.state == "asking", "ohne Zusage kein Spiel")
+from(JAINA, "ACCEPT", sid, 0); MP.Choose("fourinarow"); MP.GiveUp()
+MP.Again()
+check(MP.session.state == "over" and MP.session.again, "ich will: es fehlt noch ihre Zustimmung")
+from(JAINA, "AGAIN", sid)
+check(MP.session.role == "guest" and MP.session.state == "waiting", "ich hatte gewählt, also wählt jetzt sie")
+from(JAINA, "START", sid, "fourinarow", 6, 2, 1, 0); MP.GiveUp()
+MP.Again(); from(JAINA, "AGAIN", sid)
+check(MP.session.role == "host" and MP.session.state == "choosing", "beim nächsten Mal wähle wieder ich")
+MP.Choose("fourinarow"); MP.GiveUp()
+-- ablehnen, und die Frist
+SENT = {}
+MP.Pause(); flush()
+check(MP.session == nil and sent(("PT1^BYE^%s"):format(sid)), "„Nein, danke“ sagt es der anderen")
+MP.Invite(JAINA); sid = MP.session.id
+from(JAINA, "ACCEPT", sid, 0); MP.Choose("fourinarow"); MP.GiveUp()
+NOW = NOW + 100; MP.Tick()
+check(MP.session ~= nil, "die Revanche-Frage bleibt zwei Minuten offen")
+NOW = NOW + 30; MP.Tick()
+check(MP.session == nil and MP.note == "no rematch", "danach ist die Sitzung zu Ende")
+PastimeDB.mp.stats[JAINA].fourinarow.w, PastimeDB.mp.stats[JAINA].fourinarow.l = 1, 1      -- Bilanz wie vor diesem Abschnitt
 
 -- Eingeladener: Anfrage, annehmen, das Spiel kommt vom Einladenden
 MP._Reset(); SENT = {}
@@ -432,10 +468,10 @@ check(#SENT == 3 and SENT[3].target == SYL and SENT[3].msg == "PT1^HELLO^0^0^" .
 PastimeDB.settings.mpFriends = true
 -- Debug: einen Spieler direkt per Namen anfragen
 MP._Reset(); SENT = {}
-SlashCmdList.PASTIME('debug user "Brezzo Ozzerb"')
+SlashCmdList.PASTIME('invite "Brezzo Ozzerb"')
 local inv = MP.session and sent("PT1^INVITE^" .. MP.session.id)
 check(MP.session and MP.session.partner == "Brezzo Ozzerb" and inv and inv.target == "Brezzo Ozzerb" and inv.channel == "WHISPER",
-    "/pastime debug user fragt den genannten Spieler direkt an, Groß- und Kleinschreibung bleibt")
+    "/pastime invite fragt den genannten Spieler direkt an, Groß- und Kleinschreibung bleibt")
 local trace = {}
 for _, e in ipairs(PastimeDB.log) do if e.c == "mp" then trace[#trace + 1] = e.m end end
 local text = table.concat(trace, "\n")
@@ -448,7 +484,7 @@ for _, e in ipairs(PastimeDB.log) do if e.c == "mp" then trace[#trace + 1] = e.m
 text = table.concat(trace, "\n")
 check(text:find("in  DECLINE from " .. ns.NameId("Brezzo Ozzerb"), 1, true) and text:find("dropped (not in session)", 1, true),
     "auch Eingehendes und Verworfenes steht im Protokoll")
-SlashCmdList.PASTIME("debug user")
+SlashCmdList.PASTIME("invite")
 check(MP.session == nil, "ohne Namen passiert nichts")
 GetNumGroupMembers, GetUnitName, UnitIsConnected, GetNumGuildMembers, GetGuildRosterInfo, C_FriendList = nil, nil, nil, nil, nil, nil
 C.peers[SYL], C.peers["Varian Wrynn"], C.peers.Rexxar = nil, nil, nil
@@ -470,7 +506,7 @@ check(MP.session and MP.session.state == "asking" and v.title.text == JAINA and 
     and v.buttons[1].text == ns.L["Cancel"] and not v.rows[1].btn:IsEnabled(), "Anfragen: der Reiter zeigt, dass auf die Antwort gewartet wird")
 sid = MP.session.id
 from(JAINA, "ACCEPT", sid, 0)
-check(v.text.text == ns.L["Accepted! Choose a game:"] and v.buttons[1].text == ns.gamesById.fourinarow.name and v.buttons[2].text == ns.L["Cancel"],
+check(v.text.text == ns.L["You choose the game:"] and v.buttons[1].text == ns.gamesById.fourinarow.name and v.buttons[2].text == ns.L["Cancel"],
     "angenommen: die Mehrspieler-Spiele stehen zur Wahl")
 MP.last = nil
 math.randomseed(11)
@@ -494,10 +530,18 @@ ns.Restart()
 check(s.state == "over" and s.result == 0 and ns.run.state == "over" and ns.overlay.title.text == ns.L["Defeat"] and ns.overlay.text.text:find(ns.L["You gave up."], 1, true),
     "Aufgeben beendet die Partie als Niederlage")
 check(best("fourinarow") == nil, "Mehrspieler-Partien kommen nicht in die Bestenliste")
+check(ns.overlay.text.text:find(ns.L["Rematch? Both of you have to agree."], 1, true) and ns.overlay.btn1.text == ns.L["Rematch"] and ns.overlay.btn2.text == ns.L["No, thanks"],
+    "nach der Partie fragt das Brett nach der Revanche")
+local role = s.role
 ns.Restart()
-check(MP.session and MP.session.state == "asking" and MP.session.partner == JAINA and v:IsShown() and ns.run == nil, "danach führt derselbe Knopf zur Revanche")
-click(v.buttons[1])
-check(MP.session == nil and v.text.text == ns.L["Pick a player on the left and ask them for a game. They have to accept first."], "Abbrechen beendet die Anfrage")
+check(MP.session == s and s.again and s.state == "over" and ns.run ~= nil and ns.overlay.btn1.enabled == false
+    and ns.overlay.text.text:find((ns.L["You want a rematch. Waiting for %s …"]):format(JAINA), 1, true),
+    "derselbe Knopf stimmt der Revanche zu; das Brett wartet auf die andere")
+from(JAINA, "AGAIN", s.id)
+check(MP.session == s and s.role ~= role and (s.state == "waiting" or s.state == "choosing") and v:IsShown() and ns.run == nil,
+    "stimmt sie auch zu, geht es bei der Spielwahl weiter – mit getauschten Rollen")
+click(v.buttons[#MP.order + (s.state == "choosing" and 1 or 0) + (s.state == "choosing" and 0 or 1)])
+check(MP.session == nil and v.text.text == ns.L["Pick a player on the left and ask them for a game. They have to accept first."], "Abbrechen beendet die Sitzung")
 
 -- Nach der Partie: die Revanche des anderen kommt an, obwohl mein Brett noch offen ist
 MP.Invite(JAINA); sid = MP.session.id

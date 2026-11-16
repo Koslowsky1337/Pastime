@@ -990,16 +990,16 @@ function ns.HandleSlash(msg)
         -- /pastime debug dump [klar]: was der Client über Gruppe, Gilde und Freunde liefert
         local how = arg:match("^%S+%s+(%S+)")
         if ns.DataDump then ns.DataDump(how == "klar" or how == "plain" or how == "klartext") end
-    elseif cmd == "debug" and ({ user = true, spieler = true })[arg:match("^%S*")] then
-        -- /pastime debug user Vorname Nachname: diesen Spieler direkt anfragen, ohne dass er in der Liste steht.
-        -- Zum Testen des Mehrspielers; der Verlauf steht im Protokoll (/pastime report).
-        local name = ns.Trim((rest:match("^%S+%s+(.+)$") or ""):gsub('["“”„]', ""))
+    elseif cmd == "invite" or cmd == "einladen" then
+        -- /pastime invite Vorname Nachname: diesen Spieler direkt anfragen, auch wenn er nicht in der Liste steht.
+        -- Der Verlauf steht im Protokoll (/pastime report).
+        local name = ns.Trim((rest or ""):gsub('["“”„]', ""))
         if name == "" then
-            ns.Print(L["Usage: /pastime debug user First Last"])
+            ns.Print(L["Usage: /pastime invite First Last"])
         elseif not ns.MP.On() then
             ns.Print(L["Multiplayer is not switched on. Type /pastime mp first."])
         elseif ns.MP.Invite(name) then
-            ns.Log("I", "mp", "debug invite to %s", ns.NameId(name))
+            ns.Log("I", "mp", "invite by command to %s", ns.NameId(name))
             ns.Print((L["Request sent to %s. The Multiplayer tab shows what happens; /pastime report has the details."]):format(name))
             ns.ShowFrame("mp")
         else

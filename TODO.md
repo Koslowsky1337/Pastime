@@ -66,7 +66,9 @@ Stand: `v1.4.1` ist veröffentlicht (16.11.). Der Mehrspieler steckt abgeschalte
 - [ ] Im Spiel ansehen: Mehrspieler-Block im Reiter „Einstellungen“ (zwei Spalten), erste Frage mit sieben Zeilen
 - [x] Test zu zweit mit 1.4.1 (16.11.): Beide sehen sich in der Liste
 - [x] Wer die erste Frage in einer älteren Fassung beantwortet hat, bekam die drei neuen Zeilen nie zu sehen. Die Frage merkt sich jetzt ihre Fassung (`mpAskV`) und kommt einmal neu, mit der bisherigen Wahl vorbelegt; der Mehrspieler bleibt dabei an (16.11., auf `main`, noch in keiner Version)
-- [ ] Ablauf einer Partie zu zweit überarbeiten (Wunsch 16.11.): Das Brett soll aussehen und sich bedienen wie im Einzelspiel, mit allen Knöpfen; Spielerklärung für die Partie zu zweit. Erst klären, was im Test gestört hat
+- [x] Revanche als Frage an beide (16.11.): Nach der Partie bleibt die Sitzung offen, beide müssen zustimmen (`AGAIN`), dann wählt der jeweils andere das Spiel. Ablehnen, Fenster schließen oder zwei Minuten ohne Antwort beenden die Sitzung für beide
+- [x] `/pastime invite Vorname Nachname` (auch `einladen`) ersetzt `/pastime debug user` (16.11.)
+- [ ] Zu zweit testen (beide brauchen die nächste Version): Revanche-Frage bei beiden, beide stimmen zu, der andere wählt; einer lehnt ab; einer schließt das Fenster; `/pastime invite`
 - [ ] Mehr Spiele für zwei (Wunsch 16.11.), vor allem Kartenspiele; wo ein Spiel mehr als zwei Spieler braucht, füllt ein Bot auf
 
 ## 4. Später

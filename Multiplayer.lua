@@ -90,7 +90,8 @@ end
 
 local function finish(res, why)
     local s = MP.session
-    s.state, s.why = "over", why
+    s.state, s.why, s.t = "over", why, GetTime()
+    s.again, s.theirAgain = nil, nil      -- die Revanche-Frage geht an beide
     s.result = res == 0 and 1 or (res == s.me and 2 or 0)      -- aus meiner Sicht: 0 verloren, 1 unentschieden, 2 gewonnen
     local db = store()
     db.paused[s.partner] = nil
@@ -124,7 +125,7 @@ end
 -- Was der Spieler tut
 ---------------------------------------------------------------------------
 function MP.Invite(name)
-    if MP.session and MP.session.state == "over" then MP.session = nil end
+    if MP.session and MP.session.state == "over" then MP.Pause() end      -- neue Anfrage: die alte Sitzung ist damit zu Ende
     if not MP.On() or MP.session or type(name) ~= "string" or name == "" then return false end
     if InCombatLockdown and InCombatLockdown() then return false end
     MP.session = { id = ("s%06x%04x"):format(math.random(0, 0xFFFFFF), math.random(0, 0xFFFF)), partner = name,
@@ -139,7 +140,7 @@ end
 function MP.Answer(sender, yes)
     local inv = MP.invites[sender]
     MP.invites[sender] = nil
-    if MP.session and MP.session.state == "over" then MP.session = nil end
+    if MP.session and MP.session.state == "over" then MP.Pause() end
     if not inv or GetTime() - inv.t > INVITE_TTL or MP.session or not MP.On() then changed(); return false end
     if yes then
         MP.session = { id = inv.id, partner = sender, role = "guest", state = "waiting", t = GetTime() }
@@ -227,11 +228,34 @@ function MP.GiveUp()
     return true
 end
 
--- Anhalten (Fenster zu, zurück zur Liste): die Partie zählt nicht und kann fortgesetzt werden
+-- Revanche: Nach der Partie bleibt die Sitzung offen und beide werden gefragt. Erst wenn beide zugestimmt
+-- haben, geht es weiter – und dann wählt der das Spiel, der es beim letzten Mal nicht gewählt hat.
+-- Wer ablehnt, das Fenster schließt oder zwei Minuten nicht antwortet, beendet die Sitzung für beide;
+-- danach braucht es eine neue Anfrage.
+local function again()
+    local s = MP.session
+    if not (s.again and s.theirAgain) then return end
+    s.role = s.role == "host" and "guest" or "host"
+    s.state, s.theirs, s.t = s.role == "host" and "choosing" or "waiting", 0, GetTime()
+    s.again, s.theirAgain = nil, nil
+end
+
+function MP.Again()
+    local s = MP.session
+    if not (s and s.state == "over") or s.again then return false end
+    s.again = true
+    send("AGAIN")
+    again()
+    changed()
+    return true
+end
+
+-- Anhalten (Fenster zu, zurück zur Liste): die Partie zählt nicht und kann fortgesetzt werden.
+-- Nach einer beendeten Partie heißt das: keine Revanche.
 function MP.Pause()
     local s = MP.session
     if not s then return false end
-    if s.state == "playing" then send("PAUSE") elseif s.state ~= "over" then send("BYE") end
+    send(s.state == "playing" and "PAUSE" or "BYE")
     cancel(s.state == "playing" and "paused" or nil)
     return true
 end
@@ -336,6 +360,14 @@ H.DECLINE = function()
     if MP.session.state == "asking" then cancel("declined") end
 end
 
+H.AGAIN = function()
+    local s = MP.session
+    if s.state ~= "over" then return end
+    s.theirAgain = true
+    again()
+    changed()
+end
+
 H.AWAY = function()
     if MP.session.state == "asking" then cancel("away") end
 end
@@ -414,6 +446,8 @@ H.BYE = function()
         -- vor dem ersten neuen Zug: nichts passiert, nichts gewertet
         if s.state == "playing" then store().paused[s.partner] = nil end
         cancel("cancelled")
+    else
+        cancel("no rematch")      -- der andere will nicht noch einmal: die Sitzung ist zu Ende
     end
 end
 
@@ -435,6 +469,9 @@ function MP.Tick()
     elseif s.state == "playing" and idle > IDLE_TTL then
         send("PAUSE")
         cancel("paused")
+    elseif s.state == "over" and idle > CHOOSE_TTL then
+        send("BYE")      -- die Revanche-Frage blieb offen
+        cancel("no rematch")
     end
 end
 
