@@ -259,6 +259,8 @@ local NEEDED = { "C_Timer.After", "C_Timer.NewTicker", "PlaySound", "SOUNDKIT", 
 local OPTIONAL = { "C_AddOns.GetAddOnMetadata", "C_FriendList.IsIgnored", "C_FriendList.GetNumFriends", "C_FriendList.GetFriendInfoByIndex",
     "Ambiguate", "GetBindingFromInput", "FlashClientIcon", "PanelTemplates_TabResize", "issecretvalue", "ChatFrame_AddMessageEventFilter",
     "GetNumGroupMembers", "GetRaidRosterInfo", "GetGuildRosterInfo", "GetNumGuildMembers", "UnitIsConnected", "GetUnitName",
+    "BNGetNumFriends", "BNSendGameData", "BNConnected", "C_BattleNet.GetFriendAccountInfo", "C_BattleNet.GetFriendNumGameAccounts",
+    "C_BattleNet.GetFriendGameAccountInfo", "BNGetFriendInfo", "BNGetFriendGameAccountInfo",
     "CreateSettingsButtonInitializer" }
 
 local function lookup(path)
@@ -474,6 +476,39 @@ function ns.SelfTest(what)
                 add(nil, ("friend entry: %s · name via guid has a space: %s · full name resolved: %s"):format(table.concat(keys, ", "),
                     tostring(type(viaGuid) == "string" and viaGuid:find(" ", 1, true) ~= nil),
                     tostring(type(first.name) == "string" and C.FullName(first.name):find(" ", 1, true) ~= nil)))
+            end
+            -- Battle.net-Freunde: die eigentliche Freundesliste der meisten Spieler. Wie viele sind in WoW online,
+            -- in welcher Form steht der Charaktername da, und findet er sich in der Gildenliste?
+            local B = C_BattleNet
+            if BNGetNumFriends and B and B.GetFriendNumGameAccounts and B.GetFriendGameAccountInfo then
+                local total, onlineBN = BNGetNumFriends()
+                local guild = {}
+                for i = 1, GetNumGuildMembers and GetNumGuildMembers() or 0 do
+                    local n = GetGuildRosterInfo(i)
+                    if type(n) == "string" then guild[n] = true end
+                end
+                local inWow, space, inGuild, sameProject, keys = 0, 0, 0, 0, nil
+                for i = 1, tonumber(total) or 0 do
+                    for j = 1, B.GetFriendNumGameAccounts(i) or 0 do
+                        local a = B.GetFriendGameAccountInfo(i, j)
+                        if type(a) == "table" and a.clientProgram == "WoW" and type(a.characterName) == "string" and a.characterName ~= "" then
+                            inWow = inWow + 1
+                            if a.characterName:find(" ", 1, true) then space = space + 1 end
+                            if guild[a.characterName] or guild[C.FullName(a.characterName)] then inGuild = inGuild + 1 end
+                            if a.wowProjectID == WOW_PROJECT_ID then sameProject = sameProject + 1 end
+                            if not keys then
+                                keys = {}
+                                for k, val in pairs(a) do keys[#keys + 1] = tostring(k) .. "=" .. type(val) end
+                                table.sort(keys)
+                            end
+                        end
+                    end
+                end
+                add(nil, ("Battle.net friends: %s total, %s online, %d in WoW with a character, %d of those names with a space, %d found in the guild list, %d on this game version"):format(
+                    tostring(total), tostring(onlineBN), inWow, space, inGuild, sameProject))
+                if keys then add(nil, "Battle.net game account fields: " .. table.concat(keys, ", ")) end
+            else
+                add(nil, "Battle.net friends: the client does not offer the game account functions")
             end
             local full = GetUnitName and GetUnitName("player", true)
             add(nil, ("own name forms: GetUnitName(player, true) equals sender name: %s; UnitName returns %d value(s)"):format(tostring(me ~= nil and full == me),
