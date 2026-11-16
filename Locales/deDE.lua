@@ -735,3 +735,5 @@ L["Usage: /pastime debug user First Last"] = "Aufruf: /pastime debug user Vornam
 L["Multiplayer is not switched on. Type /pastime mp first."] = "Der Mehrspieler ist nicht freigeschaltet. Gib zuerst /pastime mp ein."
 L["Request sent to %s. The Multiplayer tab shows what happens; /pastime report has the details."] = "Anfrage an %s gesendet. Der Reiter „Mehrspieler“ zeigt, was passiert; die Einzelheiten stehen in /pastime report."
 L["That is not possible right now (in combat, or a session is already running)."] = "Das geht gerade nicht (im Kampf, oder es läuft schon eine Sitzung)."
+L["You play red."] = "Du spielst Rot."
+L["You play blue."] = "Du spielst Blau."

@@ -123,6 +123,7 @@ end
 -- Was der Spieler tut
 ---------------------------------------------------------------------------
 function MP.Invite(name)
+    if MP.session and MP.session.state == "over" then MP.session = nil end
     if not MP.On() or MP.session or type(name) ~= "string" or name == "" then return false end
     if InCombatLockdown and InCombatLockdown() then return false end
     MP.session = { id = ("s%06x%04x"):format(math.random(0, 0xFFFFFF), math.random(0, 0xFFFF)), partner = name,
@@ -137,6 +138,7 @@ end
 function MP.Answer(sender, yes)
     local inv = MP.invites[sender]
     MP.invites[sender] = nil
+    if MP.session and MP.session.state == "over" then MP.session = nil end
     if not inv or GetTime() - inv.t > INVITE_TTL or MP.session or not MP.On() then changed(); return false end
     if yes then
         MP.session = { id = inv.id, partner = sender, role = "guest", state = "waiting", t = GetTime() }
@@ -252,7 +254,10 @@ function Comm.Gate(kind, fields, sender, channel)
     local s = MP.session
     if kind == "INVITE" then
         if InCombatLockdown and InCombatLockdown() then return false, "combat" end
-        if s then return false, "busy" end
+        -- Eine beendete Partie hält niemanden besetzt (sonst käme die Revanche nie an). Fragen sich beide
+        -- gleichzeitig an, kommt die Anfrage des anderen ebenfalls durch; INVITE entscheidet dann, wer einlädt.
+        local crossing = s and s.state == "asking" and s.partner == sender
+        if s and s.state ~= "over" and not crossing then return false, "busy" end
         if not MP.invites[sender] and openInvites() >= MAX_INVITES then return false, "too many invites" end
         return true
     end
@@ -263,6 +268,16 @@ end
 local H = Comm.handlers
 
 H.INVITE = function(sender, f)
+    local s = MP.session
+    if s and s.state == "asking" then
+        -- beide haben gleichzeitig angefragt: es gilt die Anfrage mit der kleineren Sitzungsnummer
+        if s.id < f[1] then return end      -- meine gilt; der andere nimmt sie nach derselben Regel an
+        MP.session = { id = f[1], partner = sender, role = "guest", state = "waiting", t = GetTime() }
+        local p = paused(sender)
+        send("ACCEPT", p and #p.moves or 0)
+        return changed()
+    end
+    if s then MP.session = nil end      -- die beendete Partie ist damit abgeschlossen
     MP.invites[sender] = { id = f[1], t = GetTime() }
     ns.PlaySound("alarm")
     changed()
@@ -271,6 +286,7 @@ end
 H.ACCEPT = function(_, f)
     local s = MP.session
     if s.role ~= "host" or s.state ~= "asking" then return end
+    MP.invites[s.partner] = nil      -- seine gekreuzte Anfrage hat sich damit erledigt
     s.state, s.theirs, s.t = "choosing", f[2], GetTime()
     changed()
 end

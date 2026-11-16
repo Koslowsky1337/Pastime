@@ -102,6 +102,11 @@ ns.Print = realPrint
 C_ChatInfo = nil
 C._Reset()
 
+-- Addon-Nachrichten anderer Addons füllen das Protokoll nicht
+local logBefore = #PastimeDB.log
+for _ = 1, 5 do C.OnMessage("OtherAddon", "whatever", "GUILD", "Thrall") end
+check(#PastimeDB.log == logBefore, "messages of other addons are ignored without a log line")
+
 -- Handler-Fehler bleiben eingefangen
 local realHello = C.handlers.HELLO
 C.handlers.HELLO = function() error("boom") end

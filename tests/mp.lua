@@ -291,6 +291,20 @@ check(names()[SYL] == "mpFriends" and #SENT == 1, "antwortet sie, steht sie als 
 friends[1].connected = false
 check(names()[SYL] == nil, "loggt sie aus, verschwindet sie")
 friends[1].connected = true
+-- nennt die Freundesliste nur den Vornamen, wird der volle Name in der Gildenliste gesucht
+guildOnline["Thrall Kriegshäuptling"] = true
+GetNumGuildMembers = function() return 3 end
+GetGuildRosterInfo = function(i) local n = i == 1 and "Rexxar" or (i == 2 and JAINA or "Thrall Kriegshäuptling"); return n, nil, nil, nil, nil, nil, nil, nil, guildOnline[n] end
+friends[2] = { name = "Thrall", connected = true }
+check(C.FullName("Thrall") == "Thrall Kriegshäuptling" and C.FullName("Jaina Prachtmeer") == JAINA and C.FullName("Niemand") == "Niemand",
+    "voller Name aus der Gildenliste; unbekannte bleiben, wie sie sind")
+SENT = {}; C.GreetFriends(); flush()
+check(#SENT == 1 and SENT[1].target == "Thrall Kriegshäuptling", "die direkte Meldung geht an den vollen Namen")
+C.OnMessage(C.PREFIX, C.Encode("HELLO", 0, 1, 12), "WHISPER", "Thrall Kriegshäuptling"); flush()
+check(names()["Thrall Kriegshäuptling"] == "mpFriends", "antwortet er, steht er als Freund in der Liste, obwohl die Freundesliste nur „Thrall“ kennt")
+friends[2] = { name = "Garrosh", connected = false }
+C.peers["Thrall Kriegshäuptling"] = nil
+SENT = { {}, }
 -- ein Fremder, der mich als Freund hat, meldet sich direkt: einmal antworten, aber er steht nicht in meiner Liste
 C.OnMessage(C.PREFIX, C.Encode("HELLO", 0, 1, 9), "WHISPER", "Varian Wrynn"); flush()
 check(#SENT == 2 and SENT[2].target == "Varian Wrynn" and SENT[2].channel == "WHISPER" and names()["Varian Wrynn"] == nil,
@@ -352,10 +366,11 @@ s = MP.session
 check(ns.run and ns.run.mode == "mp" and ns.run.def.id == "fourinarow" and ns.gameView:IsShown() and g.mp == s and PastimeDB.modes.fourinarow ~= "mp",
     "Spiel gewählt: das Brett öffnet sich im Mehrspieler-Modus")
 if s.turn ~= s.me then from(JAINA, "MOVE", sid, 1, 7) end
-check(g.state == "player" and g.status.text == ns.L["Your turn."], "am Zug: das Brett sagt es")
+check(g.state == "player" and g.status.text == ns.L["You play red."] .. " " .. ns.L["Your turn."], "am Zug: das Brett sagt es, samt eigener Farbe")
 g:Play(4)
 local row = s.board.last[2]
-check(g.state == "wait" and g.cells[4][row].disc:IsShown() and g.status.text == (ns.L["Waiting for %s …"]):format(JAINA), "mein Stein liegt, jetzt ist sie dran")
+check(g.state == "wait" and g.cells[4][row].disc:IsShown() and g.status.text:find((ns.L["Waiting for %s …"]):format(JAINA), 1, true), "mein Stein liegt, jetzt ist sie dran")
+check(g.cells[4][row].disc.tex == "Interface\\Icons\\INV_BannerPVP_01", "der Einladende spielt Rot")
 g:Play(4)
 check(#s.moves == (s.first == 1 and 1 or 2), "solange sie dran ist, wirft mein Klick nichts")
 from(JAINA, "MOVE", sid, #s.moves + 1, 5)
@@ -369,6 +384,39 @@ ns.Restart()
 check(MP.session and MP.session.state == "asking" and MP.session.partner == JAINA and v:IsShown() and ns.run == nil, "danach führt derselbe Knopf zur Revanche")
 click(v.buttons[1])
 check(MP.session == nil and v.text.text == ns.L["Pick a player on the left and ask them for a game. They have to accept first."], "Abbrechen beendet die Anfrage")
+
+-- Nach der Partie: die Revanche des anderen kommt an, obwohl mein Brett noch offen ist
+MP.Invite(JAINA); sid = MP.session.id
+from(JAINA, "ACCEPT", sid, 0); MP.last = nil; MP.Choose("fourinarow")
+MP.GiveUp()
+check(MP.session.state == "over" and ns.run and ns.run.mode == "mp", "die Partie ist vorbei, das Brett steht noch da")
+from(JAINA, "INVITE", "rv1")
+check(MP.invites[JAINA] and MP.invites[JAINA].id == "rv1" and MP.session == nil and ns.inviteFrame.shown,
+    "ihre Revanche-Anfrage kommt an: eine beendete Partie hält niemanden besetzt")
+click(ns.inviteFrame.yes)
+check(MP.session and MP.session.id == "rv1" and MP.session.role == "guest" and MP.session.state == "waiting", "angenommen: ich warte auf ihre Spielwahl")
+from(JAINA, "START", "rv1", "fourinarow", 9, 1, 1, 0)
+g = ns.run.game
+from(JAINA, "MOVE", "rv1", 1, 2)
+check(g.mp == MP.session and g.cells[2][1].disc.tex == "Interface\\Icons\\INV_BannerPVP_01" and g.status.text:find(ns.L["You play blue."], 1, true),
+    "als Eingeladener spiele ich Blau; ihr Stein ist rot")
+g:Play(3)
+check(g.cells[3][1].disc.tex == "Interface\\Icons\\INV_BannerPVP_02", "mein Stein ist blau")
+from(JAINA, "BYE", "rv1")
+ns.ShowLauncher()
+-- Beide fragen gleichzeitig an: es gilt die Anfrage mit der kleineren Sitzungsnummer
+MP.Invite(JAINA); sid = MP.session.id
+SENT = {}
+from(JAINA, "INVITE", "zzzzzzzzzz")
+check(MP.session.id == sid and MP.session.state == "asking" and next(MP.invites) == nil, "gekreuzte Anfragen: meine hat die kleinere Nummer und gilt")
+from(JAINA, "ACCEPT", sid, 0)
+check(MP.session.state == "choosing", "sie nimmt meine an")
+MP.Pause()
+MP.Invite(JAINA); sid = MP.session.id
+from(JAINA, "INVITE", "a0")
+check(MP.session.id == "a0" and MP.session.role == "guest" and MP.session.state == "waiting" and sent("PT1^ACCEPT^a0^0"),
+    "gekreuzte Anfragen: ihre hat die kleinere Nummer – ich nehme sie von selbst an")
+MP.Pause()
 
 -- Anfrage-Fenster und Parken: ich spiele gerade Windnatter und werde eingeladen
 ns.StartGame(ns.gamesById.snake)

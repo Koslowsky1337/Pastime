@@ -145,6 +145,11 @@ function Game:Start(mode)
     ns.SetIcon(self.indicator, self.myIcon)
     if self.mp then
         self.b = self.mp.board.b
+        -- Im Mehrspieler hängt die Farbe am Platz, nicht an der Fraktion: Platz 1 (der Einladende) spielt
+        -- Rot, Platz 2 Blau – auf beiden Bildschirmen gleich
+        local red = self.mp.me == 1
+        self.myIcon, self.foeIcon = red and ICON_HORDE or ICON_ALLY, red and ICON_ALLY or ICON_HORDE
+        ns.SetIcon(self.indicator, self.myIcon)
         return self:Sync()
     end
     self.status:SetText(self.ally and L["You play the Alliance – drop your piece!"] or L["You play the Horde – drop your piece!"])
@@ -175,7 +180,8 @@ function Game:Sync()
     end
     local mine = s.turn == s.me and not s.replaying
     self.state = mine and "player" or "wait"
-    self.status:SetText(mine and L["Your turn."] or (L["Waiting for %s …"]):format(s.partner))
+    local colour = s.me == 1 and L["You play red."] or L["You play blue."]
+    self.status:SetText(colour .. " " .. (mine and L["Your turn."] or (L["Waiting for %s …"]):format(s.partner)))
     if mine and self.wasMine == false then self.host:Sound("point") end
     self.wasMine = mine
     self:Render()

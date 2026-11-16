@@ -47,7 +47,9 @@ Stand: `v1.3.0` ist veröffentlicht (15.11.). Die Prüflisten bis 1.0 sind erled
 - [x] Allein im Spiel geprüft (15.11.): Reiter „Mehrspieler“ und die drei Schalter in den Einstellungen passen
 - [x] `v2.0.0-beta1` getaggt (16.11.), Vorab-Release auf GitHub mit Zip
 - [x] Beta 2 (16.11.): Online-Status aus Gruppen-, Gilden- und Freundesliste, Abmelden, Kreis „Freunde“, Kürzel (F)/(P)/(G), `/pastime debug user Vorname Nachname`
-- [ ] **Test zu zweit mit `v2.0.0-beta2`** nach der Prüfliste in `MULTIPLAYER.md` (beide: Beta installieren, WoW neu starten, `/pastime mp`, in eine Gruppe gehen); danach beide `/pastime report` schicken
+- [x] Erster Test zu zweit mit Beta 2 (16.11.): Anfrage, Spielwahl und eine ganze Partie Vier gewinnt liefen; behoben für Beta 3: Revanche kam nicht an, gleiche Farbe auf beiden Seiten, Protokoll voller fremder Addon-Nachrichten, Freund nicht gesehen
+- [ ] Schnelltest mit einem Freund auf der Freundesliste (`/pastime debug test schnell`): die Zeile „friend entry“ zeigt, welche Namensform die Freundesliste liefert
+- [ ] **Test zu zweit mit Beta 3** nach der Prüfliste in `MULTIPLAYER.md` (ab Teil 2: Liste, Revanche, Unterbrechen, Offline) (beide: Beta installieren, WoW neu starten, `/pastime mp`, in eine Gruppe gehen); danach beide `/pastime report` schicken
 - [x] Verbindungstest aus 1.3 ausgewertet (15.11.): ein anderer Spieler hat direkt geantwortet, direkte Nachrichten kommen an. `PING`/`PONG` sind wieder entfernt
 - [ ] Beta 3: Tavernenwürfel und Runenpaare-Duell, Bilanz „laut eigener Angabe“
 - [ ] Beta 4: Edelsteincode-Duell und Blackjack-Duell

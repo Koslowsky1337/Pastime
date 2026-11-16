@@ -195,13 +195,15 @@ end
 function Comm.OnMessage(prefix, text, channel, sender)
     local kind, fields, who = Comm.Accept(prefix, text, channel, sender)
     if not kind then
+        -- Dieser Client liefert auch die Addon-Nachrichten anderer Addons aus: die gehören nicht ins Protokoll
+        if fields == "prefix" then return end
         -- verworfene Sitzungsnachrichten sind beim Testen die wichtigste Spur
         local direct = channel == "WHISPER" and prefix == Comm.PREFIX
         ns.Log(direct and "I" or "D", direct and "mp" or "comm", "dropped (%s)", tostring(fields))
         return
     end
     -- der Verlauf einer Sitzung steht im Protokoll, mit Kennung statt Name
-    if kind ~= "HELLO" then ns.Log("I", "mp", "in  %s from %s", kind, ns.NameId(who)) end
+    if kind ~= "HELLO" or channel == "WHISPER" then ns.Log("I", "mp", "in  %s from %s", kind, ns.NameId(who)) end
     local h = Comm.handlers[kind]
     if h then ns.Safe("comm-" .. kind, h, who, fields, channel) end
 end
@@ -236,7 +238,9 @@ function Comm.Flush()
     end
     if code ~= RESULT_OK then ns.Log("D", "comm", "send result %s", tostring(code)) end
     local kind = item.msg:match("^[^%^]+%^([^%^]+)")
-    if kind ~= "HELLO" then ns.Log("I", "mp", "out %s to %s, result %s", tostring(kind), ns.NameId(item.target), tostring(code)) end
+    if kind ~= "HELLO" or item.channel == "WHISPER" then
+        ns.Log("I", "mp", "out %s to %s, result %s", tostring(kind), ns.NameId(item.target), tostring(code))
+    end
     table.remove(queue, 1)
 end
 
@@ -282,6 +286,23 @@ end
 
 -- Freunde haben keinen Kanal: wer laut Freundesliste online ist, bekommt einmal je Sitzung eine direkte
 -- Meldung (und eine weitere, wenn sich die eigene Sichtbarkeit ändert). Wer Pastime hat, antwortet einmal.
+-- Direkte Nachrichten brauchen den vollen Namen (Vor- und Nachname). Nennt eine Liste nur den Vornamen,
+-- wird der volle Name unter den bekannten Pastime-Nutzern und in der Gildenliste gesucht; ist er dort
+-- nicht eindeutig zu finden, bleibt es beim Vornamen.
+function Comm.FullName(name)
+    if name:find(" ", 1, true) then return name end
+    local found
+    local function try(n)
+        if type(n) ~= "string" or n:sub(1, #name + 1) ~= name .. " " then return end
+        if found == nil then found = n elseif found ~= n then found = false end
+    end
+    for n in pairs(Comm.peers) do try(n) end
+    if GetNumGuildMembers and GetGuildRosterInfo then
+        for i = 1, GetNumGuildMembers() do try((GetGuildRosterInfo(i))) end
+    end
+    return found or name
+end
+
 local greeted = {}
 function Comm.GreetFriends()
     local F = C_FriendList
@@ -291,7 +312,8 @@ function Comm.GreetFriends()
     for i = 1, ok and tonumber(n) or 0 do
         local ok2, info = ns.Try("C_FriendList.GetFriendInfoByIndex", F.GetFriendInfoByIndex, i)
         local name = ok2 and type(info) == "table" and info.connected and info.name
-        if type(name) == "string" and name ~= "" and not Comm.selfNames[name] then
+        name = type(name) == "string" and name ~= "" and Comm.FullName(name)
+        if name and not Comm.selfNames[name] then
             if (not greeted[name] and level > 0) or (greeted[name] and lastLevel[name] ~= level) then
                 greeted[name] = true
                 hello("WHISPER", name)

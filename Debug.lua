@@ -464,6 +464,17 @@ function ns.SelfTest(what)
                 end
             end
             shape("friend list", names, online)
+            -- ein Eintrag der Freundesliste: welche Felder gibt es, und lässt sich der volle Name finden?
+            local first = F and F.GetNumFriends and F.GetNumFriends() > 0 and F.GetFriendInfoByIndex(1)
+            if type(first) == "table" then
+                local keys = {}
+                for k, val in pairs(first) do keys[#keys + 1] = tostring(k) .. "=" .. type(val) end
+                table.sort(keys)
+                local viaGuid = first.guid and GetPlayerInfoByGUID and select(6, GetPlayerInfoByGUID(first.guid))
+                add(nil, ("friend entry: %s · name via guid has a space: %s · full name resolved: %s"):format(table.concat(keys, ", "),
+                    tostring(type(viaGuid) == "string" and viaGuid:find(" ", 1, true) ~= nil),
+                    tostring(type(first.name) == "string" and C.FullName(first.name):find(" ", 1, true) ~= nil)))
+            end
             local full = GetUnitName and GetUnitName("player", true)
             add(nil, ("own name forms: GetUnitName(player, true) equals sender name: %s; UnitName returns %d value(s)"):format(tostring(me ~= nil and full == me),
                 select("#", UnitName("player"))))

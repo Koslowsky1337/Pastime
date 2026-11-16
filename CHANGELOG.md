@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.0-beta3
+
+Multiplayer, third test version: fixes from the first test with two players.
+
+- A rematch request now arrives. After a game the other player's finished board kept them “busy”, so the request was dropped and the asker waited forever.
+- If both players ask each other at the same moment, one of the two requests wins automatically instead of both waiting.
+- Four in a Row: the colours are the same on both screens. The player who invited plays red, the invited player blue, and the board says which one you are.
+- Friends: if the friend list only knows a first name, the full name is looked up in the guild list, because direct messages need it.
+- The log no longer fills up with messages of other addons, so `/pastime report` shows the course of a multiplayer test.
+
 ## 2.0.0-beta2
 
 Multiplayer, second test version. Still switched off until both players type `/pastime mp`.
