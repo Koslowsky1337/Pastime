@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.3
+
+- More groundwork for a later version; nothing changes in the existing games.
+
 ## 1.4.2
 
 - Groundwork for a later version; nothing changes in the games themselves.
