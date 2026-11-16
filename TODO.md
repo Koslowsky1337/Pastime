@@ -60,6 +60,8 @@ Stand: `v1.4.0` ist veröffentlicht (16.11.). Der Mehrspieler steckt abgeschalte
 
 - [x] Die Vorab-Releases und Tags `v2.0.0-beta1` bis `-beta3` sind entfernt (16.11.): ihr Inhalt steckt abgeschaltet in 1.4.0. Getestet wird mit den normalen Versionen und `/pastime mp`. Die Namen nicht wiederverwenden, solange auf CurseForge Dateien dazu liegen
 
+- [ ] Mehrspieler-Test mit 1.4.0 auf beiden Seiten: Beide sehen sich nicht in der Liste. Ursache offen, bis `/pastime debug dump` von beiden vorliegt; auf `main` meldet sich der offene Reiter jetzt einmal je Minute neu und frischt die Liste laufend auf
+
 ## 4. Später
 - [x] Ausführliche Spielerklärung für alle 24 Spiele im Regel-Fenster (oben Steuerung, darunter „So geht's“), Englisch und Deutsch (16.11.)
 - [x] Solitär: Tipp (Knopf oder H) und Erkennung „kein Zug mehr“ (16.11.)

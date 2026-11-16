@@ -489,13 +489,50 @@ local function isOnline(set, name)
 end
 
 -- Beim Öffnen des Reiters: Gildenliste auffrischen lassen und Freunde grüßen, die inzwischen online sind
-local refreshed = -100
+-- Solange der Reiter offen ist, meldet man sich außerdem höchstens einmal je Minute neu: so finden sich
+-- zwei Spieler auch dann, wenn eine frühere Meldung den anderen nicht erreicht hat (er war noch nicht
+-- da, hatte den Mehrspieler noch aus oder die erste Frage noch nicht beantwortet).
+local refreshed, announced = -100, -100
 function MP.Refresh()
     if not MP.On() or GetTime() - refreshed < 20 then return end
     refreshed = GetTime()
     if C_GuildInfo and C_GuildInfo.GuildRoster then ns.Try("C_GuildInfo.GuildRoster", C_GuildInfo.GuildRoster)
     elseif GuildRoster then ns.Try("GuildRoster", GuildRoster) end
-    Comm.GreetFriends()
+    if GetTime() - announced >= 60 then
+        announced = GetTime()
+        Comm.Announce()      -- grüßt auch die Freunde
+    else
+        Comm.GreetFriends()
+    end
+end
+
+-- Für die Fehlersuche (/pastime debug dump): der Stand des Mehrspielers in Zeilen, mit Kennung statt Name
+function MP.Diagnose()
+    local out, s = {}, ns.DB.settings
+    out[#out + 1] = ("multiplayer: unlocked %s · first question answered %s · switch %s · on %s"):format(tostring(Comm.ENABLED), tostring(ns.DB.mpAsked),
+        tostring(s.mp), tostring(MP.On()))
+    out[#out + 1] = ("visible to: friends %s · group %s · guild %s · registered for addon messages %s"):format(tostring(s.mpFriends), tostring(s.mpParty),
+        tostring(s.mpGuild), tostring(Comm.registered))
+    rosterAt = -100
+    local here = online()
+    local function size(t) local n = 0; for _ in pairs(t or {}) do n = n + 1 end; return t and tostring(n) or "not available" end
+    out[#out + 1] = ("online according to the client: friends %s · group %s · guild %s"):format(size(here.mpFriends), size(here.mpParty), size(here.mpGuild))
+    local listed = {}
+    for _, p in ipairs(MP.Players()) do listed[p.name] = p.circle end
+    local any = false
+    for name, p in pairs(Comm.peers) do
+        any = true
+        local seen = {}
+        for channel, e in pairs(p.seen or {}) do seen[#seen + 1] = ("%s level %s %d s ago"):format(channel, tostring(e.mp), GetTime() - (e.t or 0)) end
+        table.sort(seen)
+        out[#out + 1] = ("  %s: version %s · heard via %s · online in guild list %s, group %s, friends %s · in the list: %s"):format(ns.NameId(name), tostring(p.v),
+            table.concat(seen, "; "), tostring(here.mpGuild and isOnline(here.mpGuild, name)), tostring(here.mpParty and isOnline(here.mpParty, name)),
+            tostring(here.mpFriends and isOnline(here.mpFriends, name)), tostring(listed[name] or "no"))
+    end
+    if not any then out[#out + 1] = "  no other Pastime has been heard in this session" end
+    local ses = MP.session
+    out[#out + 1] = "session: " .. (ses and ("%s with %s, state %s"):format(tostring(ses.role), ns.NameId(ses.partner), tostring(ses.state)) or "none")
+    return out
 end
 
 function MP.Players()
@@ -545,6 +582,6 @@ end
 function MP._Reset()
     MP.session, MP.note, MP.last = nil, nil, nil
     wipe(refused)
-    rosterAt, refreshed = -100, -100
+    rosterAt, refreshed, announced = -100, -100, -100
     wipe(MP.invites)
 end

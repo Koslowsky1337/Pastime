@@ -274,6 +274,21 @@ check(names()[JAINA] == "mpGuild", "in der Gilde online: über die Gilde zu sehe
 guildOnline.Rexxar = nil
 check(names().Rexxar == nil, "aus der Gilde ausgeloggt: weg")
 partyOnline, guildOnline.Rexxar = true, true
+-- Diagnose für den Daten-Auszug: Stand in Zeilen, mit Kennung statt Name
+local diag = table.concat(MP.Diagnose(), "\n")
+check(diag:find("on true", 1, true) and diag:find(ns.NameId(JAINA), 1, true) and not diag:find("Jaina", 1, true)
+    and diag:find("in the list: mpParty", 1, true) and diag:find("guild 2", 1, true),
+    "Diagnose nennt Schalter, wer online ist und wer in der Liste steht – ohne Namen")
+-- Ist der Reiter offen, meldet man sich höchstens einmal je Minute neu
+flush(); SENT = {}
+NOW = NOW + 100
+MP.Refresh(); flush()
+local again = 0
+for _, m in ipairs(SENT) do if m.msg:find("^PT1%^HELLO") and (m.channel == "GUILD" or m.channel == "PARTY") then again = again + 1 end end
+check(again == 2, "Reiter offen: einmal neu in Gilde und Gruppe gemeldet (" .. again .. ")")
+NOW = NOW + 25
+SENT = {}; MP.Refresh(); flush()
+check(#SENT == 0, "aber nicht öfter als einmal je Minute")
 -- Abmelden: wer sich für die Gruppe unsichtbar macht, sagt es dort einmal
 C.Announce(); flush(); SENT = {}
 PastimeDB.settings.mpParty = false
@@ -422,6 +437,7 @@ check(MP.session.id == sid and MP.session.state == "asking" and next(MP.invites)
 from(JAINA, "ACCEPT", sid, 0)
 check(MP.session.state == "choosing", "sie nimmt meine an")
 MP.Pause()
+flush()
 MP.Invite(JAINA); sid = MP.session.id
 from(JAINA, "INVITE", "a0")
 check(MP.session.id == "a0" and MP.session.role == "guest" and MP.session.state == "waiting" and sent("PT1^ACCEPT^a0^0"),

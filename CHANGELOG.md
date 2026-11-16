@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+- `/pastime debug dump` and `/pastime report` show more of what the addon hears from other players' copies, to help with testing.
+
 ## 1.4.0
 
 - New button “What wins?” in the card and gold games. Tavern Hold'em and Goblin Poker list the poker hands from strongest to weakest, each with an example hand and a short explanation; Goblin Blackjack shows example hands too; Higher or Lower and Goblin Roulette explain what wins and what it pays; Goblin Slots show their pay table there.

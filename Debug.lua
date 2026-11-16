@@ -689,6 +689,9 @@ function ns.DataDump(plain)
     end
 
     add("")
+    add("== Multiplayer ==")
+    for _, line in ipairs(ns.MP.Diagnose()) do add(line) end
+    add("")
     add("== Pastime users heard in this session ==")
     local any = false
     for name, p in pairs(ns.Comm.peers) do

@@ -219,7 +219,7 @@ function Comm.Send(kind, channel, target, ...)
     if not (Comm.ENABLED or (kind == "HELLO" and Comm.VERSION_CHECK)) then return false end      -- HELLO geht auch ohne Mehrspieler
     local msg, err = Comm.Encode(kind, ...)
     if not msg then ns.Log("W", "comm", "not sent: %s", tostring(err)); return false end
-    if #queue >= 20 then ns.Log("W", "comm", "send queue full, %s dropped", tostring(kind)); return false end
+    if #queue >= 60 then ns.Log("W", "comm", "send queue full, %s dropped", tostring(kind)); return false end
     queue[#queue + 1] = { msg = msg, channel = channel, target = target, tries = 0 }
     return true
 end
@@ -281,6 +281,7 @@ local function hello(channel, target)
     -- Betastände ohne Mehrspieler haben nichts zu melden – außer dass sie eben noch zu sehen waren (Abmelden)
     if not Comm.registered or not (mine or level > 0 or (lastLevel[key] or 0) > 0) then return end
     lastHello[key], lastLevel[key] = GetTime(), level
+    ns.Log("D", "mp", "hello to %s: version %s, level %d", target and ns.NameId(target) or channel, tostring(mine or 0), level)
     Comm.Send("HELLO", channel, target, mine or 0, level, Comm.tag)
 end
 
@@ -339,6 +340,7 @@ Comm.handlers.HELLO = function(sender, fields, channel)
     if fields[3] == Comm.tag then Comm.selfNames[sender] = true; return end      -- die eigene Meldung
     local mine, theirs = Comm.VersionNumber(ns.VERSION), fields[1]
     local known = Comm.peers[sender]
+    ns.Log("D", "mp", "hello from %s via %s: version %d, level %d", ns.NameId(sender), tostring(channel), theirs, fields[2])
     -- je Kanal merken, wann und mit welcher Stufe er sich gemeldet hat: in der Gilde kann jemand
     -- unsichtbar sein, den man in der Gruppe sieht
     local p = known or { seen = {} }

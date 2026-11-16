@@ -1628,6 +1628,8 @@ function ns.CreateMainFrame()
         if acc >= 1 then
             acc = 0
             if ns.launcher:IsShown() then ns.Safe("auswahl", ns.UpdateLauncher) end
+            -- die Mitspielerliste folgt dem Online-Status, ohne dass man den Reiter neu öffnen muss
+            if ns.mpView:IsShown() then ns.Safe("mehrspieler", ns.UpdateMPView) end
         end
     end)
     tinsert(UISpecialFrames, "PastimeFrame")
