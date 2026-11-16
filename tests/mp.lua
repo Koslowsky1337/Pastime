@@ -46,6 +46,14 @@ check(MP.On() and PastimeDB.mpAsked == true and not ask.shown and PastimeDB.sett
     "Speichern übernimmt die Wahl; erst dann ist der Mehrspieler an")
 check(PastimeDB.settings.mpInviteTravel == true and PastimeDB.settings.mpInviteRest == true and PastimeDB.settings.mpInviteAnywhere == false,
     "Anfragen kommen als Standard nur auf Reisen und in Ruhebereichen an")
+-- Wer die Frage in einer älteren Fassung beantwortet hat, wird einmal neu gefragt – mit seiner Wahl vorbelegt
+check(PastimeDB.mpAskV == 2 and not ns.MPAskOpen(), "die beantwortete Frage merkt sich ihre Fassung")
+PastimeDB.mpAskV = nil
+if ns.MPAskOpen() then ns.MPAsk() end
+check(ask.shown and MP.On() and ask.checks[4]:GetChecked() == false and ask.checks[7]:GetChecked() == false and ask.checks[5]:GetChecked() == true,
+    "ältere Antwort: die Frage kommt noch einmal, der Mehrspieler bleibt an, die bisherige Wahl steht drin")
+ask.save.scripts.OnClick(ask.save)
+check(not ask.shown and PastimeDB.mpAskV == 2 and PastimeDB.settings.mpGuild == false, "danach ist sie erledigt")
 -- Wann Anfragen ankommen
 SENT = {}
 from(JAINA, "INVITE", "q1"); flush()

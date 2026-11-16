@@ -64,6 +64,10 @@ Stand: `v1.4.1` ist veröffentlicht (16.11.). Der Mehrspieler steckt abgeschalte
 - [x] Einstellung, wann Anfragen ankommen (16.11.): auf Reisen (an), in Gasthäusern und Städten (an), überall (aus); der Anfragende bekommt sonst den Hinweis `AWAY`. Mehrspieler-Einstellungen als kompakter Block, erste Frage mit sieben Zeilen
 - [ ] **Test zu zweit mit der nächsten Version (1.4.1) auf beiden Seiten** – 1.4.0 beantwortet `HELLO` nicht mit `HERE`: Liste über Gilde und Battle.net-Freunde, Anfrage im Gasthaus, Anfrage „zu Fuß“ (Hinweis beim Anfragenden), „Überall“ an, Revanche
 - [ ] Im Spiel ansehen: Mehrspieler-Block im Reiter „Einstellungen“ (zwei Spalten), erste Frage mit sieben Zeilen
+- [x] Test zu zweit mit 1.4.1 (16.11.): Beide sehen sich in der Liste
+- [x] Wer die erste Frage in einer älteren Fassung beantwortet hat, bekam die drei neuen Zeilen nie zu sehen. Die Frage merkt sich jetzt ihre Fassung (`mpAskV`) und kommt einmal neu, mit der bisherigen Wahl vorbelegt; der Mehrspieler bleibt dabei an (16.11., auf `main`, noch in keiner Version)
+- [ ] Ablauf einer Partie zu zweit überarbeiten (Wunsch 16.11.): Das Brett soll aussehen und sich bedienen wie im Einzelspiel, mit allen Knöpfen; Spielerklärung für die Partie zu zweit. Erst klären, was im Test gestört hat
+- [ ] Mehr Spiele für zwei (Wunsch 16.11.), vor allem Kartenspiele; wo ein Spiel mehr als zwei Spieler braucht, füllt ein Bot auf
 
 ## 4. Später
 - [x] Ausführliche Spielerklärung für alle 24 Spiele im Regel-Fenster (oben Steuerung, darunter „So geht's“), Englisch und Deutsch (16.11.)

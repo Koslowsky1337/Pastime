@@ -984,7 +984,7 @@ function ns.HandleSlash(msg)
         if not ns.DB.mpBeta and ns.MP.session then ns.MP.Pause() end
         ns.Print(ns.DB.mpBeta and L["Multiplayer beta |cff80ff80on|r."] or L["Multiplayer beta |cffff6060off|r."])
         ns.Comm.Announce()
-        if ns.DB.mpBeta and not ns.DB.mpAsked and ns.MPAsk then ns.MPAsk() end      -- gleich fragen, wer einen sehen darf
+        if ns.DB.mpBeta and ns.MPAsk and ns.MPAskOpen() then ns.MPAsk() end      -- gleich fragen, wer einen sehen darf
         if ns.UpdateUI then ns.UpdateUI() end
     elseif cmd == "debug" and ({ dump = true, daten = true })[arg:match("^%S*")] then
         -- /pastime debug dump [klar]: was der Client über Gruppe, Gilde und Freunde liefert

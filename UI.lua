@@ -1490,6 +1490,13 @@ local MP_ASK = {
     { "mpInviteAnywhere", L["Requests anywhere"], L["Requests reach you wherever you are, except in combat."], false },
 }
 
+-- Die Frage ist offen, solange sie nie beantwortet wurde – oder in einer älteren Fassung mit weniger Zeilen.
+-- Im zweiten Fall bleibt der Mehrspieler an; gefragt wird nur noch einmal, mit der bisherigen Wahl vorbelegt.
+local ASK_VERSION = 2      -- 2: dazu, wann Anfragen ankommen
+function ns.MPAskOpen()
+    return not ns.DB.mpAsked or (ns.DB.mpAskV or 1) < ASK_VERSION
+end
+
 function ns.MPAsk()
     local f = ns.mpAskFrame
     if not f then
@@ -1523,7 +1530,7 @@ function ns.MPAsk()
         f.save = ns.CreateButton(f, L["Save"], 160, function()
             ns.PlaySound("click")
             for _, c in ipairs(f.checks) do ns.DB.settings[c.key] = c:GetChecked() and true or false end
-            ns.DB.mpAsked = true
+            ns.DB.mpAsked, ns.DB.mpAskV = true, ASK_VERSION
             f:Hide()
             ns.Comm.Announce()
             if ns.RefreshSettings then ns.RefreshSettings() end
@@ -1534,7 +1541,10 @@ function ns.MPAsk()
         ns.mpAskFrame = f
     end
     if f:IsShown() then return end
-    for _, c in ipairs(f.checks) do c:SetChecked(c.default) end      -- Vorschlag: alles an, nur „Anfragen überall“ aus
+    -- Vorschlag: alles an, nur „Anfragen überall“ aus; wer schon einmal gewählt hat, sieht seine Wahl
+    for _, c in ipairs(f.checks) do
+        if ns.DB.mpAsked then c:SetChecked(ns.DB.settings[c.key] and true or false) else c:SetChecked(c.default) end
+    end
     f:Show()
 end
 
@@ -1559,7 +1569,7 @@ function ns.MPSync()
     if ns.run and ns.run.mode == "mp" and ns.run.game.Sync then ns.run.game:Sync() end
     InvitePopup()
     -- freigeschaltet, aber noch nicht gewählt, wer einen sehen darf: beim Öffnen des Fensters fragen
-    if ns.Comm.ENABLED and not ns.DB.mpAsked and ns.frame and ns.frame:IsShown() then ns.MPAsk() end
+    if ns.Comm.ENABLED and ns.MPAskOpen() and ns.frame and ns.frame:IsShown() then ns.MPAsk() end
     if ns.frame then
         LayoutTabs()
         if ns.view == "mp" and not ns.Comm.ENABLED then return ns.ShowView("launcher") end
