@@ -321,9 +321,13 @@ ns.RegisterGame({
     desc = L["Get close to 21 without going bust – the goblin draws to 17. Your goblin gold carries over between games, so you can work your way up. When you go broke or cash out, your highest gold counts. Blackjack pays 3 to 2."],
     controls = L["1/2: lower or raise your bet · 3: highest bet · Space: deal · then %s or Space: hit · %s or Enter: stand · %s: double · %s: cash out"]:format(KEYS.hit, KEYS.stand, KEYS.double, KEYS.cash),
     controlsShort = L["1/2: bet · %s: hit\n%s: stand · %s: double\n%s: cash out"]:format(KEYS.hit, KEYS.stand, KEYS.double, KEYS.cash),
+    winsCards = true,
     wins = function()
+        local ex = Cards.Example
         return table.concat({
             L["Whoever is closer to 21 wins. More than 21 loses at once."],
+            -- drei Beispiele: Blackjack, 21 aus drei Karten, überkauft
+            ("%s  = |cffffd100Blackjack|r\n%s  = 21\n%s  = 25, %s"):format(ex({ 1, 3, 13, 1 }), ex({ 10, 2, 6, 4, 5, 1 }), ex({ 10, 3, 7, 1, 8, 2 }), L["bust"]),
             L["2 to 10 count their number, jack, queen and king 10, the ace 11 or 1 – whichever suits you better."],
             L["|cffffd100Blackjack|r is an ace with a ten-value card as your first two cards. It beats every other 21 and pays 3 to 2."],
             L["The goblin draws until he has 17 or more. Equal totals: you get your bet back."],

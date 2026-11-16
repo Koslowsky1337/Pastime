@@ -519,6 +519,7 @@ ns.RegisterGame({
     desc = L["A Texas Hold'em table against a gnome, a troll and a dwarf. You buy in with gold and all four start with the same chips. Nobody can bet more than they have, and whoever runs out is gone. Win the table and all chips are yours – or get up between hands and take what you have. The blinds double every five hands."],
     controls = L["1/2/3: buy in with ¼, ½ or all of your gold · in the hand 1: fold · 2: check or call · 3: raise · 4: all in · between hands Space: next hand · 2: leave the table · %s: cash out"]:format(ns.KEYS.cash),
     controlsShort = L["1: fold · 2: call\n3: raise · 4: all in\n%s: cash out"]:format(ns.KEYS.cash),
+    winsCards = true,
     wins = function() return Cards.Ranking(L["Your best five out of seven cards count. Equal hands split the pot."]) end,
     Create = Create,
 })

@@ -235,7 +235,7 @@ function ns.ShowWins()
     if not run or not run.def.wins then return end
     ns.Pause()
     if run.state ~= "paused" or ns.overlay.kind ~= "pause" then return end
-    ns.ShowOverlay("pause", L["What wins?"], run.def.wins())
+    ns.ShowOverlay("pause", L["What wins?"], run.def.wins(), run.def.winsCards)
 end
 
 function ns.Resume()
@@ -328,10 +328,19 @@ local function CreateOverlay(parent)
     return o
 end
 
-function ns.ShowOverlay(kind, title, text)
+-- cards: der Text enthält Kartenzeichen (♥ ♦ ♠ ♣) und Beispielblätter – dann breiter und in der Schrift,
+-- die diese Zeichen kennt (die Standardschrift des Spiels hat sie nicht)
+function ns.ShowOverlay(kind, title, text, cards)
     local o = ns.overlay
     if not o then return end
     o.kind = kind
+    if cards then
+        if o.text.SetFont then o.text:SetFont("Fonts\\ARIALN.TTF", 11, "") end
+    elseif o.text.SetFontObject then
+        o.text:SetFontObject(GameFontHighlight)
+    end
+    o.text:SetWidth(cards and 360 or 300)
+    o.box:SetWidth(cards and 400 or 340)
     o.title:SetText(title or "")
     o.text:SetText(text or "")
     o.btn2:SetScript("OnClick", function() ns.ShowLauncher() end)

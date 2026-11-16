@@ -2,7 +2,7 @@
 
 ## 2.0.0-beta4
 
-- New button “What wins?” in the card and gold games. Tavern Hold'em and Goblin Poker list the poker hands from strongest to weakest with a short explanation of each; Goblin Blackjack, Higher or Lower and Goblin Roulette explain what wins and what it pays; Goblin Slots show their pay table there.
+- New button “What wins?” in the card and gold games. Tavern Hold'em and Goblin Poker list the poker hands from strongest to weakest, each with an example hand and a short explanation; Goblin Blackjack shows example hands too; Goblin Blackjack, Higher or Lower and Goblin Roulette explain what wins and what it pays; Goblin Slots show their pay table there.
 - The rules window now starts with the controls and explains the game below, for all 24 games in more detail than before: the goal, how a turn works, what scores and when the game ends.
 - Solitaire: a tip (button or H) highlights a move that helps and says why. If no move is left, the game recognises it and ends as lost instead of leaving you searching.
 

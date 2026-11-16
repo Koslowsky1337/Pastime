@@ -676,6 +676,10 @@ check(ns.run.state == "paused" and ns.overlay.title.text == ns.L["What wins?"] a
 local function place(i) return wt:find("|cffffd100" .. ns.Cards.HANDS[i] .. "|r", 1, true) end
 check(place(5) < place(4) and place(4) < place(3) and place(3) < place(2),
     "Straße steht vor Drilling, Drilling vor zwei Paaren, zwei Paare vor einem Paar")
+local heart, spade = ns.Cards.SUITS[1].glyph, ns.Cards.SUITS[3].glyph
+check(wt:find("5" .. heart, 1, true) and wt:find("9" .. heart, 1, true) and wt:find(ns.Cards.RANKS[12] .. spade, 1, true)
+    and ns.Cards.Example({ 1, 3, 13, 1 }) == "|cffd8d8d8" .. ns.Cards.RANKS[1] .. spade .. "|r |cffff6060" .. ns.Cards.RANKS[13] .. heart .. "|r",
+    "jedes Blatt hat ein Beispiel mit Kartenzeichen, rote Farben rot")
 ns.Resume()
 for _, id in ipairs({ "drawpoker", "blackjack", "higherlower", "roulette", "slots" }) do
     ns.StartGame(ns.gamesById[id])
@@ -684,6 +688,20 @@ end
 ns.StartGame(ns.gamesById.snake)
 check(not side.wins:IsShown(), "Windnatter: kein solcher Knopf")
 ns.ShowLauncher()
+
+-- Kein Regel- oder Gewinn-Fenster darf höher sein als das Spielfeld, über dem es liegt
+for _, def in ipairs(ns.games) do
+    ns.StartGame(def, ns.DefaultMode(def))
+    ns.ShowRules()
+    check(ns.overlay.box:GetHeight() <= def.height - 8, ("%s: die Spielregeln passen ins Spielfeld (%d von %d)"):format(def.id, ns.overlay.box:GetHeight(), def.height - 8))
+    ns.Resume()
+    if def.wins then
+        ns.ShowWins()
+        check(ns.overlay.box:GetHeight() <= def.height - 8 and ns.overlay.box:GetWidth() <= def.width - 8,
+            ("%s: „Was gewinnt?“ passt ins Spielfeld (%d von %d)"):format(def.id, ns.overlay.box:GetHeight(), def.height - 8))
+    end
+    ns.ShowLauncher()
+end
 
 -- Spielregeln: oben die Steuerung, darunter die ausführliche Erklärung – für jedes Spiel
 for _, def in ipairs(ns.games) do

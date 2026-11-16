@@ -146,14 +146,38 @@ Cards.HANDS = { L["High Card"], L["Pair"], L["Two Pair"], L["Three of a Kind"], 
 local HAND_HELP = { L["none of these: the highest card counts"], L["two cards of the same value"], L["two different pairs"],
     L["three cards of the same value"], L["five in a row, any suits"], L["five cards of one suit"], L["three of a kind and a pair"],
     L["four cards of the same value"], L["five in a row, all one suit"] }
-function Cards.Ranking(extra)
-    local t = { L["From strongest to weakest:"] }
-    for i = #Cards.HANDS, 1, -1 do
-        t[#t + 1] = ("%d. |cffffd100%s|r – %s"):format(#Cards.HANDS + 1 - i, Cards.HANDS[i], HAND_HELP[i])
+-- Ein Beispielblatt als Text: { Wert, Farbe, Wert, Farbe … } -> „5♥ 6♥ 7♥“, rote Farben rot
+function Cards.Example(list)
+    local t = {}
+    for i = 1, #list, 2 do
+        local suit = Cards.SUITS[list[i + 1]]
+        t[#t + 1] = (suit.red and "|cffff6060" or "|cffd8d8d8") .. Cards.RANKS[list[i]] .. suit.glyph .. "|r"
     end
-    t[#t + 1] = ""
-    t[#t + 1] = L["Same kind of hand: the higher values win, then the remaining cards."]
-    t[#t + 1] = L["The ace is high (10-J-Q-K-A) and also low in the smallest straight (A-2-3-4-5)."]
+    return table.concat(t, " ")
+end
+
+-- je Blatt ein Beispiel (Wert, Farbe; Farben: 1 Herz, 2 Karo, 3 Pik, 4 Kreuz)
+local HAND_EXAMPLE = {
+    { 1, 3, 11, 1, 8, 2, 5, 4, 2, 3 },        -- höchste Karte
+    { 10, 3, 10, 1, 13, 2, 7, 4, 3, 3 },      -- Paar
+    { 11, 3, 11, 1, 4, 2, 4, 4, 1, 3 },       -- zwei Paare
+    { 7, 3, 7, 1, 7, 2, 13, 4, 2, 3 },        -- Drilling
+    { 5, 3, 6, 1, 7, 2, 8, 4, 9, 1 },         -- Straße
+    { 2, 4, 6, 4, 9, 4, 11, 4, 13, 4 },       -- Flush
+    { 12, 3, 12, 1, 12, 2, 4, 4, 4, 3 },      -- Full House
+    { 9, 3, 9, 1, 9, 2, 9, 4, 13, 3 },        -- Vierling
+    { 5, 1, 6, 1, 7, 1, 8, 1, 9, 1 },         -- Straight Flush
+}
+
+function Cards.Ranking(extra)
+    local t = {}      -- die Nummern sagen die Reihenfolge: 1 ist das stärkste Blatt
+    for i = #Cards.HANDS, 1, -1 do
+        -- Zeile 1: Name und Beispielblatt · Zeile 2: was es ist
+        t[#t + 1] = ("%d. |cffffd100%s|r   %s"):format(#Cards.HANDS + 1 - i, Cards.HANDS[i], Cards.Example(HAND_EXAMPLE[i]))
+        t[#t + 1] = "|cffb0b0b0" .. HAND_HELP[i] .. "|r"
+    end
+    t[#t + 1] = L["Same hand: higher values win, then the other cards."]
+    t[#t + 1] = L["The ace counts high, and low in A-2-3-4-5."]
     if extra then t[#t + 1] = extra end
     return table.concat(t, "\n")
 end
