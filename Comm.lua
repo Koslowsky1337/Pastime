@@ -314,6 +314,10 @@ function Comm.StartVersionCheck()
     if not Comm.VERSION_CHECK then return end
     Comm.Enable()
     if not Comm.registered then return end
+    -- Der Absendername eigener Nachrichten ist der volle Name (Vor- und Nachname); GetUnitName liefert ihn,
+    -- UnitName nur den Vornamen (im Client geprüft, Selbsttest vom 16.11.)
+    local full = GetUnitName and GetUnitName("player", true)
+    if type(full) == "string" and full ~= "" then Comm.selfNames[full] = true end
     C_Timer.After(8, ns.Wrap("comm-hello", function()
         local mine = Comm.VersionNumber(ns.VERSION)
         if mine and (tonumber(ns.DB.newest) or 0) > mine then notice(ns.DB.newest, mine) end

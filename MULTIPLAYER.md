@@ -31,7 +31,7 @@ Wer einen Kreis abschaltet, erscheint dort bei niemandem und sieht dort auch nie
 - **Abmelden:** Wer den Mehrspieler ausschaltet oder sich für einen Kreis unsichtbar macht, meldet das einmal, damit er bei den anderen nicht weiter als spielbar dasteht.
 - **Freunde:** Beim Einloggen und beim Öffnen des Reiters geht eine Meldung an jeden Freund, den die Freundesliste als online zeigt und der in dieser Sitzung noch keine bekommen hat. Wer Pastime hat, antwortet einmal. Ein eigenes Ereignis „Freund kommt online“ wird nicht gebraucht.
 - **Kennzeichnung:** Hinter dem Namen steht ein farbiges Kürzel: (F) Freund in Rosa, (P) Gruppe in Blau, (G) Gilde in Grün. Steht jemand in mehreren Kreisen, gilt Freund vor Gruppe vor Gilde.
-- **Offen bis zum Selbsttest:** in welcher Form die drei Listen Namen liefern (voller Name mit Leerzeichen wie der Absender, oder nur der Vorname).
+- **Namensformen (im Client geprüft, Selbsttest vom 16.11.):** Der Absender einer Nachricht ist der volle Name mit Leerzeichen. Die Gildenliste nennt denselben vollen Namen. `UnitName` liefert für Gruppenmitglieder nur den Vornamen, `GetUnitName(Einheit, true)` den vollen. Die Freundesliste ist noch ungeprüft (im Test war sie leer); der Abgleich nimmt dort beide Formen an.
 
 ## 3. Was gesendet wird
 
