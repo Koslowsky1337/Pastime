@@ -136,7 +136,7 @@ Der Update-Hinweis aus 1.3 bleibt davon unabhängig.
 
 ## 9. Test und Veröffentlichung
 
-- Bis 2.0 ist der Mehrspieler abgeschaltet und wird für Tests mit `/pastime mp` freigeschaltet (bei beiden Spielern).
+- Bis 2.0 ist der Mehrspieler abgeschaltet und wird für Tests mit `/pastime mp` freigeschaltet (bei beiden Spielern). Seit 1.4 steckt er so in den normalen Versionen; eigene Beta-Tags braucht es zum Testen nicht mehr.
 - Tags `v2.0.0-beta1`, `-beta2` … gehen als Vorabversionen an GitHub und CurseForge.
 - Betastände melden die Versionsnummer 0 und fordern niemanden zum Aktualisieren auf, zeigen sich aber gegenseitig als Mitspieler.
 - Zum Testen ohne Liste: `/pastime debug user Vorname Nachname` fragt einen Spieler direkt an. Der Verlauf (gesendet, empfangen, verworfen) steht mit Kennung statt Name im Protokoll und damit in `/pastime report`.
@@ -159,3 +159,49 @@ Der Update-Hinweis aus 1.3 bleibt davon unabhängig.
 - Spiele um Goblin-Gold gegeneinander.
 - Zuschauer und mehr als zwei Spieler.
 - Gemeinsame Rekordlisten der Gilde, Weitererzählen fremder Bilanzen.
+
+## 11. Notizen für den Changelog von 2.0
+
+Der Mehrspieler wird erst mit 2.0 im Changelog genannt. Bis dahin steckt er abgeschaltet in den 1.x-Versionen und wird für Tests mit `/pastime mp` freigeschaltet. Was die Testversionen gebracht haben (englisch, als Vorlage für den Changelog):
+
+### Beta 4
+
+- New button “What wins?” in the card and gold games. Tavern Hold'em and Goblin Poker list the poker hands from strongest to weakest, each with an example hand and a short explanation; Goblin Blackjack shows example hands too; Goblin Blackjack, Higher or Lower and Goblin Roulette explain what wins and what it pays; Goblin Slots show their pay table there.
+- The rules window now starts with the controls and explains the game below, for all 24 games in more detail than before: the goal, how a turn works, what scores and when the game ends.
+- Solitaire: a tip (button or H) highlights a move that helps and says why. If no move is left, the game recognises it and ends as lost instead of leaving you searching.
+
+### Beta 3
+
+Multiplayer, third test version: fixes from the first test with two players.
+
+- A rematch request now arrives. After a game the other player's finished board kept them “busy”, so the request was dropped and the asker waited forever.
+- The first time multiplayer is on, a window asks who may see you: friends, group, guild. Until you have answered, nothing is announced. The guild is now part of the suggestion; before, two guild members only saw each other if both had found the switch.
+- Ending a session now reaches the other side: withdrawing a request removes its window, a request to someone who is busy is turned down at once, and a message for a session the other side does not have ends it instead of leaving one player waiting.
+- If both players ask each other at the same moment, one of the two requests wins automatically instead of both waiting.
+- Four in a Row: the colours are the same on both screens. The player who invited plays red, the invited player blue, and the board says which one you are.
+- Friends: if the friend list only knows a first name, the full name is looked up in the guild list, because direct messages need it.
+- For testing: `/pastime debug dump` shows what the game reports about your group, guild, friends and Battle.net friends, with all text masked; `/pastime debug dump klar` shows it in plain text.
+- The log no longer fills up with messages of other addons, so `/pastime report` shows the course of a multiplayer test.
+
+### Beta 2
+
+Multiplayer, second test version. Still switched off until both players type `/pastime mp`.
+
+- The player list now follows who is really online: it asks the game's own group, guild and friend lists instead of remembering players for a quarter of an hour. Someone who logs out or leaves the group disappears at once.
+- Friends are a third circle. Friends who are online and have Pastime with multiplayer appear in the list; there is a new switch “Visible to your friends”.
+- After each name a coloured tag shows where you know the player from: (F) friend, (P) party, (G) guild. Friend comes before party, party before guild.
+- Switching multiplayer off or hiding from a circle tells the others once, so you no longer show up as available.
+- For testing: `/pastime debug user First Last` asks a player for a game directly, even if they are not in the list. `/pastime report` then contains the course of the session, with player ids instead of names.
+- `/pastime debug test` asks whether to run quickly or with all sounds; closing its window cancels it.
+
+### Beta 1
+
+Multiplayer, first test version. It is switched off until both players type `/pastime mp`.
+
+- New tab “Multiplayer”: it lists players in your group (and, if you switch it on, your guild) who have Pastime with multiplayer on, with your record against them.
+- Ask a player for a game. They get a small window to accept or decline; then you choose the game.
+- First game: Four in a Row against another player. Only legal moves go through. The first game starts at random, in a rematch the loser begins.
+- Closing the board, reloading or ten idle minutes pause a game without counting it. Ask the same player again within ten minutes to continue where you stopped. Giving up counts as a loss.
+- A single-player game that is running when you accept waits and comes back afterwards.
+- Settings: multiplayer on or off, and whether your group and your guild see you.
+- Everything travels as invisible addon messages; nothing appears in chat.
